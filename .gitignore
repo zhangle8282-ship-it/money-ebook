@@ -1,0 +1,4 @@
+storage/
+public/uploads/
+app/config.local.php
+.DS_Store

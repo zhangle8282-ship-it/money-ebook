@@ -1,22 +1,38 @@
-   name: Deploy to Cafe24
-   on:
-     push:
-       branches: [ main ]
-   jobs:
-     ftp-deploy:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
-         - name: FTP 배포
-           uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-           with:
-             server: ${{ secrets.FTP_SERVER }}
-             username: ${{ secrets.FTP_USERNAME }}
-             password: ${{ secrets.FTP_PASSWORD }}
-             local-dir: ./
-             server-dir: /www/
-             exclude: |
-               **/.git*
-               **/.git*/**
-               **/.github/**
-               **/README.md
+name: Deploy to Cafe24
+on:
+  push:
+    branches: [ main ]
+jobs:
+  ftp-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # PHP 코드(app)는 웹에서 열리지 않도록 www 바깥(한 단계 위)에 올립니다.
+      # 서버에서 만든 config.local.php 는 지우거나 덮어쓰지 않습니다.
+      - name: 앱 코드 배포 (app → /app)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./app/
+          server-dir: /app/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            config.local.php
+
+      # 웹에 공개되는 파일(public)은 www 에 올립니다. 올린 표지·미리보기(uploads)는 건드리지 않습니다.
+      - name: 웹 파일 배포 (public → /www)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./public/
+          server-dir: /www/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            uploads/**
