@@ -6,6 +6,10 @@
   <a class="btn btn-primary" href="/admin/books/new">새 전자책 등록</a>
 </div>
 
+<?php if ($installerLeft): ?>
+<div class="alert" role="alert"><p>설치 도구(www/install.php)가 서버에 남아 있어요. 다른 사람이 쓰지 못하게 FTP로 지워 주세요.</p></div>
+<?php endif; ?>
+
 <?php if (!$bankReady || !$bizReady): ?>
 <section class="card setup-card">
   <h2>판매 전에 확인해 주세요</h2>

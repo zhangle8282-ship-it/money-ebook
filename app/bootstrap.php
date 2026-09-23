@@ -45,5 +45,9 @@ require APP_DIR . '/store.php';
 require APP_DIR . '/sanitize.php';
 require APP_DIR . '/files.php';
 require APP_DIR . '/epub.php';
+// 설치 도구(install.php)에는 같은 코드가 들어 있어 이미 불러왔을 수 있습니다.
+if (!function_exists('pkg_install')) {
+    require APP_DIR . '/package.php';
+}
 
 ensure_storage();

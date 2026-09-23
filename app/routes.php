@@ -49,6 +49,7 @@ function routes()
         array('GET', '~^/admin/reviews$~', 'admin_reviews'),
         array('POST', '~^/admin/reviews/(\d+)$~', 'admin_review_action'),
         array('GET|POST', '~^/admin/settings$~', 'admin_settings'),
+        array('POST', '~^/admin/update$~', 'admin_update'),
     );
 }
 

@@ -1,4 +1,7 @@
 storage/
 public/uploads/
 app/config.local.php
+app.bak-*/
+app.new-*/
+dist/
 .DS_Store

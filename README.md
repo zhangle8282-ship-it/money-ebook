@@ -13,7 +13,7 @@ php -d upload_max_filesize=200M -d post_max_size=210M -S localhost:8000 -t publi
 - 스토어: http://localhost:8000
 - 관리자: http://localhost:8000/admin → 처음 한 번은 관리자 계정을 만드는 화면이 나와요.
 - 예시 전자책 8권 넣기(선택): `php app/cli.php demo`
-- 관리자 비밀번호를 잊었을 때: `php app/cli.php reset-admin` → /admin 에서 새로 만들기
+- 관리자 비밀번호를 잊었을 때: `php app/cli.php reset-admin`(로컬) 또는 서버 `storage` 폴더에 빈 파일 `reset-admin`을 FTP로 올리고 /admin 에서 새로 만들기
 
 ## 판매 흐름 (무통장 입금)
 
@@ -39,7 +39,20 @@ public/     웹에 공개되는 폴더(index.php, assets, uploads)
 storage/    DB, 전자책 원본, 세션 — 웹에 공개하면 안 돼요
 ```
 
-## 카페24 배포
+## 설치 파일 만들기 (워드프레스처럼 설치)
+
+```bash
+php tools/build.php ~/Downloads/ebook-store-installer
+```
+
+- `ebook-store-<버전>.zip`, `install.php`, `설치방법.txt` 세 파일이 만들어져요(버전은 `app/VERSION`).
+- 처음 설치: 서버 `www`에 `install.php` 하나만 올리고 `https://도메인/install.php`를 열어,
+  설치 코드(설치방법.txt 맨 위)·스토어 이름·관리자 계정·입금 계좌를 넣고 zip을 올리면 자동으로 설치돼요.
+  설치가 끝나면 `install.php`는 스스로 지워지고, 관리자 계정이 있는 사이트에서는 동작하지 않아요.
+- 업데이트: 관리자 › 설정 › 프로그램 업데이트에서 새 zip을 올려요. 이전 프로그램은 서버의 `app.bak-날짜` 폴더에 최근 2개까지 보관돼요.
+- 새 버전을 낼 때는 `app/VERSION` 숫자를 올린 뒤 다시 만들어요.
+
+## 카페24 배포 (GitHub 자동 배포)
 
 `main`에 올리면 GitHub Actions(`.github/workflows/deploy.yml`)가 FTP로 자동 배포해요.
 

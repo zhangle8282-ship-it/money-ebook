@@ -16,6 +16,12 @@ function admin_login()
     if (strncmp($next, '/admin', 6) !== 0) {
         $next = '/admin';
     }
+    // 비밀번호를 잊었을 때: FTP로 storage 폴더에 reset-admin 이라는 빈 파일을 올리면
+    // 관리자 계정을 지우고 계정 만들기 화면을 다시 보여 줍니다(FTP 권한이 있는 사람만 가능).
+    $resetFile = STORAGE_DIR . '/reset-admin';
+    if (is_file($resetFile) && @unlink($resetFile)) {
+        q('DELETE FROM admins');
+    }
     if (current_admin()) {
         redirect($next);
     }
@@ -77,6 +83,11 @@ function admin_logout()
 function admin_dashboard()
 {
     require_admin();
+    // 설치 도구가 남아 있으면 지웁니다(못 지우면 대시보드에 안내).
+    $installer = PUBLIC_DIR . '/install.php';
+    if (is_file($installer)) {
+        @unlink($installer);
+    }
     $monthStart = date('Y-m-01 00:00:00');
     render_admin('dashboard', array(
         'title' => '대시보드',
@@ -88,6 +99,7 @@ function admin_dashboard()
         'pending' => admin_order_rows("o.status = 'pending'", array(), 8),
         'bankReady' => bank_ready(),
         'bizReady' => setting('biz_name') !== '' && setting('biz_number') !== '',
+        'installerLeft' => is_file($installer),
     ));
 }
 
@@ -235,6 +247,32 @@ function admin_review_action($id)
         q('DELETE FROM review_votes WHERE review_id = ?', array($review['id']));
         q('DELETE FROM reviews WHERE id = ?', array($review['id']));
         flash('리뷰를 삭제했어요.');
+    }
+    redirect($back);
+}
+
+/* ───────── 프로그램 업데이트 (새 버전 zip 올리기) ───────── */
+
+function admin_update()
+{
+    require_admin();
+    $back = '/admin/settings#update';
+    if (!$_POST && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        flash('올린 파일이 서버 한도(post_max_size ' . ini_get('post_max_size') . ')보다 커요.', 'error');
+        redirect($back);
+    }
+    require_csrf($back);
+    if (!has_upload('package') || upload_error($_FILES['package']) !== '') {
+        flash(has_upload('package') ? upload_error($_FILES['package']) : '설치 파일(zip)을 선택해 주세요.', 'error');
+        redirect($back);
+    }
+    $before = app_version();
+    $error = '';
+    $version = pkg_install($_FILES['package']['tmp_name'], ROOT_DIR, PUBLIC_DIR, $error);
+    if ($version === null) {
+        flash($error, 'error');
+    } else {
+        flash('버전 ' . $before . ' → ' . $version . ' 로 업데이트했어요. 이전 프로그램은 서버의 app.bak 폴더에 보관돼요.');
     }
     redirect($back);
 }

@@ -3,6 +3,11 @@
  * 공용 함수: 출력 이스케이프, 화면 렌더링, 요청·응답, 표시 형식.
  */
 
+function app_version()
+{
+    return trim((string) @file_get_contents(APP_DIR . '/VERSION'));
+}
+
 function config($key)
 {
     return $GLOBALS['config'][$key] ?? null;

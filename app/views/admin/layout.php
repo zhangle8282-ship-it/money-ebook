@@ -43,6 +43,7 @@ $menu = array(
       <a href="/" class="sidebar-back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>스토어로 돌아가기</a>
       <form method="post" action="/admin/logout"><?= csrf_field() ?><button type="submit" class="sidebar-logout"><?= e($admin['username']) ?> · 로그아웃</button></form>
+      <span class="sidebar-version">버전 <?= e(app_version()) ?></span>
     </div>
   </aside>
   <main id="main" class="admin-main">

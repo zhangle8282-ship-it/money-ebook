@@ -79,6 +79,21 @@ $text = function ($id, $label, $key, $opts = array()) use ($v) {
   </section>
 </form>
 
+<form method="post" action="/admin/update" enctype="multipart/form-data" class="card stack-lg settings" id="update" aria-labelledby="set-update"
+  data-confirm="프로그램을 새 버전으로 바꿀까요? 책·주문·회원 데이터는 그대로 유지돼요.">
+  <?= csrf_field() ?>
+  <div class="card-intro">
+    <h2 id="set-update">프로그램 업데이트</h2>
+    <p class="muted">지금 버전 <?= e(app_version()) ?> · 새 버전 설치 파일(zip)을 올리면 자동으로 바뀌어요. 책·주문·회원 데이터와 표지는 그대로예요.</p>
+  </div>
+  <div class="field">
+    <label for="pkg">설치 파일(zip)</label>
+    <input id="pkg" name="package" type="file" accept=".zip,application/zip" required class="file-input">
+    <span class="field-help">내려받은 ebook-store-버전.zip 파일을 압축을 풀지 않고 그대로 올려요. 이전 프로그램은 서버의 app.bak 폴더에 보관돼요.</span>
+  </div>
+  <div><button type="submit" class="btn btn-outline">업로드해서 업데이트</button></div>
+</form>
+
 <form method="post" action="/admin/settings" class="card stack-lg settings" aria-labelledby="set-pw">
   <?= csrf_field() ?>
   <input type="hidden" name="form" value="password">
