@@ -54,7 +54,7 @@ $store = setting('store_name');
   <div class="free-box">
     <div>
       <h2>무료로 운영해 보고 싶다면?</h2>
-      <p>추천인 코드로 이 사이트를 홍보해 보세요. 내 코드로 신청한 마켓 결제금액의 <strong><?= REFERRAL_RATE ?>%</strong>가 수익으로 쌓이고, 쌓인 수익은 출금 신청할 수 있어요. 추천인 코드는 신청 후 관리자가 승인하면 나와요.</p>
+      <p>추천인이 되어 내 홍보 링크로 이 사이트를 알려 보세요. 그 링크로 들어와 신청한 마켓 결제금액의 <strong><?= REFERRAL_RATE ?>%</strong>가 수익으로 쌓이고, 쌓인 수익은 출금 신청할 수 있어요. 추천인 코드는 신청 후 관리자가 승인하면 나와요.</p>
     </div>
     <a class="btn btn-primary" href="/market/referral">추천인 신청하기</a>
   </div>
@@ -103,10 +103,6 @@ $store = setting('store_name');
       <div class="field">
         <label for="depositor">입금자명 <span class="req" aria-hidden="true">*</span></label>
         <input id="depositor" name="depositor" type="text" maxlength="30" required value="<?= e($form['depositor']) ?>">
-      </div>
-      <div class="field">
-        <label for="referral_code">추천인 코드</label>
-        <input id="referral_code" name="referral_code" type="text" maxlength="20" autocomplete="off" placeholder="있으면 입력" value="<?= e($form['referral_code']) ?>" class="upper">
       </div>
     </div>
     <div class="pay-method">

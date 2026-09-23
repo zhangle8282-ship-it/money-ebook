@@ -5,7 +5,7 @@ $status = $ref ? $ref['status'] : '';
 <section class="market-hero wrap">
   <p class="eyebrow">나의 마켓</p>
   <h1 class="hero-title">추천하고 수익 받기</h1>
-  <p class="hero-text">내 추천인 코드로 이 사이트를 홍보하면, 그 코드로 신청한 마켓 결제금액의 <strong><?= REFERRAL_RATE ?>%</strong>가 내 수익으로 쌓여요. 수익으로 내 마켓 운영비를 채우거나 출금할 수 있어요.</p>
+  <p class="hero-text">내 홍보 링크로 이 사이트를 알리면, 그 링크로 들어와 신청한 마켓 결제금액의 <strong><?= REFERRAL_RATE ?>%</strong>가 내 수익으로 쌓여요. 수익으로 내 마켓 운영비를 채우거나 출금할 수 있어요.</p>
   <?= view('_market_tabs', array('tab' => 'referral')) ?>
 </section>
 
@@ -14,7 +14,7 @@ $status = $ref ? $ref['status'] : '';
   <ol class="steps">
     <li><strong>추천인 신청</strong><span>아래에서 신청하면 관리자가 확인해요.</span></li>
     <li><strong>승인되면 코드 발급</strong><span>나만의 추천인 코드와 홍보 링크가 생겨요.</span></li>
-    <li><strong>홍보하고 수익 받기</strong><span>내 코드로 신청한 마켓이 결제되면 <?= REFERRAL_RATE ?>%가 쌓이고, 출금 신청할 수 있어요.</span></li>
+    <li><strong>홍보하고 수익 받기</strong><span>내 홍보 링크로 신청한 마켓이 결제되면 <?= REFERRAL_RATE ?>%가 쌓이고, 출금 신청할 수 있어요.</span></li>
   </ol>
 <?php if ($status === 'rejected'): ?>
   <div class="alert" role="status"><p>지난 추천인 신청이 승인되지 않았어요.<?= trim((string) $ref['admin_memo']) !== '' ? ' 사유: ' . e($ref['admin_memo']) : '' ?> 내용을 보완해 다시 신청할 수 있어요.</p></div>
@@ -48,7 +48,7 @@ $status = $ref ? $ref['status'] : '';
       <span class="code-link" id="ref-link"><?= e($shareUrl) ?></span>
       <button type="button" class="btn-chip" data-copy="#ref-link">복사</button>
     </div>
-    <p class="muted">이 링크로 들어온 사람이 마켓 운영을 신청하면 코드가 자동으로 들어가요. 신청서에 코드를 직접 적어도 돼요.</p>
+    <p class="muted">이 홍보 링크로 들어온 사람이 30일 안에 마켓 운영을 신청하면 내 추천으로 잡혀요.</p>
   </div>
 
   <div class="stat-grid">
@@ -80,7 +80,7 @@ $status = $ref ? $ref['status'] : '';
     </table>
   </div>
 <?php else: ?>
-  <p class="empty-reviews">아직 내 코드로 가입한 상품이 없어요. 홍보 링크를 나눠 보세요.</p>
+  <p class="empty-reviews">아직 내 홍보 링크로 가입한 상품이 없어요. 홍보 링크를 나눠 보세요.</p>
 <?php endif; ?>
 
   <h2 class="block-title">출금 계좌</h2>

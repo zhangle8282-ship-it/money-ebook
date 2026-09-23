@@ -29,7 +29,6 @@ function page_market()
         'market_name' => str_cut(input('market_name'), 100, ''),
         'phone' => str_cut(input('phone'), 40, ''),
         'depositor' => input('depositor', $user ? $user['name'] : ''),
-        'referral_code' => strtoupper(input('referral_code', remembered_referral())),
     );
 
     if (is_post()) {
@@ -46,14 +45,10 @@ function page_market()
         if ($form['depositor'] === '' || str_len($form['depositor']) > 30) {
             $errors[] = '입금자명을 30자 이내로 입력해 주세요.';
         }
-        $referrer = null;
-        if ($form['referral_code'] !== '') {
-            $referrer = find_referrer_by_code($form['referral_code']);
-            if (!$referrer) {
-                $errors[] = '추천인 코드를 확인해 주세요. 활동 중인 코드만 쓸 수 있어요.';
-            } elseif ((int) $referrer['user_id'] === (int) $user['id']) {
-                $errors[] = '내 추천인 코드는 내 신청에 쓸 수 없어요.';
-            }
+        // 추천인은 홍보 링크(?ref=코드)로 들어온 경우에만 잡습니다. 활동 중이 아니거나 내 코드면 추천 없이 신청돼요.
+        $referrer = find_referrer_by_code(remembered_referral());
+        if ($referrer && (int) $referrer['user_id'] === (int) $user['id']) {
+            $referrer = null;
         }
         if (!bank_ready()) {
             $errors[] = '입금 계좌가 아직 준비되지 않았어요. 잠시 뒤에 다시 시도해 주세요.';
