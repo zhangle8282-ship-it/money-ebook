@@ -50,6 +50,17 @@ $text = function ($id, $label, $key, $opts = array()) use ($v) {
     </div>
   </section>
 
+  <section class="card stack-lg" id="reading" aria-labelledby="set-reading">
+    <div class="card-intro">
+      <h2 id="set-reading">읽기 방식</h2>
+      <p class="muted">구매자는 사이트 뷰어에서 PC·모바일·태블릿에 맞는 글자 크기로 읽어요. 읽던 위치는 계정에 저장돼 다른 기기에서도 이어져요.</p>
+    </div>
+    <label class="check-row">
+      <input type="checkbox" name="allow_download" value="1"<?= ($values['allow_download'] ?? '0') === '1' ? ' checked' : '' ?>>
+      <span>구매자가 EPUB·PDF 파일을 내려받을 수도 있게 하기<small>끄면 사이트 뷰어로만 읽을 수 있어요. (PDF는 뷰어가 파일을 불러와 보여 주므로 복사를 완전히 막지는 못해요)</small></span>
+    </label>
+  </section>
+
   <section class="card stack-lg" id="biz" aria-labelledby="set-biz">
     <div class="card-intro">
       <h2 id="set-biz">사업자 정보</h2>

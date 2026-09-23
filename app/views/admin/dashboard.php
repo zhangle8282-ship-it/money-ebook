@@ -20,6 +20,20 @@
 </section>
 <?php endif; ?>
 
+<?php if (array_sum($marketCounts)): ?>
+<section class="card setup-card">
+  <h2>마켓 운영에서 처리할 일</h2>
+  <ul class="checklist">
+<?php if ($marketCounts['applications']): ?>    <li><a href="/admin/market?status=pending">입금을 기다리는 마켓 운영 신청 <?= $marketCounts['applications'] ?>건</a></li>
+<?php endif; ?>
+<?php if ($marketCounts['referrers']): ?>    <li><a href="/admin/market/referrers?status=pending">승인을 기다리는 추천인 <?= $marketCounts['referrers'] ?>명</a></li>
+<?php endif; ?>
+<?php if ($marketCounts['withdrawals']): ?>    <li><a href="/admin/market/withdrawals?status=requested">처리할 출금 신청 <?= $marketCounts['withdrawals'] ?>건</a></li>
+<?php endif; ?>
+  </ul>
+</section>
+<?php endif; ?>
+
 <div class="stats">
   <a class="stat card" href="/admin/orders?status=pending"><span class="stat-label">입금 대기</span><strong class="stat-value"><?= $pendingCount ?>건</strong></a>
   <div class="stat card"><span class="stat-label">이번 달 매출</span><strong class="stat-value"><?= won($monthSales) ?></strong></div>

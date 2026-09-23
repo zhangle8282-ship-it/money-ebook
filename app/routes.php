@@ -6,6 +6,9 @@ require APP_DIR . '/pages/store.php';
 require APP_DIR . '/pages/account.php';
 require APP_DIR . '/pages/order.php';
 require APP_DIR . '/pages/review.php';
+require APP_DIR . '/pages/reader.php';
+require APP_DIR . '/pages/market.php';
+require APP_DIR . '/pages/admin_market.php';
 require APP_DIR . '/pages/admin.php';
 require APP_DIR . '/pages/admin_books.php';
 
@@ -35,6 +38,15 @@ function routes()
         array('POST', '~^/logout$~', 'action_logout'),
         array('GET', '~^/library$~', 'page_library'),
         array('GET', '~^/download/(\d+)$~', 'action_download'),
+        // 나의 마켓
+        array('GET|POST', '~^/market$~', 'page_market'),
+        array('POST', '~^/market/([0-9A-Z-]+)/cancel$~', 'action_market_cancel'),
+        array('GET|POST', '~^/market/referral$~', 'page_market_referral'),
+        // 뷰어
+        array('GET', '~^/read/(\d+)$~', 'page_reader'),
+        array('GET', '~^/read/(\d+)/file$~', 'action_reader_file'),
+        array('GET', '~^/read/(\d+)/asset$~', 'action_reader_asset'),
+        array('POST', '~^/read/(\d+)/progress$~', 'action_reader_progress'),
         // 관리자
         array('GET|POST', '~^/admin/login$~', 'admin_login'),
         array('POST', '~^/admin/logout$~', 'admin_logout'),
@@ -50,6 +62,12 @@ function routes()
         array('POST', '~^/admin/reviews/(\d+)$~', 'admin_review_action'),
         array('GET|POST', '~^/admin/settings$~', 'admin_settings'),
         array('POST', '~^/admin/update$~', 'admin_update'),
+        array('GET', '~^/admin/market$~', 'admin_market'),
+        array('POST', '~^/admin/market/(\d+)$~', 'admin_market_action'),
+        array('GET', '~^/admin/market/referrers$~', 'admin_referrers'),
+        array('POST', '~^/admin/market/referrers/(\d+)$~', 'admin_referrer_action'),
+        array('GET', '~^/admin/market/withdrawals$~', 'admin_withdrawals'),
+        array('POST', '~^/admin/market/withdrawals/(\d+)$~', 'admin_withdrawal_action'),
     );
 }
 
@@ -74,6 +92,7 @@ function page_health()
 
 function dispatch()
 {
+    capture_referral();
     $path = rawurldecode(current_path());
     if ($path !== '/') {
         $path = rtrim($path, '/');

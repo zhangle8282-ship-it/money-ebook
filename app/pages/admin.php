@@ -100,6 +100,7 @@ function admin_dashboard()
         'bankReady' => bank_ready(),
         'bizReady' => setting('biz_name') !== '' && setting('biz_number') !== '',
         'installerLeft' => is_file($installer),
+        'marketCounts' => market_pending_counts(),
     ));
 }
 
@@ -281,7 +282,7 @@ function admin_update()
 
 const SETTING_FIELDS = array(
     'store_name', 'hero_title', 'hero_text', 'categories',
-    'bank_name', 'bank_account', 'bank_holder', 'deposit_days',
+    'bank_name', 'bank_account', 'bank_holder', 'deposit_days', 'allow_download',
     'biz_name', 'biz_owner', 'biz_number', 'biz_mail_order', 'biz_address', 'biz_phone', 'biz_email',
     'terms_text', 'privacy_text',
 );
@@ -316,6 +317,7 @@ function admin_settings()
             $values[$key] = str_replace("\r\n", "\n", input($key));
         }
         $values['deposit_days'] = (string) max(1, min(14, (int) $values['deposit_days']));
+        $values['allow_download'] = $values['allow_download'] === '1' ? '1' : '0';
         if ($values['store_name'] === '') {
             $errors[] = '스토어 이름을 입력해 주세요.';
         }

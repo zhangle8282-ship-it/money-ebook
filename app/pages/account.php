@@ -99,13 +99,20 @@ function page_library()
         $o['items'] = order_items($o['id']);
     }
     unset($o);
-    render('library', array('title' => '내 서재', 'user' => $user, 'owned' => $owned, 'orders' => $orders));
+    render('library', array(
+        'title' => '내 서재', 'user' => $user, 'owned' => $owned, 'orders' => $orders,
+        'percents' => reading_percents($user['id']),
+    ));
 }
 
 function action_download($bookId)
 {
     $book = find_book($bookId);
     $admin = current_admin();
+    if (!$admin && !downloads_allowed()) {
+        flash('이 스토어의 전자책은 사이트 뷰어로 읽어요.', 'info');
+        redirect('/read/' . (int) $bookId);
+    }
     if (!$admin) {
         $user = require_user();
         if (!$book || !user_owns_book($user['id'], $book['id'])) {

@@ -16,6 +16,8 @@ function default_settings()
         'bank_account' => '',
         'bank_holder' => '',
         'deposit_days' => '3',
+        // 구매자가 파일을 내려받게 할지(0이면 사이트 뷰어로만 읽기)
+        'allow_download' => '0',
         'biz_name' => '',
         'biz_owner' => '',
         'biz_number' => '',
@@ -23,7 +25,7 @@ function default_settings()
         'biz_address' => '',
         'biz_phone' => '',
         'biz_email' => '',
-        'terms_text' => "제1조 (목적)\n이 약관은 스토어가 제공하는 전자책 판매 서비스의 이용 조건과 절차를 정합니다.\n\n제2조 (결제)\n결제는 무통장 입금으로 진행되며, 입금이 확인된 뒤 내 서재에서 전자책을 내려받을 수 있습니다. 입금 기한이 지나면 주문이 취소될 수 있습니다.\n\n제3조 (청약철회)\n전자책은 디지털 콘텐츠 특성상 다운로드한 뒤에는 청약철회가 제한됩니다. 다운로드 전이라면 결제일로부터 7일 이내에 환불을 요청할 수 있습니다.\n\n[사업자 정보와 약관 내용을 실제 운영에 맞게 수정하세요]",
+        'terms_text' => "제1조 (목적)\n이 약관은 스토어가 제공하는 전자책 판매 서비스의 이용 조건과 절차를 정합니다.\n\n제2조 (결제)\n결제는 무통장 입금으로 진행되며, 입금이 확인된 뒤 내 서재에서 전자책을 바로 읽을 수 있습니다. 입금 기한이 지나면 주문이 취소될 수 있습니다.\n\n제3조 (청약철회)\n전자책은 디지털 콘텐츠 특성상 열람(읽기)이나 다운로드를 시작한 뒤에는 청약철회가 제한됩니다. 열람 전이라면 결제일로부터 7일 이내에 환불을 요청할 수 있습니다.\n\n[사업자 정보와 약관 내용을 실제 운영에 맞게 수정하세요]",
         'privacy_text' => "1. 수집하는 개인정보\n회원가입과 주문 처리를 위해 이메일, 이름, 입금자명을 수집합니다.\n\n2. 이용 목적\n회원 식별, 주문·입금 확인, 전자책 제공, 문의 응대에 사용합니다.\n\n3. 보관 기간\n회원 탈퇴 시 지체 없이 파기합니다. 다만 전자상거래법에 따라 계약·결제 기록은 5년간 보관합니다.\n\n4. 문의\n개인정보 관련 문의는 고객센터 이메일로 보내 주세요.\n\n[실제 운영 내용에 맞게 수정하세요]",
     );
 }
@@ -371,4 +373,43 @@ function book_reviews($bookId, $sort, $limit, $userId)
 function user_review($bookId, $userId)
 {
     return q_one('SELECT * FROM reviews WHERE book_id = ? AND user_id = ?', array((int) $bookId, (int) $userId));
+}
+
+/* ───────── 뷰어 · 읽던 위치 ───────── */
+
+function downloads_allowed()
+{
+    return setting('allow_download') === '1';
+}
+
+/** 읽던 위치: ['c' => 장, 'r' => 장 안 비율] (EPUB) 또는 ['p' => 쪽] (PDF), 'percent' 포함. 없으면 null */
+function reading_progress($userId, $bookId)
+{
+    $row = q_one('SELECT position, percent FROM reading_progress WHERE user_id = ? AND book_id = ?', array((int) $userId, (int) $bookId));
+    if (!$row) {
+        return null;
+    }
+    $pos = json_decode($row['position'], true);
+    $pos = is_array($pos) ? $pos : array();
+    $pos['percent'] = (int) $row['percent'];
+    return $pos;
+}
+
+function save_reading_progress($userId, $bookId, $position, $percent)
+{
+    q('DELETE FROM reading_progress WHERE user_id = ? AND book_id = ?', array((int) $userId, (int) $bookId));
+    q_insert('reading_progress', array(
+        'user_id' => (int) $userId, 'book_id' => (int) $bookId, 'position' => json_encode($position),
+        'percent' => max(0, min(100, (int) $percent)), 'updated_at' => now(),
+    ));
+}
+
+/** 회원의 책별 읽은 비율(%) */
+function reading_percents($userId)
+{
+    $map = array();
+    foreach (q_all('SELECT book_id, percent FROM reading_progress WHERE user_id = ?', array((int) $userId)) as $r) {
+        $map[(int) $r['book_id']] = (int) $r['percent'];
+    }
+    return $map;
 }

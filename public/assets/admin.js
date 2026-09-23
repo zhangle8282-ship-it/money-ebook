@@ -10,6 +10,10 @@
     var message = event.target.getAttribute('data-confirm');
     if (message && !window.confirm(message)) event.preventDefault();
   });
+  document.addEventListener('click', function (event) {
+    var btn = event.target.closest('[data-confirm-click]');
+    if (btn && !window.confirm(btn.getAttribute('data-confirm-click'))) event.preventDefault();
+  });
 
   var form = document.getElementById('book-form');
   if (!form) return;

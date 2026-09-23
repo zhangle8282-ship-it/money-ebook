@@ -83,10 +83,45 @@ function migrate(PDO $pdo)
 
     $pdo->exec('CREATE TABLE IF NOT EXISTS settings (k VARCHAR(64) NOT NULL PRIMARY KEY, v ' . $long . ')' . $tail);
     $version = (int) $pdo->query("SELECT v FROM settings WHERE k = 'schema_version'")->fetchColumn();
-    if ($version >= 1) {
-        return;
+    if ($version < 1) {
+        migrate_v1($pdo, $id, $long, $tail, $sqlite);
     }
+    if ($version < 2) {
+        // 2: 뷰어에서 읽던 위치(기기가 달라도 이어 읽기)
+        $pdo->exec('CREATE TABLE IF NOT EXISTS reading_progress (
+            user_id INT NOT NULL, book_id INT NOT NULL, position VARCHAR(255) NOT NULL DEFAULT \'\',
+            percent INT NOT NULL DEFAULT 0, updated_at VARCHAR(19) NOT NULL, PRIMARY KEY (user_id, book_id))' . $tail);
+        $pdo->prepare("UPDATE settings SET v = '2' WHERE k = 'schema_version'")->execute();
+    }
+    if ($version < 3) {
+        // 3: 나의 마켓(마켓 운영 신청) · 추천인 · 출금
+        $pdo->exec("CREATE TABLE IF NOT EXISTS market_applications (
+            id $id, app_no VARCHAR(32) NOT NULL UNIQUE, user_id INT NOT NULL,
+            months INT NOT NULL, monthly_price INT NOT NULL, discount INT NOT NULL DEFAULT 0, total INT NOT NULL,
+            domain VARCHAR(190) NOT NULL DEFAULT '', market_name VARCHAR(100) NOT NULL DEFAULT '', phone VARCHAR(40) NOT NULL DEFAULT '',
+            depositor VARCHAR(60) NOT NULL, referrer_user_id INT NULL, referral_code VARCHAR(20) NOT NULL DEFAULT '',
+            commission INT NOT NULL DEFAULT 0, status VARCHAR(12) NOT NULL DEFAULT 'pending',
+            bank_name VARCHAR(60) NOT NULL DEFAULT '', bank_account VARCHAR(60) NOT NULL DEFAULT '', bank_holder VARCHAR(60) NOT NULL DEFAULT '',
+            admin_note TEXT, starts_at VARCHAR(10) NULL, ends_at VARCHAR(10) NULL,
+            created_at VARCHAR(19) NOT NULL, paid_at VARCHAR(19) NULL, cancelled_at VARCHAR(19) NULL)" . $tail);
+        $pdo->exec("CREATE TABLE IF NOT EXISTS referrers (
+            user_id INT NOT NULL PRIMARY KEY, code VARCHAR(20) NULL UNIQUE, status VARCHAR(12) NOT NULL DEFAULT 'pending',
+            intro TEXT, admin_memo TEXT, bank_name VARCHAR(60) NOT NULL DEFAULT '', bank_account VARCHAR(60) NOT NULL DEFAULT '',
+            bank_holder VARCHAR(60) NOT NULL DEFAULT '', created_at VARCHAR(19) NOT NULL, decided_at VARCHAR(19) NULL)" . $tail);
+        $pdo->exec("CREATE TABLE IF NOT EXISTS withdrawals (
+            id $id, user_id INT NOT NULL, amount INT NOT NULL, bank_name VARCHAR(60) NOT NULL, bank_account VARCHAR(60) NOT NULL,
+            bank_holder VARCHAR(60) NOT NULL, status VARCHAR(12) NOT NULL DEFAULT 'requested', admin_memo TEXT,
+            created_at VARCHAR(19) NOT NULL, processed_at VARCHAR(19) NULL)" . $tail);
+        $pdo->exec('CREATE INDEX idx_market_user ON market_applications (user_id)');
+        $pdo->exec('CREATE INDEX idx_market_referrer ON market_applications (referrer_user_id, status)');
+        $pdo->exec('CREATE INDEX idx_withdrawals_user ON withdrawals (user_id, status)');
+        $pdo->prepare("UPDATE settings SET v = '3' WHERE k = 'schema_version'")->execute();
+    }
+}
 
+/** 1: 처음 만드는 표들 */
+function migrate_v1(PDO $pdo, $id, $long, $tail, $sqlite)
+{
     $tables = array(
         "CREATE TABLE admins (
             id $id, username VARCHAR(64) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, created_at VARCHAR(19) NOT NULL)",

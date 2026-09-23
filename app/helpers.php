@@ -230,3 +230,13 @@ function cover_html($book, $size = 'card')
         . '<span class="cover-title">' . e($book['title']) . '</span>'
         . '<span class="cover-author">' . e($book['author']) . '</span></div>';
 }
+
+/** 받침에 맞는 조사: josa('전자책 마켓', '과', '와') → '전자책 마켓과' */
+function josa($word, $withFinal, $withoutFinal)
+{
+    $word = (string) $word;
+    $last = function_exists('mb_substr') ? mb_substr($word, -1, 1, 'UTF-8') : '';
+    $code = $last !== '' && function_exists('mb_ord') ? mb_ord($last, 'UTF-8') : 0;
+    $hasFinal = $code >= 0xAC00 && $code <= 0xD7A3 ? ($code - 0xAC00) % 28 > 0 : false;
+    return $word . ($hasFinal ? $withFinal : $withoutFinal);
+}

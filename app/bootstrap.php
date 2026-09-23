@@ -42,6 +42,7 @@ require APP_DIR . '/helpers.php';
 require APP_DIR . '/db.php';
 require APP_DIR . '/auth.php';
 require APP_DIR . '/store.php';
+require APP_DIR . '/market.php';
 require APP_DIR . '/sanitize.php';
 require APP_DIR . '/files.php';
 require APP_DIR . '/epub.php';
