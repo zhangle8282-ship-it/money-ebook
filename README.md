@@ -13,7 +13,7 @@ php -d upload_max_filesize=200M -d post_max_size=210M -S localhost:8000 -t publi
 - 스토어: http://localhost:8000
 - 관리자: http://localhost:8000/admin → 처음 한 번은 관리자 계정을 만드는 화면이 나와요.
 - 예시 전자책 8권 넣기(선택): `php app/cli.php demo`
-- 관리자 비밀번호를 잊었을 때: `php app/cli.php reset-admin`(로컬) 또는 서버 `storage` 폴더에 빈 파일 `reset-admin`을 FTP로 올리고 /admin 에서 새로 만들기
+- 관리자 비밀번호를 잊었을 때: `php app/cli.php reset-admin`(로컬) 또는 GitHub → Actions → **관리자 계정 초기화** → Run workflow(서버 `storage`에 빈 파일 `reset-admin`을 올려 줘요) 뒤 /admin 에서 새로 만들기
 
 ## 판매 흐름 (무통장 입금)
 

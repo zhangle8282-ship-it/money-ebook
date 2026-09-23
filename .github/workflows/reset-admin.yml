@@ -1,0 +1,24 @@
+name: 관리자 계정 초기화
+# 관리자 비밀번호를 잊었을 때: GitHub → Actions → "관리자 계정 초기화" → Run workflow
+# 서버 storage 폴더에 빈 reset-admin 파일을 올립니다. 그다음 /admin 에 들어가면
+# 관리자 계정이 지워지고 "관리자 계정 만들기" 화면이 나와요. 책·주문·회원 데이터는 그대로예요.
+# 파일이 올라가 있는 동안 /admin 에 먼저 들어온 사람이 계정을 만들 수 있으니, 실행한 뒤 바로 새 계정을 만드세요.
+on:
+  workflow_dispatch:
+
+jobs:
+  reset-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: storage 폴더에 reset-admin 올리기
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          : > reset-admin
+          HOST="${FTP_SERVER#ftp://}"
+          HOST="${HOST%/}"
+          curl --fail --silent --show-error --ftp-create-dirs --user "${FTP_USERNAME}:${FTP_PASSWORD}" \
+            -T reset-admin "ftp://${HOST}/storage/reset-admin"
+          echo "올렸어요. 이제 /admin 에 들어가 관리자 계정을 새로 만드세요."
