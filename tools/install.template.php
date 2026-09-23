@@ -57,6 +57,7 @@ function inst_page($title, $body)
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title><?= inst_h($title) ?> · 전자책 스토어 설치</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232E5E4E'/%3E%3Cpath d='M32 19.5c-5.2-3.6-11.6-4.6-18-3.6v29c6.4-1 12.8 0 18 3.6 5.2-3.6 11.6-4.6 18-3.6v-29c-6.4-1-12.8 0-18 3.6z' fill='%23F6F4EF'/%3E%3Cpath d='M32 20v28' stroke='%232E5E4E' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@700&display=swap">
 <style>
 *,*::before,*::after{box-sizing:border-box}
