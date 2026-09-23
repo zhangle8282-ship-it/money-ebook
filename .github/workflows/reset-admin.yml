@@ -5,20 +5,34 @@ name: 관리자 계정 초기화
 # 파일이 올라가 있는 동안 /admin 에 먼저 들어온 사람이 계정을 만들 수 있으니, 실행한 뒤 바로 새 계정을 만드세요.
 on:
   workflow_dispatch:
+    inputs:
+      only_check:
+        description: '파일은 올리지 않고 storage 폴더만 확인'
+        type: boolean
+        default: false
 
 jobs:
   reset-admin:
     runs-on: ubuntu-latest
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
     steps:
       - name: storage 폴더에 reset-admin 올리기
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        if: ${{ !inputs.only_check }}
         run: |
           : > reset-admin
-          HOST="${FTP_SERVER#ftp://}"
-          HOST="${HOST%/}"
+          HOST="${FTP_SERVER#ftp://}"; HOST="${HOST%/}"
           curl --fail --silent --show-error --ftp-create-dirs --user "${FTP_USERNAME}:${FTP_PASSWORD}" \
             -T reset-admin "ftp://${HOST}/storage/reset-admin"
           echo "올렸어요. 이제 /admin 에 들어가 관리자 계정을 새로 만드세요."
+
+      # 폴더 이름과 권한만 보여 줍니다(세션 폴더 안은 보지 않아요).
+      - name: 올라간 위치 확인
+        run: |
+          HOST="${FTP_SERVER#ftp://}"; HOST="${HOST%/}"
+          echo "== 최상위 폴더 =="
+          curl --silent --show-error --user "${FTP_USERNAME}:${FTP_PASSWORD}" "ftp://${HOST}/"
+          echo "== storage 폴더 =="
+          curl --silent --show-error --user "${FTP_USERNAME}:${FTP_PASSWORD}" "ftp://${HOST}/storage/"
