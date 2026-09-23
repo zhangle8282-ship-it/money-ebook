@@ -36,7 +36,7 @@ $tabs = array('' => '전체') + BOOK_STATUS;
         <div class="sub"><?= book_has_preview($b) ? ($b['preview_mode'] === 'manual' ? '직접 입력' : '앞 ' . (count(book_preview_images($b)) ?: (int) $b['preview_pages']) . '쪽') : '<span class="warn">미리보기 없음</span>' ?></div></td>
       <td class="num"><?= (int) $b['sold'] ?>권<div class="sub"><?= $b['review_count'] ? '★ ' . number_format($b['avg_rating'], 1) . ' (' . (int) $b['review_count'] . ')' : '리뷰 없음' ?></div></td>
       <td><span class="status book-<?= e($b['status']) ?>"><?= e(BOOK_STATUS[$b['status']]) ?></span>
-        <div class="sub"><a href="/books/<?= (int) $b['id'] ?>" target="_blank" rel="noopener">스토어에서 보기</a></div></td>
+        <div class="sub"><a href="/books/<?= (int) $b['id'] ?>" target="_blank" rel="noopener">스토어</a><?php if ($b['file_format'] !== ''): ?> · <a href="/read/<?= (int) $b['id'] ?>" target="_blank" rel="noopener">뷰어</a><?php endif; ?></div></td>
     </tr>
 <?php endforeach; ?>
   </tbody>

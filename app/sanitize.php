@@ -96,3 +96,125 @@ function unwrap_element(DOMNode $el)
     }
     $parent->removeChild($el);
 }
+
+/* ───────── 뷰어 본문 ───────── */
+
+// 뷰어에 남길 태그와 허용 속성(나머지 속성·EPUB 자체 CSS는 지우고 사이트 글꼴로 다시 그립니다)
+const READER_TAGS = array(
+    'p' => array(), 'br' => array(), 'h2' => array(), 'h3' => array(), 'hr' => array(),
+    'strong' => array(), 'b' => array(), 'em' => array(), 'i' => array(), 'u' => array(), 's' => array(),
+    'sup' => array(), 'sub' => array(), 'small' => array(), 'blockquote' => array(), 'pre' => array(), 'code' => array(),
+    'ul' => array(), 'ol' => array('start'), 'li' => array(), 'dl' => array(), 'dt' => array(), 'dd' => array(),
+    'table' => array(), 'thead' => array(), 'tbody' => array(), 'tfoot' => array(), 'tr' => array(), 'caption' => array(),
+    'th' => array('colspan', 'rowspan'), 'td' => array('colspan', 'rowspan'),
+    'figure' => array(), 'figcaption' => array(), 'img' => array('src', 'alt'), 'a' => array('href'),
+);
+const READER_RENAME = array('h1' => 'h2', 'h4' => 'h3', 'h5' => 'h3', 'h6' => 'h3');
+const READER_DROP = array('script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'select', 'textarea',
+    'noscript', 'template', 'svg', 'math', 'link', 'meta', 'head', 'title', 'video', 'audio', 'nav');
+
+/**
+ * EPUB 장 HTML 정리. $rewrite($kind, $value): kind 는 src|href|id, 바꾼 값을 돌려주고 null 이면 지웁니다.
+ * (img 는 통째로, a 는 글자만 남기고, id 는 속성만)
+ */
+function sanitize_reader_html($html, $rewrite)
+{
+    $html = trim((string) $html);
+    if ($html === '') {
+        return '';
+    }
+    $doc = dom_from_html($html);
+    $root = $doc->getElementsByTagName('div')->item(0);
+    if (!$root) {
+        return '';
+    }
+    reader_children($doc, $root, $rewrite);
+    $out = '';
+    foreach ($root->childNodes as $child) {
+        $out .= $doc->saveHTML($child);
+    }
+    return trim($out);
+}
+
+function reader_children(DOMDocument $doc, DOMNode $parent, $rewrite)
+{
+    $children = array();
+    foreach ($parent->childNodes as $c) {
+        $children[] = $c;
+    }
+    foreach ($children as $node) {
+        if ($node instanceof DOMText) {
+            continue;
+        }
+        if (!($node instanceof DOMElement)) {
+            $parent->removeChild($node);
+            continue;
+        }
+        $tag = strtolower($node->localName ?: $node->nodeName);
+        if (in_array($tag, READER_DROP, true)) {
+            $parent->removeChild($node);
+            continue;
+        }
+        if (array_key_exists($tag, READER_RENAME)) {
+            $id = $node->getAttribute('id');
+            $node = rename_element($doc, $node, READER_RENAME[$tag]);
+            if ($id !== '') {
+                $node->setAttribute('id', $id);
+            }
+            $tag = READER_RENAME[$tag];
+        }
+        reader_children($doc, $node, $rewrite);
+        $id = $node->getAttribute('id');
+        if (!array_key_exists($tag, READER_TAGS)) {
+            // 알 수 없는 태그(div, span, section 등)는 벗기되, 링크 목적지가 될 수 있는 id 는 빈 표식으로 남깁니다.
+            if ($id !== '') {
+                $mark = $doc->createElement('a');
+                $mark->setAttribute('id', $rewrite('id', $id));
+                $parent->insertBefore($mark, $node);
+            }
+            unwrap_element($node);
+            continue;
+        }
+        $allowed = READER_TAGS[$tag];
+        $remove = array();
+        foreach ($node->attributes as $attr) {
+            if (!in_array(strtolower($attr->name), $allowed, true)) {
+                $remove[] = $attr->name;
+            }
+        }
+        foreach ($remove as $name) {
+            $node->removeAttribute($name);
+        }
+        if ($id !== '') {
+            $node->setAttribute('id', $rewrite('id', $id));
+        }
+        if ($tag === 'img') {
+            $src = $rewrite('src', $node->getAttribute('src'));
+            if ($src === null) {
+                $parent->removeChild($node);
+                continue;
+            }
+            $node->setAttribute('src', $src);
+            $node->setAttribute('loading', 'lazy');
+        } elseif ($tag === 'a' && $node->hasAttribute('href')) {
+            $href = $rewrite('href', $node->getAttribute('href'));
+            if ($href === null) {
+                $node->removeAttribute('href');
+            } else {
+                $node->setAttribute('href', $href);
+                if (preg_match('~^https?:~i', $href)) {
+                    $node->setAttribute('target', '_blank');
+                    $node->setAttribute('rel', 'noopener noreferrer');
+                }
+            }
+        }
+        if (($tag === 'ol') && $node->hasAttribute('start') && !ctype_digit($node->getAttribute('start'))) {
+            $node->removeAttribute('start');
+        }
+        foreach (array('colspan', 'rowspan') as $n) {
+            if ($node->hasAttribute($n) && !ctype_digit($node->getAttribute($n))) {
+                $node->removeAttribute($n);
+            }
+        }
+    }
+}

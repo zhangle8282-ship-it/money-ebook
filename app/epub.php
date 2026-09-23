@@ -64,17 +64,17 @@ function epub_extract($path, $maxChars)
     return array('html' => sanitize_preview_html($html), 'total_chars' => $total);
 }
 
-/** container.xml → OPF → spine 순서의 본문 파일 경로 목록. */
-function epub_spine(ZipArchive $zip)
+/** container.xml → OPF 를 읽어 파일 목록(manifest)·읽는 순서(spine)·목차 파일을 돌려줍니다. */
+function epub_package(ZipArchive $zip)
 {
     $container = $zip->getFromName('META-INF/container.xml');
     if ($container === false || !preg_match('/full-path\s*=\s*"([^"]+)"/', $container, $m)) {
-        return array();
+        return null;
     }
     $opfPath = $m[1];
     $opf = $zip->getFromName($opfPath);
     if ($opf === false) {
-        return array();
+        return null;
     }
     $prev = libxml_use_internal_errors(true);
     $doc = new DOMDocument();
@@ -82,21 +82,26 @@ function epub_spine(ZipArchive $zip)
     libxml_clear_errors();
     libxml_use_internal_errors($prev);
     if (!$loaded) {
-        return array();
+        return null;
     }
     $base = dirname($opfPath);
     $base = $base === '.' ? '' : $base . '/';
 
     $manifest = array();
+    $nav = '';
+    $ncx = '';
     foreach ($doc->getElementsByTagNameNS('*', 'item') as $item) {
+        $href = epub_resolve($base . rawurldecode(strtok($item->getAttribute('href'), '#')));
+        $type = $item->getAttribute('media-type');
         $props = ' ' . $item->getAttribute('properties') . ' ';
-        $manifest[$item->getAttribute('id')] = array(
-            'href' => $item->getAttribute('href'),
-            'type' => $item->getAttribute('media-type'),
-            'nav' => strpos($props, ' nav ') !== false,
-        );
+        $manifest[$item->getAttribute('id')] = array('href' => $href, 'type' => $type, 'nav' => strpos($props, ' nav ') !== false);
+        if (strpos($props, ' nav ') !== false) {
+            $nav = $href;
+        } elseif ($type === 'application/x-dtbncx+xml') {
+            $ncx = $href;
+        }
     }
-    $files = array();
+    $spine = array();
     foreach ($doc->getElementsByTagNameNS('*', 'itemref') as $ref) {
         $item = $manifest[$ref->getAttribute('idref')] ?? null;
         if (!$item || $item['nav'] || $ref->getAttribute('linear') === 'no') {
@@ -105,9 +110,152 @@ function epub_spine(ZipArchive $zip)
         if ($item['type'] !== '' && strpos($item['type'], 'html') === false) {
             continue;
         }
-        $files[] = epub_resolve($base . rawurldecode(strtok($item['href'], '#')));
+        $spine[] = $item['href'];
     }
-    return $files;
+    return array('spine' => $spine, 'nav' => $nav, 'ncx' => $ncx);
+}
+
+/** spine 순서의 본문 파일 경로 목록. */
+function epub_spine(ZipArchive $zip)
+{
+    $pkg = epub_package($zip);
+    return $pkg ? $pkg['spine'] : array();
+}
+
+/** 뷰어용으로 EPUB 을 엽니다. 반환: ['zip' => ZipArchive, 'spine' => [...], ...] 또는 null */
+function epub_open($path)
+{
+    if (!class_exists('ZipArchive') || !is_file($path)) {
+        return null;
+    }
+    $zip = new ZipArchive();
+    if ($zip->open($path) !== true) {
+        return null;
+    }
+    $pkg = epub_package($zip);
+    if (!$pkg || !$pkg['spine']) {
+        $zip->close();
+        return null;
+    }
+    $pkg['zip'] = $zip;
+    return $pkg;
+}
+
+/** 목차 파일(EPUB3 nav 또는 EPUB2 ncx)에서 본문 파일 → 제목. */
+function epub_toc_titles($epub)
+{
+    $titles = array();
+    $zip = $epub['zip'];
+    if ($epub['nav'] !== '' && ($xhtml = $zip->getFromName($epub['nav'])) !== false) {
+        $doc = dom_from_html(preg_match('~<body\b[^>]*>(.*)</body>~is', $xhtml, $m) ? $m[1] : $xhtml);
+        $navs = $doc->getElementsByTagName('nav');
+        $toc = $navs->length ? $navs->item(0) : null;
+        foreach ($navs as $n) {
+            if (strpos((string) $n->getAttribute('epub:type'), 'toc') !== false) {
+                $toc = $n;
+                break;
+            }
+        }
+        if ($toc) {
+            $dir = dirname($epub['nav']);
+            foreach ($toc->getElementsByTagName('a') as $a) {
+                $href = epub_resolve(($dir === '.' ? '' : $dir . '/') . rawurldecode(strtok($a->getAttribute('href'), '#')));
+                $title = trim(preg_replace('/\s+/u', ' ', $a->textContent));
+                if ($title !== '' && !isset($titles[$href])) {
+                    $titles[$href] = $title;
+                }
+            }
+        }
+    } elseif ($epub['ncx'] !== '' && ($ncx = $zip->getFromName($epub['ncx'])) !== false) {
+        $prev = libxml_use_internal_errors(true);
+        $doc = new DOMDocument();
+        if ($doc->loadXML($ncx, LIBXML_NONET)) {
+            $dir = dirname($epub['ncx']);
+            foreach ($doc->getElementsByTagNameNS('*', 'navPoint') as $point) {
+                $label = $point->getElementsByTagNameNS('*', 'text')->item(0);
+                $content = $point->getElementsByTagNameNS('*', 'content')->item(0);
+                if (!$label || !$content) {
+                    continue;
+                }
+                $href = epub_resolve(($dir === '.' ? '' : $dir . '/') . rawurldecode(strtok($content->getAttribute('src'), '#')));
+                $title = trim(preg_replace('/\s+/u', ' ', $label->textContent));
+                if ($title !== '' && !isset($titles[$href])) {
+                    $titles[$href] = $title;
+                }
+            }
+        }
+        libxml_clear_errors();
+        libxml_use_internal_errors($prev);
+    }
+    return $titles;
+}
+
+/** 뷰어 목차: spine 순서대로 [['title' => ...], ...]. 한 번 만든 목록은 storage/cache 에 보관합니다. */
+function epub_chapters($epub, $path)
+{
+    $cache = STORAGE_DIR . '/cache/toc-' . md5($path . '|' . @filemtime($path)) . '.json';
+    $cached = is_file($cache) ? json_decode((string) file_get_contents($cache), true) : null;
+    if (is_array($cached) && count($cached) === count($epub['spine'])) {
+        return $cached;
+    }
+    $titles = epub_toc_titles($epub);
+    $list = array();
+    foreach ($epub['spine'] as $i => $href) {
+        $title = $titles[$href] ?? '';
+        if ($title === '') {
+            $xhtml = (string) $epub['zip']->getFromName($href);
+            if (preg_match('~<h[1-3]\b[^>]*>(.*?)</h[1-3]>~is', $xhtml, $m)) {
+                $title = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+            }
+        }
+        $list[] = array('title' => $title !== '' ? str_cut($title, 60) : '본문 ' . ($i + 1));
+    }
+    if (!is_dir(STORAGE_DIR . '/cache')) {
+        @mkdir(STORAGE_DIR . '/cache', 0755, true);
+    }
+    @file_put_contents($cache, json_encode($list, JSON_UNESCAPED_UNICODE));
+    return $list;
+}
+
+/** 뷰어에 보여 줄 장 하나의 HTML. 그림은 /read/{책}/asset 로, 다른 장 링크는 ?c= 로 바꿉니다. */
+function epub_chapter_html($epub, $index, $bookId)
+{
+    $href = $epub['spine'][$index];
+    $xhtml = $epub['zip']->getFromName($href);
+    if ($xhtml === false) {
+        return '';
+    }
+    $body = preg_match('~<body\b[^>]*>(.*)</body>~is', $xhtml, $m) ? $m[1] : $xhtml;
+    $dir = dirname($href);
+    $dir = $dir === '.' ? '' : $dir . '/';
+    $zip = $epub['zip'];
+    $spine = array_flip($epub['spine']);
+    $rewrite = function ($kind, $value) use ($dir, $zip, $spine, $href, $bookId) {
+        if ($kind === 'id') {
+            return 'e-' . preg_replace('/[^A-Za-z0-9_-]/', '_', $value);
+        }
+        if (preg_match('~^(https?:|mailto:)~i', $value)) {
+            return $kind === 'href' ? $value : null;
+        }
+        if (preg_match('~^[a-z][a-z0-9+.-]*:~i', $value)) {
+            return null;
+        }
+        $parts = explode('#', $value, 2);
+        $frag = isset($parts[1]) && $parts[1] !== '' ? '#e-' . preg_replace('/[^A-Za-z0-9_-]/', '_', rawurldecode($parts[1])) : '';
+        $target = $parts[0] === '' ? $href : epub_resolve($dir . rawurldecode($parts[0]));
+        if ($kind === 'src') {
+            $ext = strtolower(pathinfo($target, PATHINFO_EXTENSION));
+            if (!in_array($ext, array('jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'), true) || $zip->locateName($target) === false) {
+                return null;
+            }
+            return '/read/' . (int) $bookId . '/asset?p=' . rawurlencode($target);
+        }
+        if ($target === $href) {
+            return $frag !== '' ? $frag : null;
+        }
+        return isset($spine[$target]) ? '?c=' . ($spine[$target] + 1) . $frag : null;
+    };
+    return sanitize_reader_html($body, $rewrite);
 }
 
 /** a/b/../c.xhtml → a/c.xhtml */

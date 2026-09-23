@@ -17,11 +17,11 @@ $status = $order['status'];
       <div><dt>입금 기한</dt><dd><?= e(fmt_date($order['due_at'], 'Y.m.d')) ?>까지</dd></div>
     </dl>
   </div>
-  <p class="muted">입금이 확인되면 <a href="/library">내 서재</a>에서 바로 내려받을 수 있어요. 기한이 지나면 주문이 취소될 수 있어요.</p>
+  <p class="muted">입금이 확인되면 <a href="/library">내 서재</a>에서 바로 읽을 수 있어요. 기한이 지나면 주문이 취소될 수 있어요.</p>
 <?php elseif ($status === 'paid'): ?>
   <p class="eyebrow ok">결제 완료</p>
   <h1 class="page-title">입금이 확인됐어요</h1>
-  <p class="muted">아래에서 바로 내려받거나, 언제든 <a href="/library">내 서재</a>에서 다시 받을 수 있어요.</p>
+  <p class="muted">아래에서 바로 읽거나, 언제든 <a href="/library">내 서재</a>에서 이어서 읽을 수 있어요.</p>
 <?php else: ?>
   <p class="eyebrow muted-eyebrow">주문 취소</p>
   <h1 class="page-title">취소된 주문이에요</h1>
@@ -41,7 +41,7 @@ $status = $order['status'];
         <span class="line-sub"><?= e($it['author']) ?><?= $it['file_format'] ? ' · ' . e($it['file_format']) : '' ?></span>
       </div>
 <?php if ($status === 'paid' && $it['book_exists']): ?>
-      <a class="btn btn-primary btn-sm" href="/download/<?= (int) $it['book_id'] ?>">다운로드</a>
+      <a class="btn btn-primary btn-sm" href="/read/<?= (int) $it['book_id'] ?>">읽기</a>
 <?php else: ?>
       <span class="line-price"><?= won($it['price']) ?></span>
 <?php endif; ?>

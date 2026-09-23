@@ -52,8 +52,10 @@ if ($book['preview_mode'] === 'manual') {
     </dl>
     <div class="buy-actions">
 <?php if ($owned): ?>
-      <a class="btn btn-primary btn-lg" href="/download/<?= (int) $book['id'] ?>">다운로드</a>
-      <a class="btn btn-outline btn-lg" href="/library">내 서재</a>
+      <a class="btn btn-primary btn-lg" href="/read/<?= (int) $book['id'] ?>">바로 읽기</a>
+<?php if (downloads_allowed()): ?>      <a class="btn btn-outline btn-lg" href="/download/<?= (int) $book['id'] ?>">다운로드</a>
+<?php else: ?>      <a class="btn btn-outline btn-lg" href="/library">내 서재</a>
+<?php endif; ?>
 <?php elseif ($pendingNo): ?>
       <a class="btn btn-primary btn-lg" href="/orders/<?= e($pendingNo) ?>">입금 대기 중 · 주문 보기</a>
 <?php else: ?>
@@ -109,11 +111,11 @@ if ($book['preview_mode'] === 'manual') {
       <aside class="buy-box" aria-label="구매 안내">
 <?php if ($owned): ?>
         <div class="buy-box-title">이미 구매한 책이에요</div>
-        <p>내 서재에서 언제든 다시 내려받을 수 있어요.</p>
-        <a class="btn btn-primary" href="/download/<?= (int) $book['id'] ?>">다운로드</a>
+        <p>PC, 모바일, 태블릿 어디서든 읽던 곳부터 이어서 읽을 수 있어요.</p>
+        <a class="btn btn-primary" href="/read/<?= (int) $book['id'] ?>">바로 읽기</a>
 <?php else: ?>
         <div class="buy-box-title">계속 읽고 싶다면</div>
-        <p>입금이 확인되면 내 서재에서 바로 내려받아 PC, 모바일, 태블릿에서 읽을 수 있어요.</p>
+        <p>입금이 확인되면 PC, 모바일, 태블릿 어디서든 사이트 뷰어로 바로 읽을 수 있어요.</p>
         <div class="buy-box-price"><span>판매가</span><strong><?= won($book['price']) ?></strong></div>
 <?php if ($pendingNo): ?>
         <a class="btn btn-primary" href="/orders/<?= e($pendingNo) ?>">입금 대기 중 · 주문 보기</a>
