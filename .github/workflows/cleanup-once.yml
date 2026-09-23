@@ -1,0 +1,19 @@
+name: 정리 (한 번만)
+# www 안에 잘못 만들어진 storage 폴더(빈 reset-admin 파일)를 지웁니다. 실행 후 이 파일은 삭제합니다.
+on:
+  workflow_dispatch:
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+    steps:
+      - name: www/storage 지우기
+        run: |
+          HOST="${FTP_SERVER#ftp://}"; HOST="${HOST%/}"
+          curl --silent --show-error --user "${FTP_USERNAME}:${FTP_PASSWORD}" \
+            -Q "DELE /www/storage/reset-admin" -Q "RMD /www/storage" "ftp://${HOST}/%2Fwww/" -o /dev/null
+          echo "== www 폴더 =="
+          curl --silent --show-error --list-only --user "${FTP_USERNAME}:${FTP_PASSWORD}" "ftp://${HOST}/%2Fwww/"

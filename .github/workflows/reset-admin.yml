@@ -1,8 +1,10 @@
 name: 관리자 계정 초기화
 # 관리자 비밀번호를 잊었을 때: GitHub → Actions → "관리자 계정 초기화" → Run workflow
-# 서버 storage 폴더에 빈 reset-admin 파일을 올립니다. 그다음 /admin 에 들어가면
+# 서버 storage 폴더(www 바깥)에 빈 reset-admin 파일을 올립니다. 그다음 /admin 에 들어가면
 # 관리자 계정이 지워지고 "관리자 계정 만들기" 화면이 나와요. 책·주문·회원 데이터는 그대로예요.
 # 파일이 올라가 있는 동안 /admin 에 먼저 들어온 사람이 계정을 만들 수 있으니, 실행한 뒤 바로 새 계정을 만드세요.
+#
+# 카페24 FTP는 접속하면 www 폴더에서 시작하므로, 주소에 %2F 를 붙여 최상위(/)부터 가리킵니다.
 on:
   workflow_dispatch:
     inputs:
@@ -24,8 +26,8 @@ jobs:
         run: |
           : > reset-admin
           HOST="${FTP_SERVER#ftp://}"; HOST="${HOST%/}"
-          curl --fail --silent --show-error --ftp-create-dirs --user "${FTP_USERNAME}:${FTP_PASSWORD}" \
-            -T reset-admin "ftp://${HOST}/storage/reset-admin"
+          curl --fail --silent --show-error --user "${FTP_USERNAME}:${FTP_PASSWORD}" \
+            -T reset-admin "ftp://${HOST}/%2Fstorage/reset-admin"
           echo "올렸어요. 이제 /admin 에 들어가 관리자 계정을 새로 만드세요."
 
       # 폴더 이름과 권한만 보여 줍니다(세션 폴더 안은 보지 않아요).
@@ -33,6 +35,6 @@ jobs:
         run: |
           HOST="${FTP_SERVER#ftp://}"; HOST="${HOST%/}"
           echo "== 최상위 폴더 =="
-          curl --silent --show-error --user "${FTP_USERNAME}:${FTP_PASSWORD}" "ftp://${HOST}/"
+          curl --silent --show-error --user "${FTP_USERNAME}:${FTP_PASSWORD}" "ftp://${HOST}/%2F"
           echo "== storage 폴더 =="
-          curl --silent --show-error --user "${FTP_USERNAME}:${FTP_PASSWORD}" "ftp://${HOST}/storage/"
+          curl --silent --show-error --user "${FTP_USERNAME}:${FTP_PASSWORD}" "ftp://${HOST}/%2Fstorage/"
