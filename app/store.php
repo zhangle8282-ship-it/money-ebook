@@ -77,7 +77,7 @@ function bank_ready()
     return setting('bank_name') !== '' && setting('bank_account') !== '' && setting('bank_holder') !== '';
 }
 
-/** 푸터에 보일 사업자 정보 한 줄(전자상거래법 표시 사항). */
+/** 푸터에 보일 사업자 정보(전자상거래법 표시 사항). 반환: [[설정 키, 항목 이름, 값], ...] */
 function business_lines()
 {
     $parts = array();
@@ -87,7 +87,7 @@ function business_lines()
     );
     foreach ($labels as $key => $label) {
         if (setting($key) !== '') {
-            $parts[] = $label . ' ' . setting($key);
+            $parts[] = array($key, $label, setting($key));
         }
     }
     return $parts;

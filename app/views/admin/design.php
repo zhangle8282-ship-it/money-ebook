@@ -131,7 +131,11 @@ $mainPresets = array('#F6F4EF' => '기본 미색', '#FFFFFF' => '흰색', '#F4F6
           <p class="dp-text">구매 전에 본문 일부를 무료로 미리 읽어볼 수 있어요.</p>
           <div class="dp-cards"><i></i><i></i><i></i></div>
         </div>
-        <div class="dp-footer">© <?= e($store) ?> · 이용약관 · 개인정보처리방침</div>
+<?php $dpBiz = array_slice(business_lines(), 0, 3); ?>
+        <div class="dp-footer">
+          <div class="dp-foot-top"><b><?= e($store) ?></b><span>이용약관 · 개인정보처리방침</span></div>
+          <div class="dp-foot-biz"><?php if ($dpBiz): foreach ($dpBiz as $i => $b): ?><?= $i ? ' | ' : '' ?><?= e($b[1] . ' ' . $b[2]) ?><?php endforeach; ?> …<?php else: ?>상호 · 대표 · 사업자등록번호 …<?php endif; ?></div>
+        </div>
       </div>
       <p class="field-help">실제 화면은 저장한 뒤 <a href="/" target="_blank" rel="noopener">스토어</a>에서 확인하세요.</p>
     </section>

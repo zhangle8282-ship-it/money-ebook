@@ -56,16 +56,22 @@ $biz = business_lines();
 </main>
 <footer class="site-footer">
   <div class="wrap footer-inner">
-    <div class="footer-info">
-      <span>© <?= e($store) ?><?= $biz ? '' : ' · [사업자 정보]' ?></span>
-<?php if ($biz): ?>      <span class="footer-biz"><?= e(implode(' · ', $biz)) ?></span>
-<?php endif; ?>
+    <div class="footer-top">
+      <a class="footer-name" href="/"><?= e($store) ?></a>
+      <nav class="footer-links" aria-label="안내">
+        <a href="/terms">이용약관</a>
+        <a href="/privacy"><strong>개인정보처리방침</strong></a>
+        <a href="/admin">관리자</a>
+      </nav>
     </div>
-    <nav class="footer-links" aria-label="안내">
-      <a href="/terms">이용약관</a>
-      <a href="/privacy">개인정보처리방침</a>
-      <a href="/admin">관리자</a>
-    </nav>
+<?php if ($biz): ?>
+    <ul class="footer-biz" aria-label="사업자 정보">
+<?php foreach ($biz as $b): ?>
+      <li class="biz-<?= e(str_replace('biz_', '', $b[0])) ?>"><span class="biz-label"><?= e($b[1]) ?></span> <?= e($b[2]) ?></li>
+<?php endforeach; ?>
+    </ul>
+<?php endif; ?>
+    <p class="footer-copy">© <?= date('Y') ?> <?= e($store) ?>. All rights reserved.</p>
   </div>
 </footer>
 <script src="/assets/store.js?v=<?= @filemtime(PUBLIC_DIR . '/assets/store.js') ?>" defer></script>

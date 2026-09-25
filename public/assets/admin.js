@@ -335,3 +335,35 @@
     HTMLFormElement.prototype.submit.call(form);
   });
 })();
+
+// 설정 › 사업자 정보: 스토어 하단(푸터) 미리보기
+(function () {
+  var box = document.getElementById('footer-preview');
+  if (!box) return;
+  var form = box.closest('form');
+  var fields = [
+    ['biz_name', '상호'], ['biz_owner', '대표'], ['biz_number', '사업자등록번호'], ['biz_mail_order', '통신판매업 신고'],
+    ['biz_address', '주소'], ['biz_phone', '고객센터'], ['biz_email', '이메일']
+  ];
+  var list = box.querySelector('[data-fp-biz]');
+  function render() {
+    list.textContent = '';
+    fields.forEach(function (f) {
+      var input = form.querySelector('[name="' + f[0] + '"]');
+      var value = input ? input.value.trim() : '';
+      if (!value) return;
+      var li = document.createElement('li');
+      var label = document.createElement('span');
+      label.className = 'fp-label';
+      label.textContent = f[1];
+      li.appendChild(label);
+      li.appendChild(document.createTextNode(' ' + value));
+      list.appendChild(li);
+    });
+    list.hidden = !list.children.length;
+    var name = form.querySelector('[name="store_name"]');
+    box.querySelectorAll('[data-fp-name]').forEach(function (el) { el.textContent = name ? name.value.trim() : ''; });
+  }
+  form.addEventListener('input', render);
+  render();
+})();

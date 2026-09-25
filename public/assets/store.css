@@ -123,7 +123,8 @@ img { max-width: 100%; }
 .book-card-title { font-size: calc(16px * var(--main-scale)); font-weight: 600; color: var(--ink); text-decoration: none; word-break: keep-all; }
 .book-card-author { font-size: calc(14px * var(--main-scale)); color: var(--sub); }
 .book-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: calc(14px * var(--main-scale)); color: var(--sub); }
-.book-card-meta .price { font-size: calc(16px * var(--main-scale)); font-weight: 600; color: var(--ink); }
+.book-card-meta .price { font-size: calc(16px * var(--main-scale)); font-weight: 600; color: var(--ink); white-space: nowrap; flex-shrink: 0; }
+.book-card-meta > :first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .star { color: var(--star); }
 
 .pager { display: flex; justify-content: center; gap: 6px; }
@@ -334,12 +335,18 @@ a.line-title:hover { color: var(--accent); }
 
 /* ── 푸터 ── */
 .site-footer { border-top: 1px solid var(--footer-line); background: var(--footer-bg); color: var(--footer-sub); font-family: var(--footer-font); }
-.footer-inner { padding-top: 32px; padding-bottom: 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: calc(13px * var(--footer-scale)); color: var(--footer-sub); }
-.footer-info { display: flex; flex-direction: column; gap: 6px; }
-.footer-biz { line-height: 1.6; }
-.footer-links { display: flex; gap: 20px; }
-.footer-links a { color: var(--footer-sub); }
-.footer-links a:hover { color: var(--footer-fg); }
+.footer-inner { padding-top: 36px; padding-bottom: 36px; font-size: calc(13px * var(--footer-scale)); line-height: 1.6; color: var(--footer-sub); }
+.footer-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 32px; padding-bottom: 20px; border-bottom: 1px solid var(--footer-line); }
+.footer-name { font-family: var(--logo-font); font-size: calc(18px * var(--footer-scale)); font-weight: 700; letter-spacing: -.01em; color: var(--footer-fg); text-decoration: none; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 6px 24px; }
+.footer-links a { color: var(--footer-sub); text-decoration: none; white-space: nowrap; }
+.footer-links a strong { font-weight: 600; color: var(--footer-fg); }
+.footer-links a:hover { color: var(--footer-fg); text-decoration: underline; text-underline-offset: 3px; }
+.footer-biz { list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-wrap: wrap; row-gap: 4px; }
+.footer-biz li { white-space: nowrap; }
+.footer-biz li:not(:last-child)::after { content: ''; display: inline-block; width: 1px; height: .85em; margin: 0 12px; background: var(--footer-line); vertical-align: -1px; }
+.footer-biz .biz-label { margin-right: 4px; opacity: .72; }
+.footer-copy { margin: 14px 0 0; font-size: calc(12px * var(--footer-scale)); opacity: .8; }
 
 /* ── 좁은 화면 ── */
 @media (max-width: 1100px) {
@@ -381,7 +388,10 @@ a.line-title:hover { color: var(--accent); }
   .reader { padding: 28px 22px; font-size: calc(17px * var(--main-scale)); }
   .reader-pages { padding: 12px; }
   .review-write { padding: 20px; }
-  .footer-inner { flex-direction: column; align-items: flex-start; }
+  .footer-top { flex-direction: column; align-items: flex-start; }
+  .footer-biz { display: block; }
+  .footer-biz li { white-space: normal; }
+  .footer-biz li::after { display: none !important; }
   .order-row { grid-template-columns: minmax(0, 1fr) auto; }
   .order-date { grid-column: 1 / -1; }
   .page-title { font-size: calc(24px * var(--main-scale)); }

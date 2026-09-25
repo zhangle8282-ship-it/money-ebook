@@ -92,7 +92,7 @@ $text = function ($id, $label, $key, $opts = array()) use ($v) {
   <section class="card stack-lg" id="biz" aria-labelledby="set-biz">
     <div class="card-intro">
       <h2 id="set-biz">사업자 정보</h2>
-      <p class="muted">온라인으로 판매할 때 화면 하단에 표시해야 하는 정보예요(전자상거래법).</p>
+      <p class="muted">온라인으로 판매할 때 화면 하단(푸터)에 표시해야 하는 정보예요(전자상거래법). 적은 항목만 보이고, 빈칸은 빠져요.</p>
     </div>
     <div class="grid-2">
       <?= $text('s-biz-name', '상호', 'biz_name') ?>
@@ -102,7 +102,27 @@ $text = function ($id, $label, $key, $opts = array()) use ($v) {
       <?= $text('s-biz-phone', '고객센터 전화', 'biz_phone') ?>
       <?= $text('s-biz-email', '고객센터 이메일', 'biz_email') ?>
     </div>
-    <?= $text('s-biz-address', '사업장 주소', 'biz_address') ?>
+    <?= $text('s-biz-address', '사업장 주소', 'biz_address', array('placeholder' => '예: 경기도 화성시 동탄구 동탄감배산로 143, 202동 1901호')) ?>
+<?php
+    $footerDesign = design();
+    $footerColors = area_colors($footerDesign['design_footer_bg']);
+    $fpStyle = '--fp-bg:' . $footerDesign['design_footer_bg'] . ';--fp-fg:' . $footerColors['fg'] . ';--fp-sub:' . $footerColors['sub'] . ';--fp-line:' . $footerColors['line']
+        . ';--fp-font:' . font_stack($footerDesign['design_footer_font']) . ';--fp-logo-font:' . font_stack($footerDesign['design_logo_font']);
+?>
+    <div class="field">
+      <span class="field-label-strong">스토어 하단(푸터) 미리보기</span>
+      <link rel="stylesheet" href="<?= e(design_fonts_url()) ?>">
+      <style><?= font_face_css() ?></style>
+      <div class="footer-preview" id="footer-preview" style="<?= e($fpStyle) ?>">
+        <div class="fp-top">
+          <strong class="fp-name" data-fp-name><?= $v('store_name') ?></strong>
+          <span class="fp-links"><span>이용약관</span><b>개인정보처리방침</b><span>관리자</span></span>
+        </div>
+        <ul class="fp-biz" data-fp-biz></ul>
+        <p class="fp-copy">© <?= date('Y') ?> <span data-fp-name><?= $v('store_name') ?></span>. All rights reserved.</p>
+      </div>
+      <p class="field-help">입력하는 대로 바로 바뀌어요. 색·글씨체는 <a href="/admin/design">디자인</a>에서 정해요.</p>
+    </div>
   </section>
 
   <section class="card stack-lg" aria-labelledby="set-docs">
