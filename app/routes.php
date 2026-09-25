@@ -9,6 +9,7 @@ require APP_DIR . '/pages/review.php';
 require APP_DIR . '/pages/reader.php';
 require APP_DIR . '/pages/market.php';
 require APP_DIR . '/pages/admin_market.php';
+require APP_DIR . '/pages/seller.php';
 require APP_DIR . '/pages/admin.php';
 require APP_DIR . '/pages/admin_books.php';
 
@@ -41,7 +42,14 @@ function routes()
         // 나의 마켓
         array('GET|POST', '~^/market$~', 'page_market'),
         array('POST', '~^/market/([0-9A-Z-]+)/cancel$~', 'action_market_cancel'),
+        array('POST', '~^/market/([0-9A-Z-]+)/hosting$~', 'action_market_hosting'),
         array('GET|POST', '~^/market/referral$~', 'page_market_referral'),
+        // 오픈마켓(판매자)
+        array('GET|POST', '~^/market/sell$~', 'page_seller_home'),
+        array('GET|POST', '~^/market/sell/new$~', 'seller_book_form'),
+        array('GET|POST', '~^/market/sell/(\d+)/edit$~', 'seller_book_form'),
+        array('POST', '~^/market/sell/(\d+)/delete$~', 'seller_book_delete'),
+        array('GET', '~^/market/sell/(\d+)/file$~', 'seller_book_file'),
         // 뷰어
         array('GET', '~^/read/(\d+)$~', 'page_reader'),
         array('GET', '~^/read/(\d+)/file$~', 'action_reader_file'),
@@ -56,6 +64,7 @@ function routes()
         array('GET|POST', '~^/admin/books/(\d+)/edit$~', 'admin_book_form'),
         array('POST', '~^/admin/books/(\d+)/delete$~', 'admin_book_delete'),
         array('GET', '~^/admin/books/(\d+)/file$~', 'admin_book_file'),
+        array('POST', '~^/admin/books/(\d+)/review$~', 'admin_book_review'),
         array('GET', '~^/admin/orders$~', 'admin_orders'),
         array('POST', '~^/admin/orders/(\d+)/status$~', 'admin_order_status'),
         array('GET', '~^/admin/reviews$~', 'admin_reviews'),

@@ -27,7 +27,7 @@ $tabs = array('' => '전체') + BOOK_STATUS;
       <td>
         <div class="book-cell">
           <?= cover_html($b, 'thumb') ?>
-          <div><a href="/admin/books/<?= (int) $b['id'] ?>/edit" class="strong"><?= e($b['title']) ?></a><div class="sub"><?= e($b['author'] !== '' ? $b['author'] : '저자 미입력') ?></div></div>
+          <div><a href="/admin/books/<?= (int) $b['id'] ?>/edit" class="strong"><?= e($b['title']) ?></a><div class="sub"><?= e($b['author'] !== '' ? $b['author'] : '저자 미입력') ?><?= $b['seller_name'] ? ' · 판매자 ' . e($b['seller_name']) : '' ?></div></div>
         </div>
       </td>
       <td><?= e($b['category'] !== '' ? $b['category'] : '-') ?></td>

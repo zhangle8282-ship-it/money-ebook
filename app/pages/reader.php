@@ -25,7 +25,8 @@ function reader_access($id, $page)
         flash('로그인하면 구매한 책을 바로 읽을 수 있어요.', 'info');
         redirect('/login?next=' . rawurlencode('/read/' . (int) $book['id']));
     }
-    if (!user_owns_book($user['id'], $book['id'])) {
+    $isSeller = (int) ($book['seller_user_id'] ?? 0) === (int) $user['id'];
+    if (!$isSeller && !user_owns_book($user['id'], $book['id'])) {
         if (!$page) {
             json_out(array('error' => '구매한 책만 읽을 수 있어요.'), 403);
         }

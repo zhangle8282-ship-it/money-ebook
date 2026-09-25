@@ -3,7 +3,9 @@
 $store = setting('store_name');
 $flash = flash();
 $pendingBadge = (int) q_value("SELECT COUNT(*) FROM orders WHERE status = 'pending'");
-$marketBadge = array_sum(market_pending_counts());
+$counts = market_pending_counts();
+$bookBadge = $counts['reviews'];
+$marketBadge = $counts['applications'] + $counts['referrers'] + $counts['withdrawals'];
 $menu = array(
     'dashboard' => array('/admin', '대시보드', '<rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect>'),
     'books' => array('/admin/books', '전자책 관리', '<path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"></path><path d="M4 19a2 2 0 0 0 2 2h13"></path>'),
@@ -41,6 +43,7 @@ $menu = array(
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $m[2] ?></svg><?= e($m[1]) ?>
 <?php if ($key === 'orders' && $pendingBadge): ?>        <span class="nav-badge" aria-label="입금 대기 <?= $pendingBadge ?>건"><?= $pendingBadge ?></span>
 <?php elseif ($key === 'market' && $marketBadge): ?>        <span class="nav-badge" aria-label="처리할 일 <?= $marketBadge ?>건"><?= $marketBadge ?></span>
+<?php elseif ($key === 'books' && $bookBadge): ?>        <span class="nav-badge" aria-label="승인 대기 <?= $bookBadge ?>권"><?= $bookBadge ?></span>
 <?php endif; ?>
       </a>
 <?php endforeach; ?>

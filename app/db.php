@@ -117,6 +117,27 @@ function migrate(PDO $pdo)
         $pdo->exec('CREATE INDEX idx_withdrawals_user ON withdrawals (user_id, status)');
         $pdo->prepare("UPDATE settings SET v = '3' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 4) {
+        // 4: 나의 마켓을 기간제에서 솔루션 판매로(상품 종류, 설치용 호스팅 정보), 오픈마켓(판매자 입점)
+        $pdo->exec("ALTER TABLE market_applications ADD COLUMN product VARCHAR(20) NOT NULL DEFAULT ''");
+        // 설치용 서버호스팅 정보(비밀번호는 암호화해서 저장)
+        $pdo->exec("ALTER TABLE market_applications ADD COLUMN hosting_url VARCHAR(255) NOT NULL DEFAULT ''");
+        $pdo->exec("ALTER TABLE market_applications ADD COLUMN hosting_id VARCHAR(100) NOT NULL DEFAULT ''");
+        $pdo->exec('ALTER TABLE market_applications ADD COLUMN hosting_pw TEXT NULL');
+        // 오픈마켓: 회원이 올린 전자책(판매자), 판매 시점의 수수료·판매자 몫, 판매 정산 출금
+        $pdo->exec('ALTER TABLE books ADD COLUMN seller_user_id INT NULL');
+        $pdo->exec('ALTER TABLE books ADD COLUMN review_memo TEXT NULL');
+        $pdo->exec('ALTER TABLE order_items ADD COLUMN seller_user_id INT NULL');
+        $pdo->exec('ALTER TABLE order_items ADD COLUMN commission_rate INT NOT NULL DEFAULT 0');
+        $pdo->exec('ALTER TABLE order_items ADD COLUMN seller_amount INT NOT NULL DEFAULT 0');
+        $pdo->exec("ALTER TABLE withdrawals ADD COLUMN kind VARCHAR(12) NOT NULL DEFAULT 'referral'");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS sellers (
+            user_id INT NOT NULL PRIMARY KEY, bank_name VARCHAR(60) NOT NULL DEFAULT '', bank_account VARCHAR(60) NOT NULL DEFAULT '',
+            bank_holder VARCHAR(60) NOT NULL DEFAULT '', created_at VARCHAR(19) NOT NULL)" . $tail);
+        $pdo->exec('CREATE INDEX idx_books_seller ON books (seller_user_id)');
+        $pdo->exec('CREATE INDEX idx_items_seller ON order_items (seller_user_id)');
+        $pdo->prepare("UPDATE settings SET v = '4' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

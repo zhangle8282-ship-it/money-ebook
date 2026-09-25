@@ -1,8 +1,10 @@
 <?php
-/** 관리자 · 전자책 등록/수정 (디자인: 관리자 · 전자책 등록). */
+/** 전자책 등록/수정 (디자인: 관리자 · 전자책 등록). 관리자와 오픈마켓 판매자가 함께 씁니다. 변수: $mode(admin|seller), $urls, $seller */
 $isEdit = (bool) $book;
+$isSeller = $mode === 'seller';
 $images = book_preview_images($form);
-$action = $isEdit ? '/admin/books/' . (int) $book['id'] . '/edit' : '/admin/books/new';
+$action = $urls['action'];
+$status = $isEdit ? $book['status'] : 'draft';
 $currentPreview = '';
 if ($isEdit && book_has_preview($form)) {
     $currentPreview = $form['preview_mode'] === 'manual' ? '직접 입력한 본문' : ($images ? '앞 ' . count($images) . '쪽 (PDF 이미지)' : '앞 ' . (int) $form['preview_pages'] . '쪽 분량 (EPUB 본문)');
@@ -10,6 +12,7 @@ if ($isEdit && book_has_preview($form)) {
 ?>
 <form method="post" action="<?= e($action) ?>" enctype="multipart/form-data" id="book-form" class="book-form" novalidate
   data-book-id="<?= $isEdit ? (int) $book['id'] : '' ?>"
+  data-file-url="<?= e($urls['file']) ?>"
   data-format="<?= e($form['file_format']) ?>"
   data-orig-mode="<?= e($isEdit ? $book['preview_mode'] : '') ?>"
   data-orig-pages="<?= $isEdit ? (int) $book['preview_pages'] : '' ?>"
@@ -20,20 +23,44 @@ if ($isEdit && book_has_preview($form)) {
 
   <div class="page-head">
     <div class="page-head-text">
-      <span class="crumb"><a href="/admin/books">전자책 관리</a> / <?= $isEdit ? '수정' : '새 전자책 등록' ?></span>
+      <span class="crumb"><a href="<?= e($urls['list']) ?>"><?= $isSeller ? '내 전자책 판매' : '전자책 관리' ?></a> / <?= $isEdit ? '수정' : '새 전자책 등록' ?></span>
       <h1><?= $isEdit ? e($book['title']) : '새 전자책 등록' ?>
 <?php if ($isEdit): ?>        <span class="status book-<?= e($book['status']) ?>"><?= e(BOOK_STATUS[$book['status']]) ?></span>
 <?php endif; ?></h1>
     </div>
     <div class="head-actions">
-<?php if ($isEdit): ?>      <a class="btn btn-ghost" href="/books/<?= (int) $book['id'] ?>" target="_blank" rel="noopener">스토어에서 보기</a>
+<?php if ($isEdit): ?>      <a class="btn btn-ghost" href="/books/<?= (int) $book['id'] ?>" target="_blank" rel="noopener"><?= $status === 'on_sale' ? '스토어에서 보기' : '미리 보기' ?></a>
 <?php endif; ?>
       <button type="submit" name="intent" value="draft" class="btn btn-outline">임시저장</button>
+<?php if ($isSeller): ?>
+      <button type="submit" name="intent" value="save" class="btn btn-primary"><?= $status === 'on_sale' ? '고치고 다시 승인 요청' : '승인 요청' ?></button>
+<?php else: ?>
       <button type="submit" name="intent" value="save" class="btn btn-primary"><?= $isEdit && $book['status'] !== 'draft' ? '저장하기' : '등록하기' ?></button>
+<?php endif; ?>
     </div>
   </div>
 
   <div class="form-status" role="status" aria-live="polite" hidden></div>
+<?php if ($isSeller): ?>
+  <div class="review-banner review-<?= e($status) ?>">
+<?php if ($status === 'review'): ?>    <strong>승인 대기 중</strong> 관리자가 확인하고 승인하면 스토어에서 판매돼요.
+<?php elseif ($status === 'rejected'): ?>    <strong>반려됐어요</strong> <?= trim((string) $book['review_memo']) !== '' ? '사유: ' . e($book['review_memo']) . ' · ' : '' ?>고친 뒤 다시 승인 요청해 주세요.
+<?php elseif ($status === 'on_sale'): ?>    <strong>판매 중</strong> 내용을 고치고 승인 요청하면 다시 승인될 때까지 스토어에서 잠시 내려가요.
+<?php else: ?>    <strong>판매 수수료 <?= seller_commission() ?>%</strong> 책을 올리고 승인 요청하면 관리자가 확인한 뒤 판매를 시작해요. 판매되면 판매가에서 수수료를 뺀 금액이 정산돼요.
+<?php endif; ?>
+  </div>
+<?php elseif ($seller): ?>
+  <div class="review-banner review-<?= e($status) ?>">
+    <strong>회원이 올린 책</strong> 판매자 <?= e($seller['name']) ?> (<?= e($seller['email']) ?>) · 지금 상태: <?= e(BOOK_STATUS[$status]) ?>
+<?php if ($status === 'review' || $status === 'rejected'): ?>
+    <div class="review-actions">
+      <button type="submit" form="review-approve" class="btn btn-primary btn-sm">승인하고 판매 시작</button>
+      <input type="text" form="review-reject" name="review_memo" maxlength="500" placeholder="반려 사유(판매자에게 보여요)" aria-label="반려 사유" value="<?= e((string) $book['review_memo']) ?>">
+      <button type="submit" form="review-reject" class="btn btn-ghost btn-sm">반려</button>
+    </div>
+<?php endif; ?>
+  </div>
+<?php endif; ?>
 <?php if ($errors): ?>
   <div class="alert" role="alert">
 <?php foreach ($errors as $err): ?>    <p><?= e($err) ?></p>
@@ -153,6 +180,7 @@ if ($isEdit && book_has_preview($form)) {
         <p class="field-help">최대 <?= (int) config('max_book_mb') ?>MB · 서버 업로드 한도 <?= e(ini_get('upload_max_filesize')) ?></p>
       </section>
 
+<?php if (!$isSeller): ?>
       <section class="card switch-card">
         <div>
           <label for="f-publish" class="switch-label">판매 중으로 공개</label>
@@ -160,11 +188,12 @@ if ($isEdit && book_has_preview($form)) {
         </div>
         <input type="checkbox" id="f-publish" name="publish" value="1" role="switch" class="switch"<?= $publish ? ' checked' : '' ?>>
       </section>
+<?php endif; ?>
 
 <?php if ($isEdit): ?>
       <section class="card stack danger-card">
         <h2>전자책 삭제</h2>
-        <p class="field-help">주문 기록이 없는 책만 지울 수 있어요. 판매를 멈추려면 ‘판매 중으로 공개’를 끄세요.</p>
+        <p class="field-help">주문 기록이 없는 책만 지울 수 있어요.<?= $isSeller ? '' : ' 판매를 멈추려면 ‘판매 중으로 공개’를 끄세요.' ?></p>
         <button type="submit" form="delete-form" class="btn btn-danger btn-sm">이 전자책 삭제</button>
       </section>
 <?php endif; ?>
@@ -172,7 +201,15 @@ if ($isEdit && book_has_preview($form)) {
   </div>
 </form>
 <?php if ($isEdit): ?>
-<form method="post" action="/admin/books/<?= (int) $book['id'] ?>/delete" id="delete-form" data-confirm="‘<?= e($book['title']) ?>’을(를) 삭제할까요? 파일과 리뷰도 함께 지워져요.">
+<form method="post" action="<?= e($urls['delete']) ?>" id="delete-form" data-confirm="‘<?= e($book['title']) ?>’을(를) 삭제할까요? 파일과 리뷰도 함께 지워져요.">
   <?= csrf_field() ?>
+</form>
+<?php endif; ?>
+<?php if (!$isSeller && $seller && $isEdit): ?>
+<form method="post" action="/admin/books/<?= (int) $book['id'] ?>/review" id="review-approve" data-confirm="이 책을 승인하고 스토어에서 판매할까요?">
+  <?= csrf_field() ?><input type="hidden" name="action" value="approve">
+</form>
+<form method="post" action="/admin/books/<?= (int) $book['id'] ?>/review" id="review-reject">
+  <?= csrf_field() ?><input type="hidden" name="action" value="reject">
 </form>
 <?php endif; ?>

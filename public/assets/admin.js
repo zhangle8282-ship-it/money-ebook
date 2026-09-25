@@ -15,6 +15,19 @@
     if (btn && !window.confirm(btn.getAttribute('data-confirm-click'))) event.preventDefault();
   });
 
+  // 서버호스팅 비밀번호: '보기'를 눌렀을 때만 보여 줍니다.
+  document.addEventListener('click', function (event) {
+    var btn = event.target.closest('[data-reveal]');
+    if (!btn) return;
+    var box = btn.parentNode;
+    var secret = box.querySelector('[data-secret]');
+    var mask = box.querySelector('[data-secret-mask]');
+    var show = secret.hidden;
+    secret.hidden = !show;
+    mask.hidden = show;
+    btn.textContent = show ? '숨기기' : '보기';
+  });
+
   var form = document.getElementById('book-form');
   if (!form) return;
 
@@ -183,7 +196,7 @@
     if (fileInput.files[0]) {
       data = await fileInput.files[0].arrayBuffer();
     } else {
-      var res = await fetch('/admin/books/' + form.getAttribute('data-book-id') + '/file', { credentials: 'same-origin' });
+      var res = await fetch(form.getAttribute('data-file-url'), { credentials: 'same-origin' });
       if (!res.ok) throw new Error('원본 파일을 불러오지 못했어요.');
       data = await res.arrayBuffer();
     }

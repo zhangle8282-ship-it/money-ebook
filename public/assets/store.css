@@ -500,3 +500,42 @@ a.line-title:hover { color: var(--accent); }
   .code-label { width: 100%; }
   .subnav a { padding: 12px 10px; }
 }
+
+/* 나의 마켓: 솔루션 2종 */
+.product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.product-card { display: flex; flex-direction: column; gap: 12px; padding: 28px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+.product-card.is-pick { border: 2px solid var(--accent); padding: 27px; }
+.product-name { margin: 0; font-family: var(--serif); font-size: 22px; font-weight: 700; word-break: keep-all; }
+.product-summary { margin: 0; font-size: 14px; color: var(--sub); }
+.product-price { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.product-price strong { font-size: 30px; font-weight: 700; }
+.product-price span { font-size: 14px; color: var(--sub); }
+.product-features { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+.product-features li { position: relative; padding-left: 26px; line-height: 1.5; word-break: keep-all; }
+.product-features li::before { content: ""; position: absolute; left: 2px; top: 4px; width: 14px; height: 8px; border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-45deg); }
+.product-card .btn { margin-top: auto; }
+.hosting-note { margin-top: 16px; padding: 20px 24px; border-radius: 12px; background: #fff; border: 1px dashed var(--field); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.hosting-note strong { font-size: 15px; }
+.hosting-note p { margin: 4px 0 0; font-size: 14px; line-height: 1.6; color: var(--sub); word-break: keep-all; }
+.hosting-note .btn { flex-shrink: 0; }
+.hosting-box { margin: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fff; display: flex; flex-direction: column; gap: 14px; }
+.hosting-box .field-legend { padding: 0 4px; }
+.hosting-edit { border-top: 1px solid var(--line); padding-top: 12px; }
+.hosting-edit summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--accent-dark); min-height: 32px; display: flex; align-items: center; }
+.hosting-edit-form { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.hosting-edit-form .btn { align-self: flex-start; }
+@media (max-width: 640px) {
+  .product-grid { grid-template-columns: 1fr; }
+  .product-card { padding: 22px 20px; }
+  .product-card.is-pick { padding: 21px 19px; }
+  .hosting-note { flex-direction: column; align-items: flex-start; padding: 18px; }
+}
+.cafe24-code { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--ink) !important; }
+.cafe24-code strong { font-size: 16px; letter-spacing: .04em; color: var(--accent-dark); }
+.flush-top { margin-top: 0 !important; }
+.status.book-status-on_sale { background: var(--accent-soft); color: var(--accent-dark); }
+.status.book-status-review { background: #FBF1DC; color: #6A4A12; }
+.status.book-status-rejected { background: #F6E4DF; color: #7A2A1D; }
+.status.book-status-draft, .status.book-status-hidden { background: #EEEAE0; color: var(--sub); }
+.product-grid.three, .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .product-grid { grid-template-columns: 1fr; } }

@@ -10,17 +10,17 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/market/withdrawals';
 <?php endforeach; ?>
   </nav>
 </div>
-<p class="muted small">계좌로 직접 보낸 뒤 ‘지급 완료’를 눌러 주세요. 반려하면 금액이 추천인의 출금 가능 금액으로 돌아가요.</p>
+<p class="muted small">추천 수익 출금과 판매자 정산 신청이 함께 보여요. 계좌로 직접 보낸 뒤 ‘지급 완료’를 눌러 주세요. 반려하면 금액이 다시 출금·정산 가능 금액으로 돌아가요.</p>
 <section class="card flush">
 <?php if ($rows): ?>
 <div class="table-wrap">
 <table class="table">
-  <thead><tr><th scope="col">신청</th><th scope="col">추천인</th><th scope="col" class="num">금액</th><th scope="col">보낼 계좌</th><th scope="col">상태 · 처리</th></tr></thead>
+  <thead><tr><th scope="col">신청</th><th scope="col">신청자</th><th scope="col" class="num">금액</th><th scope="col">보낼 계좌</th><th scope="col">상태 · 처리</th></tr></thead>
   <tbody>
 <?php foreach ($rows as $w): ?>
     <tr>
       <td><?= e(fmt_date($w['created_at'], 'Y.m.d H:i')) ?></td>
-      <td><?= e($w['user_name'] ?? '(탈퇴)') ?><div class="sub"><?= e($w['user_email'] ?? '') ?><?= $w['code'] ? ' · ' . e($w['code']) : '' ?></div></td>
+      <td><span class="kind-pill kind-<?= e($w['kind']) ?>"><?= e(WITHDRAW_KIND[$w['kind']] ?? $w['kind']) ?></span> <?= e($w['user_name'] ?? '(탈퇴)') ?><div class="sub"><?= e($w['user_email'] ?? '') ?><?= $w['code'] && $w['kind'] === 'referral' ? ' · ' . e($w['code']) : '' ?></div></td>
       <td class="num"><strong><?= won($w['amount']) ?></strong></td>
       <td><?= e($w['bank_name']) ?> <span class="mono"><?= e($w['bank_account']) ?></span><div class="sub">예금주 <?= e($w['bank_holder']) ?></div></td>
       <td>

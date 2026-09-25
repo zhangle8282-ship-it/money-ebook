@@ -22,6 +22,25 @@ function admin_book_form($id = null)
     if ($id && !$book) {
         not_found();
     }
+    book_form_page($book, array(
+        'mode' => 'admin',
+        'seller_id' => null,
+        'urls' => array(
+            'action' => $book ? '/admin/books/' . (int) $book['id'] . '/edit' : '/admin/books/new',
+            'list' => '/admin/books',
+            'edit' => '/admin/books/%d/edit',
+            'file' => $book ? '/admin/books/' . (int) $book['id'] . '/file' : '',
+            'delete' => $book ? '/admin/books/' . (int) $book['id'] . '/delete' : '',
+        ),
+    ));
+}
+
+/**
+ * 전자책 등록·수정 화면과 저장(관리자·판매자 공용).
+ * $ctx: mode(admin|seller), seller_id(판매자가 올릴 때), urls(action, list, edit(%d), file, delete)
+ */
+function book_form_page($book, $ctx)
+{
     $form = $book ?: empty_book();
     $publish = $book ? $book['status'] !== 'hidden' : true;
     $errors = array();
@@ -48,9 +67,9 @@ function admin_book_form($id = null)
             $errors = validate_book($form, $draft);
             if (!$errors) {
                 try {
-                    $saved = save_book($book, $form, $draft, $publish);
+                    $saved = save_book($book, $form, $draft, $publish, $ctx);
                     flash($saved['message'], $saved['warning'] ? 'error' : 'ok');
-                    redirect('/admin/books/' . $saved['id'] . '/edit');
+                    redirect(sprintf($ctx['urls']['edit'], $saved['id']));
                 } catch (RuntimeException $e) {
                     $errors[] = $e->getMessage();
                 }
@@ -58,15 +77,23 @@ function admin_book_form($id = null)
         }
     }
 
-    render_admin('book_form', array(
+    $vars = array(
         'title' => $book ? '전자책 수정' : '새 전자책 등록',
         'nav' => 'books',
         'book' => $book,
         'form' => $form,
         'publish' => $publish,
         'errors' => $errors,
+        'mode' => $ctx['mode'],
+        'urls' => $ctx['urls'],
+        'seller' => $book && !empty($book['seller_user_id']) ? q_one('SELECT id, name, email FROM users WHERE id = ?', array((int) $book['seller_user_id'])) : null,
         'categories' => array_values(array_unique(array_filter(array_merge(categories(), array($form['category'])), 'strlen'))),
-    ));
+    );
+    if ($ctx['mode'] === 'admin') {
+        render_admin('book_form', $vars);
+    } else {
+        render('admin/book_form', $vars, 'seller/layout');
+    }
 }
 
 function validate_book($form, $draft)
@@ -94,8 +121,9 @@ function validate_book($form, $draft)
 }
 
 /** 파일 저장 → DB 저장 → 미리보기 만들기. 반환: [id, message, warning] */
-function save_book($book, $form, $draft, $publish)
+function save_book($book, $form, $draft, $publish, $ctx)
 {
+    $isSeller = $ctx['mode'] === 'seller';
     $old = $book ?: empty_book();
     $newCover = '';
     $newFile = null;
@@ -122,9 +150,13 @@ function save_book($book, $form, $draft, $publish)
         'preview_mode' => $form['preview_mode'],
         'preview_pages' => (int) $form['preview_pages'],
         'preview_text' => $form['preview_text'],
-        'status' => $draft ? 'draft' : ($publish ? 'on_sale' : 'hidden'),
+        // 판매자는 승인 요청(review)만 할 수 있고, 판매 시작은 관리자가 승인해야 해요.
+        'status' => $draft ? 'draft' : ($isSeller ? 'review' : ($publish ? 'on_sale' : 'hidden')),
         'updated_at' => now(),
     );
+    if ($isSeller && !$draft) {
+        $row['review_memo'] = '';
+    }
     if ($row['status'] === 'on_sale' && empty($old['published_at'])) {
         $row['published_at'] = now();
     }
@@ -144,12 +176,18 @@ function save_book($book, $form, $draft, $publish)
         q_update('books', $id, $row);
     } else {
         $row['created_at'] = now();
+        $row['seller_user_id'] = $ctx['seller_id'];
         $id = q_insert('books', $row);
     }
 
     $current = q_one('SELECT * FROM books WHERE id = ?', array($id));
     $warning = build_preview($current, $old, $newFile !== null);
-    $labels = array('draft' => '임시저장했어요.', 'hidden' => '저장했어요. 비공개라 스토어에는 보이지 않아요.', 'on_sale' => '저장했어요. 스토어에 판매 중으로 보여요.');
+    $labels = array(
+        'draft' => '임시저장했어요.',
+        'review' => '승인을 요청했어요. 관리자가 확인하고 승인하면 스토어에서 판매돼요.',
+        'hidden' => '저장했어요. 비공개라 스토어에는 보이지 않아요.',
+        'on_sale' => '저장했어요. 스토어에 판매 중으로 보여요.',
+    );
     return array(
         'id' => $id,
         'message' => $warning !== '' ? $warning : $labels[$row['status']],
@@ -231,4 +269,28 @@ function uploaded_preview_images()
         $list[] = array('name' => $name, 'type' => $f['type'][$i], 'tmp_name' => $f['tmp_name'][$i], 'error' => $f['error'][$i], 'size' => $f['size'][$i]);
     }
     return $list;
+}
+
+/** 관리자: 회원이 올린 전자책 승인·반려 */
+function admin_book_review($id)
+{
+    require_admin();
+    $back = '/admin/books/' . (int) $id . '/edit';
+    require_csrf($back);
+    $book = q_one('SELECT * FROM books WHERE id = ?', array((int) $id));
+    if (!$book) {
+        not_found();
+    }
+    if (input('action') === 'approve') {
+        $row = array('status' => 'on_sale', 'review_memo' => '', 'updated_at' => now());
+        if (empty($book['published_at'])) {
+            $row['published_at'] = now();
+        }
+        q_update('books', (int) $book['id'], $row);
+        flash('‘' . $book['title'] . '’을(를) 승인했어요. 스토어에서 판매돼요.');
+    } elseif (input('action') === 'reject') {
+        q_update('books', (int) $book['id'], array('status' => 'rejected', 'review_memo' => str_cut(input('review_memo'), 500, ''), 'updated_at' => now()));
+        flash('반려했어요. 판매자 화면에 사유가 보여요.');
+    }
+    redirect($back);
 }

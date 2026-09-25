@@ -21,14 +21,15 @@ function clean_domain($value)
 function page_market()
 {
     $user = current_user();
-    $plans = market_plans();
     $errors = array();
     $form = array(
-        'months' => input_int('months', 12),
+        'product' => input('product', 'basic'),
         'domain' => clean_domain(input('domain')),
         'market_name' => str_cut(input('market_name'), 100, ''),
         'phone' => str_cut(input('phone'), 40, ''),
         'depositor' => input('depositor', $user ? $user['name'] : ''),
+        'hosting_url' => str_cut(input('hosting_url'), 255, ''),
+        'hosting_id' => str_cut(input('hosting_id'), 100, ''),
     );
 
     if (is_post()) {
@@ -36,8 +37,8 @@ function page_market()
         if (!csrf_valid()) {
             $errors[] = '보안 확인이 만료되었어요. 다시 시도해 주세요.';
         }
-        if (!isset($plans[$form['months']])) {
-            $errors[] = '운영 기간을 골라 주세요.';
+        if (!array_key_exists($form['product'], MARKET_PRODUCTS)) {
+            $errors[] = '솔루션을 골라 주세요.';
         }
         if ($form['domain'] !== '' && !preg_match('/^([a-z0-9가-힣]([a-z0-9가-힣-]*[a-z0-9가-힣])?\.)+[a-z가-힣]{2,}$/u', $form['domain'])) {
             $errors[] = '희망 도메인을 example.com 처럼 적어 주세요.';
@@ -57,7 +58,8 @@ function page_market()
             $errors[] = '신청 내용 확인에 동의해 주세요.';
         }
         if (!$errors) {
-            $app = create_market_application($user, $plans[$form['months']], $form, $referrer);
+            $form += hosting_fields_from_request();
+            $app = create_market_application($user, $form['product'], $form, $referrer);
             flash('신청이 접수됐어요. 아래 계좌로 ' . won($app['total']) . '을 입금해 주세요.');
             redirect('/market#my-apps');
         }
@@ -67,11 +69,23 @@ function page_market()
         'title' => '나의 마켓',
         'nav' => 'market',
         'user' => $user,
-        'plans' => $plans,
         'form' => $form,
         'errors' => $errors,
         'apps' => $user ? user_market_applications($user['id']) : array(),
     ));
+}
+
+/** 신청 뒤에 서버호스팅 정보를 넣거나 고칩니다(비밀번호를 비우면 기존 것 유지). */
+function action_market_hosting($no)
+{
+    $user = require_user('/market');
+    require_csrf('/market#my-apps');
+    $app = q_one('SELECT * FROM market_applications WHERE app_no = ? AND user_id = ?', array($no, (int) $user['id']));
+    if ($app && $app['status'] !== 'cancelled') {
+        q_update('market_applications', (int) $app['id'], hosting_fields_from_request(true));
+        flash('서버호스팅 정보를 저장했어요. 설치 준비가 되면 운영자가 연락드려요.');
+    }
+    redirect('/market#my-apps');
 }
 
 function action_market_cancel($no)

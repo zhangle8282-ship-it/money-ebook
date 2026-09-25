@@ -48,10 +48,11 @@ function page_home()
 function page_book($id)
 {
     $book = find_book($id);
-    if (!$book || (!book_on_sale($book) && !current_admin())) {
+    $user = current_user();
+    $isSeller = $book && $user && (int) ($book['seller_user_id'] ?? 0) === (int) $user['id'];
+    if (!$book || (!book_on_sale($book) && !current_admin() && !$isSeller)) {
         not_found();
     }
-    $user = current_user();
     $owned = $user && user_owns_book($user['id'], $book['id']);
     $pending = $user ? pending_book_orders($user['id']) : array();
 

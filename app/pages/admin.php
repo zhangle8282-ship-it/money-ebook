@@ -109,7 +109,8 @@ function admin_books()
     require_admin();
     $status = input('status');
     $where = array_key_exists($status, BOOK_STATUS) ? ' WHERE b.status = ?' : '';
-    $books = q_all(book_select_sql() . $where . ' ORDER BY b.id DESC', $where ? array($status) : array());
+    $books = q_all(str_replace('SELECT b.*,', 'SELECT b.*, (SELECT name FROM users WHERE id = b.seller_user_id) AS seller_name,', book_select_sql())
+        . $where . ' ORDER BY b.id DESC', $where ? array($status) : array());
     render_admin('books', array('title' => '전자책 관리', 'nav' => 'books', 'books' => $books, 'status' => $status));
 }
 
@@ -282,7 +283,7 @@ function admin_update()
 
 const SETTING_FIELDS = array(
     'store_name', 'hero_title', 'hero_text', 'categories',
-    'bank_name', 'bank_account', 'bank_holder', 'deposit_days', 'allow_download',
+    'bank_name', 'bank_account', 'bank_holder', 'deposit_days', 'allow_download', 'cafe24_url', 'cafe24_code', 'seller_enabled', 'seller_commission',
     'biz_name', 'biz_owner', 'biz_number', 'biz_mail_order', 'biz_address', 'biz_phone', 'biz_email',
     'terms_text', 'privacy_text',
 );
@@ -318,6 +319,12 @@ function admin_settings()
         }
         $values['deposit_days'] = (string) max(1, min(14, (int) $values['deposit_days']));
         $values['allow_download'] = $values['allow_download'] === '1' ? '1' : '0';
+        $values['seller_enabled'] = $values['seller_enabled'] === '1' ? '1' : '0';
+        $values['seller_commission'] = (string) max(0, min(90, (int) $values['seller_commission']));
+        $values['cafe24_code'] = str_cut(preg_replace('/\s+/', '', $values['cafe24_code']), 50, '');
+        if ($values['cafe24_url'] !== '' && !preg_match('~^https?://[^\s]+$~i', $values['cafe24_url'])) {
+            $errors[] = '카페24 링크는 https:// 로 시작하는 주소로 넣어 주세요.';
+        }
         if ($values['store_name'] === '') {
             $errors[] = '스토어 이름을 입력해 주세요.';
         }

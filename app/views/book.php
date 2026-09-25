@@ -22,7 +22,7 @@ if ($book['preview_mode'] === 'manual') {
 </nav>
 
 <?php if (!book_on_sale($book)): ?>
-<div class="wrap"><p class="notice-inline">관리자 미리보기예요. 이 책은 지금 스토어에 보이지 않아요(<?= e(BOOK_STATUS[$book['status']]) ?>).</p></div>
+<div class="wrap"><p class="notice-inline">미리보기예요. 이 책은 지금 스토어에 보이지 않아요(<?= e(BOOK_STATUS[$book['status']]) ?>).</p></div>
 <?php endif; ?>
 
 <section class="book-hero wrap">

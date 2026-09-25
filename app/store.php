@@ -18,6 +18,13 @@ function default_settings()
         'deposit_days' => '3',
         // 구매자가 파일을 내려받게 할지(0이면 사이트 뷰어로만 읽기)
         'allow_download' => '0',
+        // 나의 마켓의 '카페24에서 서버호스팅·도메인 준비하기' 버튼 주소(제휴 링크 등)
+        'cafe24_url' => 'https://hosting.cafe24.com/',
+        // 카페24 제휴코드(고객이 카페24에서 가입·신청할 때 넣도록 안내)
+        'cafe24_code' => '',
+        // 오픈마켓: 회원이 자기 전자책을 올려 판매(관리자 승인), 판매 수수료(%)
+        'seller_enabled' => '0',
+        'seller_commission' => '20',
         'biz_name' => '',
         'biz_owner' => '',
         'biz_number' => '',
@@ -88,7 +95,7 @@ function business_lines()
 
 /* ───────── 전자책 ───────── */
 
-const BOOK_STATUS = array('draft' => '임시저장', 'hidden' => '비공개', 'on_sale' => '판매 중');
+const BOOK_STATUS = array('draft' => '임시저장', 'review' => '승인 대기', 'rejected' => '반려', 'hidden' => '비공개', 'on_sale' => '판매 중');
 
 // 표지 이미지가 없을 때 쓰는 색 조합(배경, 글자)
 const COVER_PALETTES = array(
@@ -293,8 +300,13 @@ function create_order($user, $books, $depositor)
             'created_at' => now(),
         ));
         foreach ($books as $b) {
+            // 회원이 올린 책이면 판매 시점의 수수료율과 판매자 몫을 함께 적어 둡니다.
+            $sellerId = !empty($b['seller_user_id']) ? (int) $b['seller_user_id'] : null;
+            $rate = $sellerId ? seller_commission() : 0;
             q_insert('order_items', array(
                 'order_id' => $orderId, 'book_id' => (int) $b['id'], 'title' => $b['title'], 'price' => (int) $b['price'],
+                'seller_user_id' => $sellerId, 'commission_rate' => $rate,
+                'seller_amount' => $sellerId ? (int) $b['price'] - intdiv((int) $b['price'] * $rate, 100) : 0,
             ));
         }
         db()->commit();
@@ -412,4 +424,17 @@ function reading_percents($userId)
         $map[(int) $r['book_id']] = (int) $r['percent'];
     }
     return $map;
+}
+
+/* ───────── 오픈마켓 설정 ───────── */
+
+function seller_enabled()
+{
+    return setting('seller_enabled') === '1';
+}
+
+/** 판매 수수료(%) 0~90 */
+function seller_commission()
+{
+    return max(0, min(90, (int) setting('seller_commission')));
 }

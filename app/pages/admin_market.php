@@ -11,7 +11,7 @@ function admin_market()
     $apps = q_all('SELECT a.*, u.name AS user_name, u.email AS user_email, r.name AS referrer_name
         FROM market_applications a LEFT JOIN users u ON u.id = a.user_id LEFT JOIN users r ON r.id = a.referrer_user_id'
         . $where . ' ORDER BY a.id DESC LIMIT 300', $where ? array($status) : array());
-    render_admin('market', array('title' => '마켓 운영 신청', 'nav' => 'market', 'tab' => 'apps', 'apps' => $apps, 'status' => $status));
+    render_admin('market', array('title' => '솔루션 신청', 'nav' => 'market', 'tab' => 'apps', 'apps' => $apps, 'status' => $status));
 }
 
 function admin_market_action($id)
@@ -25,12 +25,15 @@ function admin_market_action($id)
     }
     $action = input('action');
     $allowed = array('pending' => array('paid', 'cancelled'), 'paid' => array('pending'), 'cancelled' => array('pending'));
-    if ($action === 'note') {
+    if ($action === 'clear_hosting') {
+        q_update('market_applications', (int) $app['id'], array('hosting_url' => '', 'hosting_id' => '', 'hosting_pw' => ''));
+        flash($app['app_no'] . ' 서버호스팅 정보를 지웠어요.');
+    } elseif ($action === 'note') {
         q_update('market_applications', (int) $app['id'], array('admin_note' => str_replace("\r\n", "\n", input('admin_note'))));
         flash($app['app_no'] . ' 안내 메모를 저장했어요. 신청자의 나의 마켓 화면에 보여요.');
     } elseif (in_array($action, $allowed[$app['status']] ?? array(), true)) {
         set_market_status($app, $action);
-        $messages = array('paid' => '입금을 확인했어요. 오늘부터 운영 기간이 시작돼요.', 'cancelled' => '신청을 취소했어요.', 'pending' => '입금 대기로 되돌렸어요.');
+        $messages = array('paid' => '입금을 확인했어요. 신청자에게 설치 안내를 해 주세요.', 'cancelled' => '신청을 취소했어요.', 'pending' => '입금 대기로 되돌렸어요.');
         flash($app['app_no'] . ' · ' . $messages[$action]);
     } else {
         flash('바꿀 수 없는 상태예요.', 'error');

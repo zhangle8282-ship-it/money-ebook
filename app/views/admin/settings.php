@@ -61,6 +61,34 @@ $text = function ($id, $label, $key, $opts = array()) use ($v) {
     </label>
   </section>
 
+  <section class="card stack-lg" id="my-market" aria-labelledby="set-market">
+    <div class="card-intro">
+      <h2 id="set-market">나의 마켓</h2>
+      <p class="muted">솔루션을 신청하는 고객에게 서버호스팅·도메인을 카페24에서 준비하도록 안내해요.</p>
+    </div>
+    <div class="grid-2">
+      <?= $text('s-cafe24-code', '카페24 제휴코드', 'cafe24_code', array('help' => '고객 화면에 “가입·신청할 때 제휴코드에 넣어 주세요”와 함께 복사 버튼으로 보여요.')) ?>
+      <?= $text('s-cafe24', '카페24 링크', 'cafe24_url', array('placeholder' => 'https://hosting.cafe24.com/', 'help' => '‘카페24에서 준비하기’ 버튼이 여는 주소예요. 제휴 링크가 있으면 넣어 주세요.')) ?>
+    </div>
+  </section>
+
+  <section class="card stack-lg" id="openmarket" aria-labelledby="set-open">
+    <div class="card-intro">
+      <h2 id="set-open">오픈마켓(판매자 입점)</h2>
+      <p class="muted">켜면 회원이 ‘나의 마켓 › 내 전자책 판매’에서 자기 전자책을 올릴 수 있어요. 올린 책은 전자책 관리에서 승인해야 판매돼요.</p>
+    </div>
+    <label class="check-row">
+      <input type="checkbox" name="seller_enabled" value="1"<?= ($values['seller_enabled'] ?? '0') === '1' ? ' checked' : '' ?>>
+      <span>회원이 자기 전자책을 올려 판매할 수 있게 하기</span>
+    </label>
+    <div class="inline-field">
+      <label for="s-commission">판매 수수료</label>
+      <input id="s-commission" name="seller_commission" type="number" min="0" max="90" class="input-short" value="<?= $v('seller_commission') ?>">
+      <span>% (판매가에서 떼고 나머지를 판매자에게 정산)</span>
+    </div>
+    <p class="field-help">수수료를 바꾸면 그 뒤에 들어온 주문부터 적용돼요. 이미 들어온 주문은 그때의 수수료로 정산해요.</p>
+  </section>
+
   <section class="card stack-lg" id="biz" aria-labelledby="set-biz">
     <div class="card-intro">
       <h2 id="set-biz">사업자 정보</h2>
