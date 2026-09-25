@@ -10,6 +10,7 @@ require APP_DIR . '/pages/reader.php';
 require APP_DIR . '/pages/market.php';
 require APP_DIR . '/pages/admin_market.php';
 require APP_DIR . '/pages/seller.php';
+require APP_DIR . '/pages/admin_design.php';
 require APP_DIR . '/pages/admin.php';
 require APP_DIR . '/pages/admin_books.php';
 
@@ -70,6 +71,7 @@ function routes()
         array('GET', '~^/admin/reviews$~', 'admin_reviews'),
         array('POST', '~^/admin/reviews/(\d+)$~', 'admin_review_action'),
         array('GET|POST', '~^/admin/settings$~', 'admin_settings'),
+        array('GET|POST', '~^/admin/design$~', 'admin_design'),
         array('POST', '~^/admin/update$~', 'admin_update'),
         array('GET', '~^/admin/market$~', 'admin_market'),
         array('POST', '~^/admin/market/(\d+)$~', 'admin_market_action'),

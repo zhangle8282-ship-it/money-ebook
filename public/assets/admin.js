@@ -28,6 +28,78 @@
     btn.textContent = show ? '숨기기' : '보기';
   });
 
+  // 디자인: 고르는 즉시 미리보기에 반영
+  var designForm = document.getElementById('design-form');
+  if (designForm) {
+    var preview = document.getElementById('design-preview');
+    var val = function (name) {
+      var el = designForm.querySelector('[name="' + name + '"]:checked') || designForm.querySelector('[name="' + name + '"]');
+      return el ? el.value : '';
+    };
+    var family = function (name) {
+      var sel = designForm.querySelector('select[name="' + name + '"]');
+      return sel.options[sel.selectedIndex].getAttribute('data-family');
+    };
+    var dark = function (hex) {
+      var c = [1, 3, 5].map(function (i) {
+        var v = parseInt(hex.substr(i, 2), 16) / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2] < 0.36;
+    };
+    var logoUrl = document.getElementById('logo-img').getAttribute('src');
+    var paint = function () {
+      var st = preview.style;
+      ['header', 'footer'].forEach(function (area) {
+        var bg = val('design_' + area + '_bg');
+        st.setProperty('--p-' + area + '-bg', bg);
+        st.setProperty('--p-' + area + '-fg', dark(bg) ? '#F6F4EF' : '#1D1C1A');
+        st.setProperty('--p-' + area + '-sub', dark(bg) ? 'rgba(246,244,239,.74)' : '#5F5B53');
+      });
+      st.setProperty('--p-main-bg', val('design_main_bg'));
+      st.setProperty('--p-header-h', val('design_header_h') + 'px');
+      st.setProperty('--p-header-font', family('design_header_font'));
+      st.setProperty('--p-header-size', val('design_header_size') + 'px');
+      st.setProperty('--p-logo-font', family('design_logo_font'));
+      st.setProperty('--p-logo-size', val('design_logo_size') + 'px');
+      st.setProperty('--p-logo-h', val('design_logo_height') + 'px');
+      st.setProperty('--p-body-font', family('design_body_font'));
+      st.setProperty('--p-heading-font', family('design_heading_font'));
+      st.setProperty('--p-scale', Number(val('design_body_size')) / 16);
+      st.setProperty('--p-footer-font', family('design_footer_font'));
+      st.setProperty('--p-footer-scale', Number(val('design_footer_size')) / 13);
+      var image = val('design_logo_type') === 'image';
+      designForm.querySelectorAll('[data-logo-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-logo-panel') !== (image ? 'image' : 'text'); });
+      var img = document.getElementById('dp-logo-img');
+      img.hidden = !(image && logoUrl);
+      if (logoUrl) img.src = logoUrl;
+      document.getElementById('dp-logo-text').hidden = image && !!logoUrl;
+      designForm.querySelectorAll('[data-out]').forEach(function (o) {
+        var input = designForm.querySelector('[name="' + o.getAttribute('data-out') + '"]');
+        o.textContent = input.value + (input.getAttribute('data-unit') || '');
+      });
+    };
+    designForm.addEventListener('input', paint);
+    designForm.addEventListener('change', paint);
+    designForm.querySelectorAll('[data-swatch]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.getElementById(b.getAttribute('data-swatch')).value = b.getAttribute('data-color');
+        paint();
+      });
+    });
+    document.getElementById('logo_image').addEventListener('change', function (e) {
+      var f = e.target.files[0];
+      if (!f) return;
+      logoUrl = URL.createObjectURL(f);
+      var cur = document.getElementById('logo-img');
+      cur.src = logoUrl;
+      cur.hidden = false;
+      document.getElementById('logo-empty').hidden = true;
+      paint();
+    });
+    paint();
+  }
+
   var form = document.getElementById('book-form');
   if (!form) return;
 

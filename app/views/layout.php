@@ -18,14 +18,16 @@ $biz = business_lines();
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="<?= e(design_fonts_url()) ?>">
 <link rel="stylesheet" href="/assets/store.css?v=<?= @filemtime(PUBLIC_DIR . '/assets/store.css') ?>">
+<?= design_style() ?>
 </head>
 <body>
 <a class="skip-link" href="#main">본문 바로가기</a>
 <header class="site-header">
   <div class="wrap header-inner">
-    <a class="logo" href="/"><?= e($store) ?></a>
+<?php $d = design(); ?>
+    <a class="logo" href="/"><?php if ($d['design_logo_type'] === 'image'): ?><img src="<?= e($d['design_logo_image']) ?>" alt="<?= e($store) ?>"><?php else: ?><?= e($store) ?><?php endif; ?></a>
     <nav class="main-nav" aria-label="주요 메뉴">
 <?php foreach (HOME_SORTS as $key => $item): ?>
       <a href="<?= $key === 'latest' ? '/' : '/?sort=' . $key ?>"<?= $nav === $key ? ' aria-current="page"' : '' ?>><?= e($item['nav']) ?></a>
