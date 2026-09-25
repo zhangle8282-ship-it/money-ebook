@@ -18,6 +18,18 @@ function e($s)
     return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/**
+ * 사이트 아이콘(파비콘) 태그. 예전 워드프레스 아이콘을 기억한 브라우저도 새로 받아 가도록
+ * 파일 이름을 바꿔서 씁니다. 아이콘을 다시 바꾸면 ?v= 숫자를 올려 주세요.
+ */
+function icon_links()
+{
+    return '<link rel="icon" href="/icons/book-icon.svg?v=2" type="image/svg+xml">' . "\n"
+        . '<link rel="icon" href="/icons/book-icon-32.png?v=2" type="image/png" sizes="32x32">' . "\n"
+        . '<link rel="shortcut icon" href="/favicon.ico?v=2">' . "\n"
+        . '<link rel="apple-touch-icon" href="/icons/book-icon-180.png?v=2" sizes="180x180">' . "\n";
+}
+
 /** 요청 값에서 문자열만 꺼냅니다(배열 등은 빈 문자열). */
 function input($key, $default = '')
 {

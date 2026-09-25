@@ -321,7 +321,7 @@ function admin_settings()
         $values['allow_download'] = $values['allow_download'] === '1' ? '1' : '0';
         $values['seller_enabled'] = $values['seller_enabled'] === '1' ? '1' : '0';
         $values['seller_commission'] = (string) max(0, min(90, (int) $values['seller_commission']));
-        $values['cafe24_code'] = str_cut(preg_replace('/\s+/', '', $values['cafe24_code']), 50, '');
+        $values['cafe24_code'] = str_cut(preg_replace('/\s+/', '', $values['cafe24_code']), 300, '');
         if ($values['cafe24_url'] !== '' && !preg_match('~^https?://[^\s]+$~i', $values['cafe24_url'])) {
             $errors[] = '카페24 링크는 https:// 로 시작하는 주소로 넣어 주세요.';
         }

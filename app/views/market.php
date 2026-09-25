@@ -51,7 +51,8 @@ $store = setting('store_name');
     <div>
       <strong>서버호스팅과 도메인이 필요해요</strong>
       <p>솔루션은 내 서버호스팅에 설치돼요. 아직 없다면 카페24에서 웹호스팅(PHP)과 도메인을 준비해 주세요.</p>
-<?php if (setting('cafe24_code') !== ''): ?>      <p class="cafe24-code">가입·신청할 때 제휴코드에 <strong id="cafe24-code"><?= e(setting('cafe24_code')) ?></strong>을(를) 넣어 주세요. <button type="button" class="btn-chip" data-copy="#cafe24-code">복사</button></p>
+<?php if (cafe24_affiliate_link() !== ''): ?>      <p class="cafe24-code">카페24 가입·신청은 <a href="<?= e(cafe24_affiliate_link()) ?>" target="_blank" rel="noopener sponsored"><strong><?= e(link_host(cafe24_affiliate_link())) ?></strong> ↗</a> 에서 해 주세요.</p>
+<?php elseif (setting('cafe24_code') !== ''): ?>      <p class="cafe24-code">가입·신청할 때 제휴코드에 <strong id="cafe24-code"><?= e(setting('cafe24_code')) ?></strong>을(를) 넣어 주세요. <button type="button" class="btn-chip" data-copy="#cafe24-code">복사</button></p>
 <?php endif; ?>
     </div>
     <a class="btn btn-outline" href="<?= e(cafe24_url()) ?>" target="_blank" rel="noopener sponsored">카페24에서 준비하기 ↗</a>
@@ -129,7 +130,7 @@ $store = setting('store_name');
           <input id="hosting_pw" name="hosting_pw" type="password" autocomplete="new-password">
         </div>
       </div>
-      <p class="field-help">비밀번호는 암호화해서 보관하고, 설치가 끝나면 지워요. 설치 뒤에는 호스팅 비밀번호를 바꿔 주세요. 아직 호스팅이 없다면 비워 두고, 나중에 아래 ‘내 신청 내역’에서 넣어도 돼요. <a href="<?= e(cafe24_url()) ?>" target="_blank" rel="noopener sponsored">카페24에서 호스팅 준비하기 ↗</a><?php if (setting('cafe24_code') !== ''): ?> (제휴코드 <?= e(setting('cafe24_code')) ?>)<?php endif; ?></p>
+      <p class="field-help">비밀번호는 암호화해서 보관하고, 설치가 끝나면 지워요. 설치 뒤에는 호스팅 비밀번호를 바꿔 주세요. 아직 호스팅이 없다면 비워 두고, 나중에 아래 ‘내 신청 내역’에서 넣어도 돼요. <a href="<?= e(cafe24_url()) ?>" target="_blank" rel="noopener sponsored">카페24에서 호스팅 준비하기 ↗</a><?php if (setting('cafe24_code') !== '' && cafe24_affiliate_link() === ''): ?> (제휴코드 <?= e(setting('cafe24_code')) ?>)<?php endif; ?></p>
     </fieldset>
     <div class="pay-method">
       <strong>무통장 입금</strong>

@@ -67,8 +67,8 @@ $text = function ($id, $label, $key, $opts = array()) use ($v) {
       <p class="muted">솔루션을 신청하는 고객에게 서버호스팅·도메인을 카페24에서 준비하도록 안내해요.</p>
     </div>
     <div class="grid-2">
-      <?= $text('s-cafe24-code', '카페24 제휴코드', 'cafe24_code', array('help' => '고객 화면에 “가입·신청할 때 제휴코드에 넣어 주세요”와 함께 복사 버튼으로 보여요.')) ?>
-      <?= $text('s-cafe24', '카페24 링크', 'cafe24_url', array('placeholder' => 'https://hosting.cafe24.com/', 'help' => '‘카페24에서 준비하기’ 버튼이 여는 주소예요. 제휴 링크가 있으면 넣어 주세요.')) ?>
+      <?= $text('s-cafe24-code', '카페24 제휴코드 또는 제휴 링크', 'cafe24_code', array('help' => '제휴 링크(https://…)를 넣으면 고객 화면에는 hosting.cafe24.com 처럼 주소만 보이고, 누르면 제휴 링크로 가요. 코드만 넣으면 복사 버튼과 함께 보여요.')) ?>
+      <?= $text('s-cafe24', '카페24 링크', 'cafe24_url', array('placeholder' => 'https://hosting.cafe24.com/', 'help' => '‘카페24에서 준비하기’ 버튼이 여는 주소예요. 왼쪽에 제휴 링크를 넣었다면 그 링크가 먼저 쓰여요.')) ?>
     </div>
   </section>
 

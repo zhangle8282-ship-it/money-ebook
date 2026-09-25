@@ -24,9 +24,7 @@ $config = array(
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title><?= e($chapterTitle !== '' ? $chapterTitle . ' · ' : '') ?><?= e($book['title']) ?></title>
-<link rel="icon" href="/favicon.svg?v=1" type="image/svg+xml">
-<link rel="icon" href="/favicon.ico?v=1" sizes="48x48">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1">
+<?= icon_links() ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400;700&display=swap">

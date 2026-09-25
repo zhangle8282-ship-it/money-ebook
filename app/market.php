@@ -220,9 +220,27 @@ function has_hosting_info($app)
     return trim((string) ($app['hosting_url'] ?? '')) !== '' || trim((string) ($app['hosting_id'] ?? '')) !== '' || (string) ($app['hosting_pw'] ?? '') !== '';
 }
 
-/** 관리자 설정의 카페24 링크(없으면 카페24 호스팅 첫 화면) */
+/** 관리자가 제휴코드 칸에 제휴 링크(https://...)를 넣었으면 그 링크, 아니면 '' */
+function cafe24_affiliate_link()
+{
+    $code = trim(setting('cafe24_code'));
+    return preg_match('~^https?://[^\s]+$~i', $code) ? $code : '';
+}
+
+/** 링크에 보여 줄 짧은 주소(예: https://hosting.cafe24.com?r_id=... → hosting.cafe24.com) */
+function link_host($url)
+{
+    $host = parse_url($url, PHP_URL_HOST);
+    return $host ? strtolower($host) : $url;
+}
+
+/** 카페24로 가는 주소: 제휴 링크 → 관리자 설정의 카페24 링크 → 카페24 호스팅 첫 화면 */
 function cafe24_url()
 {
+    $link = cafe24_affiliate_link();
+    if ($link !== '') {
+        return $link;
+    }
     $url = trim(setting('cafe24_url'));
     return preg_match('~^https?://~i', $url) ? $url : 'https://hosting.cafe24.com/';
 }

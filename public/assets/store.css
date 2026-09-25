@@ -540,6 +540,7 @@ a.line-title:hover { color: var(--accent); }
 }
 .cafe24-code { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--ink) !important; }
 .cafe24-code strong { font-size: calc(16px * var(--main-scale)); letter-spacing: .04em; color: var(--accent-dark); }
+.cafe24-code a { color: var(--accent-dark); text-underline-offset: 3px; }
 .flush-top { margin-top: 0 !important; }
 .status.book-status-on_sale { background: var(--accent-soft); color: var(--accent-dark); }
 .status.book-status-review { background: #FBF1DC; color: #6A4A12; }
