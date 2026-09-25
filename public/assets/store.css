@@ -562,3 +562,9 @@ a.line-title:hover { color: var(--accent); }
 /* 무료 책(관리자가 올린 0원 책) */
 .book-card-meta .price.is-free, .book-price.is-free, .buy-box-price .is-free { color: var(--accent); }
 .book-price .free-note { display: block; margin-top: 4px; font-family: var(--body-font, inherit); font-size: calc(14px * var(--main-scale)); font-weight: 400; color: var(--sub); }
+
+/* 추천하고 수익 받기: 맨 위 출금 신청 제목 옆 출금 가능 금액 */
+.block-title .block-sub { margin-left: 8px; font-family: var(--body-font, inherit); font-size: calc(14px * var(--main-scale)); font-weight: 400; color: var(--sub); }
+.block-title .block-sub strong { color: var(--accent-dark); font-weight: 600; }
+.referral > .block-title.flush-top + .card-form { margin-bottom: 32px; }
+#bank-account { scroll-margin-top: 90px; }
