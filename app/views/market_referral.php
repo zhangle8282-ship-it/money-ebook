@@ -104,16 +104,16 @@ $status = $ref ? $ref['status'] : '';
       <div class="field">
         <label for="amount">출금할 금액</label>
         <div class="input-suffix-public">
-          <input id="amount" name="amount" type="text" inputmode="numeric" required value="<?= $balance['available'] ?: '' ?>" placeholder="<?= number_format(WITHDRAW_MIN) ?>">
+          <input id="amount" name="amount" type="text" inputmode="numeric" required value="<?= $balance['available'] ?: '' ?>" placeholder="<?= number_format(REFERRAL_WITHDRAW_MIN) ?>">
           <span>원</span>
         </div>
       </div>
-      <button type="submit" class="btn btn-primary"<?= $bankSet && $balance['available'] >= WITHDRAW_MIN ? '' : ' disabled' ?>>출금 신청</button>
+      <button type="submit" class="btn btn-primary"<?= $bankSet && $balance['available'] >= REFERRAL_WITHDRAW_MIN ? '' : ' disabled' ?>>출금 신청</button>
     </div>
     <p class="field-help">
 <?php if (!$bankSet): ?>      출금 계좌를 먼저 저장해 주세요.
-<?php elseif ($balance['available'] < WITHDRAW_MIN): ?>      출금 가능 금액이 <?= won(WITHDRAW_MIN) ?> 이상이면 신청할 수 있어요.
-<?php else: ?>      <?= e($ref['bank_name']) ?> <?= e($ref['bank_account']) ?> (<?= e($ref['bank_holder']) ?>)로 보내 드려요. 최소 <?= won(WITHDRAW_MIN) ?>부터 신청할 수 있어요.
+<?php elseif ($balance['available'] < REFERRAL_WITHDRAW_MIN): ?>      출금 가능 금액이 <?= won(REFERRAL_WITHDRAW_MIN) ?> 이상이면 신청할 수 있어요.
+<?php else: ?>      <?= e($ref['bank_name']) ?> <?= e($ref['bank_account']) ?> (<?= e($ref['bank_holder']) ?>)로 보내 드려요. 최소 <?= won(REFERRAL_WITHDRAW_MIN) ?>부터 신청할 수 있어요.
 <?php endif; ?>
     </p>
   </form>

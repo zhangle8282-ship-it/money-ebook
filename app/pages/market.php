@@ -125,8 +125,8 @@ function page_market_referral()
             $balance = referral_balance($user['id']);
             if ($ref['bank_name'] === '' || $ref['bank_account'] === '' || $ref['bank_holder'] === '') {
                 flash('출금 계좌를 먼저 저장해 주세요.', 'error');
-            } elseif ($amount < WITHDRAW_MIN) {
-                flash('출금은 ' . won(WITHDRAW_MIN) . '부터 신청할 수 있어요.', 'error');
+            } elseif ($amount < REFERRAL_WITHDRAW_MIN) {
+                flash('출금은 ' . won(REFERRAL_WITHDRAW_MIN) . ' 이상부터 신청할 수 있어요.', 'error');
             } elseif ($amount > $balance['available']) {
                 flash('출금 가능 금액(' . won($balance['available']) . ')보다 많아요.', 'error');
             } else {

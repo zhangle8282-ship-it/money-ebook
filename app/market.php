@@ -26,7 +26,8 @@ const MARKET_PRODUCTS = array(
     ),
 );
 const REFERRAL_RATE = 10;                                            // 추천 수익(결제금액의 %)
-const WITHDRAW_MIN = 10000;                                          // 최소 출금 금액
+const WITHDRAW_MIN = 10000;                                          // 판매 정산 최소 신청 금액
+const REFERRAL_WITHDRAW_MIN = 50000;                                 // 추천 수익 최소 출금 금액
 const REFERRAL_COOKIE = 'mk_ref';
 
 const MARKET_STATUS = array('pending' => '입금 대기', 'paid' => '결제 완료', 'cancelled' => '취소');
