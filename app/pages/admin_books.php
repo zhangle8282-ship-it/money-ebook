@@ -64,7 +64,13 @@ function book_form_page($book, $ctx)
                 'preview_pages' => max(1, min(100, input_int('preview_pages', 10))),
                 'preview_text' => str_replace("\r\n", "\n", input('preview_text')),
             ));
-            $errors = validate_book($form, $draft);
+            // 무료(0원)는 관리자가 올린 책만. 판매자가 올린 책은 관리자가 고쳐도 0원 불가.
+            $sellerBook = $book && !empty($book['seller_user_id']);
+            $allowFree = $ctx['mode'] === 'admin' && !$sellerBook;
+            $freeError = $sellerBook && $ctx['mode'] === 'admin'
+                ? '판매자가 올린 책은 무료(0원)로 바꿀 수 없어요. 판매가를 100원 이상으로 입력해 주세요.'
+                : '무료(0원) 책은 관리자만 올릴 수 있어요. 판매가를 100원 이상으로 입력해 주세요.';
+            $errors = validate_book($form, $draft, $allowFree, $freeError);
             if (!$errors) {
                 try {
                     $saved = save_book($book, $form, $draft, $publish, $ctx);
@@ -96,7 +102,7 @@ function book_form_page($book, $ctx)
     }
 }
 
-function validate_book($form, $draft)
+function validate_book($form, $draft, $allowFree = false, $freeError = '')
 {
     $errors = array();
     if ($form['title'] === '') {
@@ -111,8 +117,11 @@ function validate_book($form, $draft)
     if ($form['category'] === '') {
         $errors[] = '카테고리를 선택해 주세요.';
     }
-    if ($form['price'] === '' || (int) $form['price'] < 100) {
-        $errors[] = '판매가를 100원 이상으로 입력해 주세요.';
+    $price = $form['price'] === '' ? null : (int) $form['price'];
+    if ($allowFree && ($price === null || ($price !== 0 && $price < 100))) {
+        $errors[] = '판매가를 0원(무료) 또는 100원 이상으로 입력해 주세요.';
+    } elseif (!$allowFree && ($price === null || $price < 100)) {
+        $errors[] = $price === 0 && $freeError !== '' ? $freeError : '판매가를 100원 이상으로 입력해 주세요.';
     }
     if ($form['file_path'] === '' && !has_upload('book_file')) {
         $errors[] = '전자책 파일(EPUB 또는 PDF)을 올려 주세요.';

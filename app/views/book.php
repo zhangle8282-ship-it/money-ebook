@@ -5,6 +5,7 @@ $hasPreview = book_has_preview($book);
 $back = $_SERVER['REQUEST_URI'] ?? '/books/' . $book['id'];
 $reviewCount = (int) $summary['count'];
 $pages = (int) $book['pages'];
+$free = book_is_free($book);
 
 if ($book['preview_mode'] === 'manual') {
     $previewNote = '본문 일부를 무료로 읽을 수 있어요.';
@@ -43,7 +44,7 @@ if ($book['preview_mode'] === 'manual') {
 <?php endif; ?>
     </div>
     <div class="divider"></div>
-    <div class="book-price"><?= won($book['price']) ?></div>
+    <div class="book-price<?= $free ? ' is-free' : '' ?>"><?= e(price_label($book['price'])) ?><?php if ($free): ?> <span class="free-note">회원이면 누구나 무료로 읽을 수 있어요</span><?php endif; ?></div>
     <dl class="spec">
       <div><dt>형식</dt><dd><?= e($book['file_format'] !== '' ? $book['file_format'] : '-') ?></dd></div>
       <div><dt>분량</dt><dd><?= $pages ? '약 ' . number_format($pages) . '쪽' : '-' ?></dd></div>
@@ -56,6 +57,11 @@ if ($book['preview_mode'] === 'manual') {
 <?php if (downloads_allowed()): ?>      <a class="btn btn-outline btn-lg" href="/download/<?= (int) $book['id'] ?>">다운로드</a>
 <?php else: ?>      <a class="btn btn-outline btn-lg" href="/library">내 서재</a>
 <?php endif; ?>
+<?php elseif ($free): ?>
+      <form method="post" action="/books/<?= (int) $book['id'] ?>/free">
+        <?= csrf_field() ?>
+        <button type="submit" class="btn btn-primary btn-lg">무료로 읽기</button>
+      </form>
 <?php elseif ($pendingNo): ?>
       <a class="btn btn-primary btn-lg" href="/orders/<?= e($pendingNo) ?>">입금 대기 중 · 주문 보기</a>
 <?php else: ?>
@@ -113,6 +119,14 @@ if ($book['preview_mode'] === 'manual') {
         <div class="buy-box-title">이미 구매한 책이에요</div>
         <p>PC, 모바일, 태블릿 어디서든 읽던 곳부터 이어서 읽을 수 있어요.</p>
         <a class="btn btn-primary" href="/read/<?= (int) $book['id'] ?>">바로 읽기</a>
+<?php elseif ($free): ?>
+        <div class="buy-box-title">무료로 끝까지 읽어 보세요</div>
+        <p>로그인만 하면 결제 없이 내 서재에 담기고, PC, 모바일, 태블릿 어디서든 사이트 뷰어로 읽을 수 있어요.</p>
+        <div class="buy-box-price"><span>가격</span><strong class="is-free">무료</strong></div>
+        <form method="post" action="/books/<?= (int) $book['id'] ?>/free">
+          <?= csrf_field() ?>
+          <button type="submit" class="btn btn-primary btn-block">무료로 읽기</button>
+        </form>
 <?php else: ?>
         <div class="buy-box-title">계속 읽고 싶다면</div>
         <p>입금이 확인되면 PC, 모바일, 태블릿 어디서든 사이트 뷰어로 바로 읽을 수 있어요.</p>

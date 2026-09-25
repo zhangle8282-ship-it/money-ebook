@@ -21,6 +21,10 @@ function action_cart_add()
         flash('지금은 구매할 수 없는 책이에요.', 'error');
         redirect('/');
     }
+    if (book_is_free($book)) {
+        flash('무료 책은 결제 없이 ‘무료로 읽기’로 바로 받을 수 있어요.', 'info');
+        redirect($back);
+    }
     $user = current_user();
     if ($user && user_owns_book($user['id'], $bookId)) {
         flash('이미 구매한 책이에요. 내 서재에서 내려받을 수 있어요.', 'info');
@@ -32,6 +36,28 @@ function action_cart_add()
     cart_add($bookId);
     flash('장바구니에 담았어요.');
     redirect($back);
+}
+
+/** 무료 책 받기(관리자가 올린 0원 책). 로그인한 회원만, 받은 뒤 바로 뷰어로. */
+function action_book_free($id)
+{
+    $back = '/books/' . (int) $id;
+    require_csrf($back);
+    $book = find_book($id);
+    if (!book_on_sale($book) || !book_is_free($book)) {
+        flash('무료로 받을 수 없는 책이에요.', 'error');
+        redirect($book ? $back : '/');
+    }
+    $user = current_user();
+    if (!$user) {
+        flash('로그인하면 무료 책을 바로 읽을 수 있어요. 회원가입도 무료예요.', 'info');
+        redirect('/login?next=' . rawurlencode($back));
+    }
+    if (!user_owns_book($user['id'], $book['id'])) {
+        claim_free_book($user, $book);
+        flash('내 서재에 담았어요. 언제든 이어서 읽을 수 있어요.');
+    }
+    redirect('/read/' . (int) $book['id']);
 }
 
 function action_cart_remove()

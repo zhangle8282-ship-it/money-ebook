@@ -31,7 +31,7 @@ $tabs = array('' => '전체') + BOOK_STATUS;
         </div>
       </td>
       <td><?= e($b['category'] !== '' ? $b['category'] : '-') ?></td>
-      <td class="num"><?= $b['price'] ? won($b['price']) : '-' ?></td>
+      <td class="num"><?= $b['price'] ? won($b['price']) : (book_is_free($b) && $b['status'] !== 'draft' ? '<span class="status status-free">무료</span>' : '-') ?></td>
       <td><?= $b['file_format'] !== '' ? e($b['file_format']) . ' · ' . e(fmt_bytes($b['file_size'])) : '<span class="warn">파일 없음</span>' ?>
         <div class="sub"><?= book_has_preview($b) ? ($b['preview_mode'] === 'manual' ? '직접 입력' : '앞 ' . (count(book_preview_images($b)) ?: (int) $b['preview_pages']) . '쪽') : '<span class="warn">미리보기 없음</span>' ?></div></td>
       <td class="num"><?= (int) $b['sold'] ?>권<div class="sub"><?= $b['review_count'] ? '★ ' . number_format($b['avg_rating'], 1) . ' (' . (int) $b['review_count'] . ')' : '리뷰 없음' ?></div></td>

@@ -94,7 +94,10 @@ function page_library()
             $owned[] = $b;
         }
     }
-    $orders = user_orders($user['id']);
+    // 무료로 받은 책은 내 서재에만 보이고 주문 내역에는 넣지 않습니다.
+    $orders = array_values(array_filter(user_orders($user['id']), function ($o) {
+        return !is_free_order($o);
+    }));
     foreach ($orders as &$o) {
         $o['items'] = order_items($o['id']);
     }

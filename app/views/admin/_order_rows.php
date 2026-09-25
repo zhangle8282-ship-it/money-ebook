@@ -8,10 +8,17 @@
 <?php foreach ($orders as $o): ?>
     <tr>
       <td><a href="/orders/<?= e($o['order_no']) ?>" class="mono"><?= e($o['order_no']) ?></a><div class="sub"><?= e(fmt_date($o['created_at'], 'Y.m.d H:i')) ?></div></td>
-      <td><?= e($o['user_name'] ?? '(탈퇴)') ?><div class="sub">입금자 <strong><?= e($o['depositor']) ?></strong> · <?= e($o['user_email'] ?? '') ?></div></td>
+      <td><?= e($o['user_name'] ?? '(탈퇴)') ?><div class="sub"><?php if (is_free_order($o)): ?>무료로 받음<?php else: ?>입금자 <strong><?= e($o['depositor']) ?></strong><?php endif; ?> · <?= e($o['user_email'] ?? '') ?></div></td>
       <td><?= e($o['items'] ? $o['items'][0]['title'] : '') ?><?= count($o['items']) > 1 ? ' 외 ' . (count($o['items']) - 1) . '권' : '' ?></td>
-      <td class="num"><?= won($o['total']) ?></td>
+      <td class="num"><?= e(price_label($o['total'])) ?></td>
       <td>
+<?php if (is_free_order($o)): ?>
+        <span class="status status-free">무료</span>
+        <div class="sub"><?= e(fmt_date($o['paid_at'], 'm.d H:i')) ?> 받음</div>
+      </td>
+      <td class="actions"></td>
+    </tr>
+<?php continue; endif; ?>
         <span class="status status-<?= e($o['status']) ?>"><?= e(ORDER_STATUS[$o['status']]) ?></span>
 <?php if ($o['status'] === 'pending' && $o['due_at']): ?>        <div class="sub<?= strtotime($o['due_at']) < time() ? ' overdue' : '' ?>">기한 <?= e(fmt_date($o['due_at'], 'm.d')) ?></div>
 <?php elseif ($o['status'] === 'paid'): ?>        <div class="sub"><?= e(fmt_date($o['paid_at'], 'm.d H:i')) ?> 확인</div>

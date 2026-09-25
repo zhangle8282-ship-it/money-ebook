@@ -205,7 +205,8 @@ function admin_order_status($id)
     $order = q_one('SELECT * FROM orders WHERE id = ?', array((int) $id));
     $to = input('to');
     $allowed = array('pending' => array('paid', 'cancelled'), 'paid' => array('pending'), 'cancelled' => array('pending'));
-    if (!$order || !in_array($to, $allowed[$order['status']] ?? array(), true)) {
+    // 무료로 받은 기록(0원)은 입금할 금액이 없어서 상태를 바꾸지 않습니다.
+    if (!$order || is_free_order($order) || !in_array($to, $allowed[$order['status']] ?? array(), true)) {
         flash('바꿀 수 없는 상태예요.', 'error');
         redirect($back);
     }

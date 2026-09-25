@@ -368,3 +368,4 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .fp-label { margin-right: 4px; opacity: .72; }
 .fp-copy { margin: 10px 0 0; font-size: 12px; opacity: .8; }
 @media (max-width: 640px) { .fp-biz { display: block; } .fp-biz li { white-space: normal; } .fp-biz li::after { display: none !important; } }
+.status.status-free { background: #E4EFEA; color: #1F4A3C; }

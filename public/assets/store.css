@@ -558,3 +558,7 @@ a.line-title:hover { color: var(--accent); }
 .status.book-status-draft, .status.book-status-hidden { background: #EEEAE0; color: var(--sub); }
 .product-grid.three, .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 1100px) { .product-grid { grid-template-columns: 1fr; } }
+
+/* 무료 책(관리자가 올린 0원 책) */
+.book-card-meta .price.is-free, .book-price.is-free, .buy-box-price .is-free { color: var(--accent); }
+.book-price .free-note { display: block; margin-top: 4px; font-family: var(--body-font, inherit); font-size: calc(14px * var(--main-scale)); font-weight: 400; color: var(--sub); }

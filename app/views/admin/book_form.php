@@ -98,6 +98,11 @@ if ($isEdit && book_has_preview($form)) {
               <input id="f-price" name="price" type="text" inputmode="numeric" required placeholder="0" value="<?= $form['price'] !== '' ? e(number_format((int) $form['price'])) : '' ?>" data-number>
               <span>원</span>
             </div>
+<?php if ($mode === 'admin' && !$seller): ?>
+            <p class="field-help">0원으로 하면 무료 책이 돼요. 회원이면 결제 없이 바로 읽을 수 있어요.</p>
+<?php else: ?>
+            <p class="field-help">100원 이상으로 정해 주세요. 무료(0원) 책은 관리자만 올릴 수 있어요.</p>
+<?php endif; ?>
           </div>
           <div class="field">
             <label for="f-pages">분량</label>

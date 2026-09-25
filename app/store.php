@@ -164,6 +164,18 @@ function book_on_sale($book)
     return $book && $book['status'] === 'on_sale';
 }
 
+/** 무료 책: 관리자가 올린 0원 책만. 회원이면 결제 없이 바로 받아서 읽습니다(판매자 책은 0원 불가). */
+function book_is_free($book)
+{
+    return $book && (int) $book['price'] === 0 && empty($book['seller_user_id']);
+}
+
+/** 가격 표시(0원이면 ‘무료’) */
+function price_label($price)
+{
+    return (int) $price === 0 ? '무료' : won($price);
+}
+
 function book_preview_images($book)
 {
     $list = json_decode((string) $book['preview_images'], true);
@@ -254,6 +266,8 @@ function load_checkout_books($ids, $user)
             $b['blocked'] = '이미 구매한 책이에요.';
         } elseif (isset($pending[(int) $b['id']])) {
             $b['blocked'] = '입금 대기 중인 주문에 들어 있어요.';
+        } elseif (book_is_free($b)) {
+            $b['blocked'] = '무료 책이에요. 책 페이지에서 ‘무료로 읽기’를 눌러 주세요.';
         }
         $books[] = $b;
     }
@@ -315,6 +329,40 @@ function create_order($user, $books, $depositor)
         throw $e;
     }
     return q_one('SELECT * FROM orders WHERE id = ?', array($orderId));
+}
+
+/**
+ * 무료 책 받기: 0원짜리 결제 완료 주문으로 남겨서 내 서재·뷰어·리뷰를 구매한 책과 똑같이 씁니다.
+ * (유료 책은 100원 이상이라 합계 0원 주문은 무료로 받은 기록입니다)
+ */
+function claim_free_book($user, $book)
+{
+    $now = now();
+    db()->beginTransaction();
+    try {
+        $orderId = q_insert('orders', array(
+            'order_no' => generate_order_no(),
+            'user_id' => (int) $user['id'],
+            'depositor' => '무료',
+            'total' => 0,
+            'status' => 'paid',
+            'created_at' => $now,
+            'paid_at' => $now,
+        ));
+        q_insert('order_items', array(
+            'order_id' => $orderId, 'book_id' => (int) $book['id'], 'title' => $book['title'], 'price' => 0,
+            'seller_user_id' => null, 'commission_rate' => 0, 'seller_amount' => 0,
+        ));
+        db()->commit();
+    } catch (Exception $e) {
+        db()->rollBack();
+        throw $e;
+    }
+}
+
+function is_free_order($order)
+{
+    return (int) $order['total'] === 0 && $order['status'] === 'paid';
 }
 
 function find_order_by_no($no)

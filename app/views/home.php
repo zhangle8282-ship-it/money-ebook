@@ -34,7 +34,7 @@ $cats = categories();
 <?php else: ?>
           <span>아직 리뷰 없음</span>
 <?php endif; ?>
-          <span class="price"><?= won($b['price']) ?></span>
+          <span class="price<?= book_is_free($b) ? ' is-free' : '' ?>"><?= e(price_label($b['price'])) ?></span>
         </div>
       </div>
     </a>

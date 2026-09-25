@@ -30,6 +30,7 @@ function routes()
         // 장바구니 · 주문
         array('GET', '~^/cart$~', 'page_cart'),
         array('POST', '~^/cart/add$~', 'action_cart_add'),
+        array('POST', '~^/books/(\d+)/free$~', 'action_book_free'),
         array('POST', '~^/cart/remove$~', 'action_cart_remove'),
         array('GET|POST', '~^/checkout$~', 'page_checkout'),
         array('GET', '~^/orders/([0-9A-Z-]+)$~', 'page_order'),
