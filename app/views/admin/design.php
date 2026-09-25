@@ -3,9 +3,17 @@
 $store = setting('store_name');
 $fontSelect = function ($name, $label) use ($values) {
     $out = '<div class="field"><label for="' . $name . '">' . e($label) . '</label><select id="' . $name . '" name="' . $name . '" data-design>';
-    foreach (DESIGN_FONTS as $key => $f) {
-        $out .= '<option value="' . e($key) . '" data-family="' . e(font_stack($key)) . '"' . ($values[$name] === $key ? ' selected' : '')
-            . ' style="font-family:' . e(font_stack($key)) . '">' . e($f[0]) . '</option>';
+    $groups = array('기본 글씨체' => DESIGN_BASE_FONTS, '올린 글씨체' => array_diff_key(design_fonts(), DESIGN_BASE_FONTS));
+    foreach ($groups as $group => $fonts) {
+        if (!$fonts) {
+            continue;
+        }
+        $out .= '<optgroup label="' . e($group) . '">';
+        foreach ($fonts as $key => $f) {
+            $out .= '<option value="' . e($key) . '" data-family="' . e(font_stack($key)) . '"' . ($values[$name] === $key ? ' selected' : '')
+                . ' style="font-family:' . e(font_stack($key)) . '">' . e($f[0]) . '</option>';
+        }
+        $out .= '</optgroup>';
     }
     return $out . '</select></div>';
 };
@@ -26,6 +34,7 @@ $areaPresets = array('#F6F4EF' => '기본 미색', '#FFFFFF' => '흰색', '#1D1C
 $mainPresets = array('#F6F4EF' => '기본 미색', '#FFFFFF' => '흰색', '#F4F6F8' => '연한 회색', '#FAF6EE' => '연한 베이지', '#F1F5F2' => '연한 초록', '#F7F2F7' => '연한 분홍');
 ?>
 <link rel="stylesheet" href="<?= e(design_fonts_url(true)) ?>">
+<style><?= font_face_css(true) ?></style>
 <div class="page-head">
   <div class="page-head-text">
     <h1>디자인</h1>
@@ -36,9 +45,11 @@ $mainPresets = array('#F6F4EF' => '기본 미색', '#FFFFFF' => '흰색', '#F4F6
     <button type="submit" form="design-form" class="btn btn-primary">저장하기</button>
   </div>
 </div>
+<?= view('admin/_design_tabs', array('tab' => 'design')) ?>
 <?php if ($errors): ?>
 <div class="alert" role="alert"><?php foreach ($errors as $err): ?><p><?= e($err) ?></p><?php endforeach; ?></div>
 <?php endif; ?>
+<p class="field-help design-font-note">글씨체는 기본 글씨체와 직접 올린 글씨체 중에서 골라요. 다른 글씨체를 쓰고 싶으면 <a href="/admin/design/fonts">글씨체</a> 탭에서 파일을 올려 추가하세요.</p>
 
 <form method="post" action="/admin/design" enctype="multipart/form-data" id="design-form" class="form-grid design-grid">
   <?= csrf_field() ?>

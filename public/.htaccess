@@ -9,6 +9,14 @@
   </IfModule>
 </FilesMatch>
 
+# 관리자가 올린 글씨체 파일 형식
+<IfModule mod_mime.c>
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+  AddType font/ttf .ttf
+  AddType font/otf .otf
+</IfModule>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /

@@ -138,6 +138,14 @@ function migrate(PDO $pdo)
         $pdo->exec('CREATE INDEX idx_items_seller ON order_items (seller_user_id)');
         $pdo->prepare("UPDATE settings SET v = '4' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 5) {
+        // 5: 관리자가 직접 올린 글씨체
+        $pdo->exec("CREATE TABLE IF NOT EXISTS fonts (
+            id $id, name VARCHAR(60) NOT NULL, kind VARCHAR(12) NOT NULL DEFAULT 'sans-serif',
+            file_regular VARCHAR(255) NOT NULL, file_bold VARCHAR(255) NOT NULL DEFAULT '', size INT NOT NULL DEFAULT 0,
+            created_at VARCHAR(19) NOT NULL)" . $tail);
+        $pdo->prepare("UPDATE settings SET v = '5' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

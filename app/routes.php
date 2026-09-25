@@ -72,6 +72,8 @@ function routes()
         array('POST', '~^/admin/reviews/(\d+)$~', 'admin_review_action'),
         array('GET|POST', '~^/admin/settings$~', 'admin_settings'),
         array('GET|POST', '~^/admin/design$~', 'admin_design'),
+        array('GET|POST', '~^/admin/design/fonts$~', 'admin_fonts'),
+        array('POST', '~^/admin/design/fonts/(\d+)/delete$~', 'admin_font_delete'),
         array('POST', '~^/admin/update$~', 'admin_update'),
         array('GET', '~^/admin/market$~', 'admin_market'),
         array('POST', '~^/admin/market/(\d+)$~', 'admin_market_action'),

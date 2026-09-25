@@ -4,20 +4,25 @@
  * 관리자 › 디자인에서 바꾸고, 공개 화면에 CSS 변수로 적용합니다.
  */
 
-// 고를 수 있는 글씨체: 키 => [표시 이름, CSS 글꼴 이름, 구글 폰트 주소 조각, 대체 글꼴]
-const DESIGN_FONTS = array(
-    'plex' => array('IBM Plex Sans KR (기본 고딕)', 'IBM Plex Sans KR', 'IBM+Plex+Sans+KR:wght@400;500;600;700', 'sans-serif'),
-    'noto-sans' => array('본고딕 (Noto Sans KR)', 'Noto Sans KR', 'Noto+Sans+KR:wght@400;500;700', 'sans-serif'),
-    'noto-serif' => array('본명조 (Noto Serif KR)', 'Noto Serif KR', 'Noto+Serif+KR:wght@400;600;700', 'serif'),
-    'nanum-gothic' => array('나눔고딕', 'Nanum Gothic', 'Nanum+Gothic:wght@400;700;800', 'sans-serif'),
-    'nanum-myeongjo' => array('나눔명조', 'Nanum Myeongjo', 'Nanum+Myeongjo:wght@400;700;800', 'serif'),
-    'gowun-dodum' => array('고운돋움', 'Gowun Dodum', 'Gowun+Dodum', 'sans-serif'),
-    'gowun-batang' => array('고운바탕', 'Gowun Batang', 'Gowun+Batang:wght@400;700', 'serif'),
-    'black-han-sans' => array('검은고딕 (굵은 제목용)', 'Black Han Sans', 'Black+Han+Sans', 'sans-serif'),
-    'do-hyeon' => array('도현', 'Do Hyeon', 'Do+Hyeon', 'sans-serif'),
-    'jua' => array('주아', 'Jua', 'Jua', 'sans-serif'),
+// 기본 글씨체: 누구나 상업적으로 쓸 수 있는 무료 글꼴(SIL 오픈 폰트 라이선스)과 기기 기본 글꼴만 둡니다.
+// 다른 글씨체는 관리자 › 디자인 › 글씨체에서 운영자가 직접 올려서 씁니다.
+// 키 => [표시 이름, CSS 글꼴 이름, 구글 폰트 주소 조각, 대체 글꼴]
+const DESIGN_BASE_FONTS = array(
+    'plex' => array('IBM Plex Sans KR (기본 본문)', 'IBM Plex Sans KR', 'IBM+Plex+Sans+KR:wght@400;500;600;700', 'sans-serif'),
+    'noto-serif' => array('본명조 Noto Serif KR (기본 제목)', 'Noto Serif KR', 'Noto+Serif+KR:wght@400;600;700', 'serif'),
+    'noto-sans' => array('본고딕 Noto Sans KR', 'Noto Sans KR', 'Noto+Sans+KR:wght@400;500;700', 'sans-serif'),
     'system' => array('기기 기본 글꼴', '', '', 'system-ui'),
 );
+
+// 올릴 수 있는 글씨체 파일: 형식 => [확장자, 파일 첫 바이트, CSS format()]
+const FONT_FORMATS = array(
+    'woff2' => array('woff2', array('wOF2'), 'woff2'),
+    'woff' => array('woff', array('wOFF'), 'woff'),
+    'ttf' => array('ttf', array("\x00\x01\x00\x00", 'true'), 'truetype'),
+    'otf' => array('otf', array('OTTO'), 'opentype'),
+);
+const FONT_MAX_MB = 20;
+const FONT_KINDS = array('sans-serif' => '고딕(민글씨) 계열', 'serif' => '명조(바탕) 계열', 'cursive' => '손글씨 계열');
 
 // 숫자 설정의 허용 범위: 키 => [최소, 최대]
 const DESIGN_RANGES = array(
@@ -51,6 +56,26 @@ function design_defaults()
     );
 }
 
+/** 관리자가 올린 글씨체 목록 */
+function uploaded_fonts()
+{
+    static $rows = null;
+    if ($rows === null) {
+        $rows = q_all('SELECT * FROM fonts ORDER BY id');
+    }
+    return $rows;
+}
+
+/** 고를 수 있는 모든 글씨체: 기본 글씨체 + 올린 글씨체('u번호'). 값은 [표시 이름, CSS 글꼴 이름, 구글 폰트 조각, 대체 글꼴] */
+function design_fonts()
+{
+    $fonts = DESIGN_BASE_FONTS;
+    foreach (uploaded_fonts() as $f) {
+        $fonts['u' . (int) $f['id']] = array($f['name'], 'mkfont-' . (int) $f['id'], '', $f['kind']);
+    }
+    return $fonts;
+}
+
 /** 저장된 디자인 값(잘못된 값은 기본값으로) */
 function design()
 {
@@ -63,7 +88,7 @@ function design()
         if (substr($key, -3) === '_bg' && !preg_match('/^#[0-9A-Fa-f]{6}$/', $v)) {
             continue;
         }
-        if (substr($key, -5) === '_font' && !array_key_exists($v, DESIGN_FONTS)) {
+        if (substr($key, -5) === '_font' && !array_key_exists($v, design_fonts())) {
             continue;
         }
         if (array_key_exists($key, DESIGN_RANGES)) {
@@ -97,22 +122,88 @@ function is_dark_color($hex)
 
 function font_stack($key)
 {
-    $f = DESIGN_FONTS[$key] ?? DESIGN_FONTS['plex'];
-    return $f[1] !== '' ? "'" . $f[1] . "', " . $f[3] : "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+    $fonts = design_fonts();
+    $f = $fonts[$key] ?? $fonts['plex'];
+    if ($f[1] === '') {
+        return "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+    }
+    // 올린 글씨체가 없는 글자는 기본 글씨체로 보여 줍니다.
+    $fallback = strncmp($key, 'u', 1) === 0 ? ($f[3] === 'serif' ? "'Noto Serif KR', serif" : "'IBM Plex Sans KR', sans-serif") : $f[3];
+    return "'" . $f[1] . "', " . $fallback;
 }
 
-/** 쓰는 글씨체만 불러오는 구글 폰트 주소. $all=true 면 전부(관리자 미리보기용) */
-function design_fonts_url($all = false)
+/** 지금 디자인에서 쓰는 글씨체 키 */
+function design_used_fonts()
 {
     $d = design();
-    $keys = $all ? array_keys(DESIGN_FONTS) : array($d['design_logo_font'], $d['design_header_font'], $d['design_body_font'], $d['design_heading_font'], $d['design_footer_font'], 'noto-serif', 'plex');
+    return array_unique(array($d['design_logo_font'], $d['design_header_font'], $d['design_body_font'], $d['design_heading_font'], $d['design_footer_font']));
+}
+
+/** 쓰는 기본 글씨체만 불러오는 구글 폰트 주소. $all=true 면 기본 글씨체 전부(관리자 미리보기용) */
+function design_fonts_url($all = false)
+{
+    $keys = $all ? array_keys(DESIGN_BASE_FONTS) : array_merge(design_used_fonts(), array('noto-serif', 'plex'));
     $parts = array();
     foreach (array_unique($keys) as $k) {
-        if (!empty(DESIGN_FONTS[$k][2])) {
-            $parts[] = 'family=' . DESIGN_FONTS[$k][2];
+        if (!empty(DESIGN_BASE_FONTS[$k][2])) {
+            $parts[] = 'family=' . DESIGN_BASE_FONTS[$k][2];
         }
     }
     return 'https://fonts.googleapis.com/css2?' . implode('&', $parts) . '&display=swap';
+}
+
+/** 올린 글씨체의 @font-face. $all=true 면 전부(관리자 화면), 아니면 지금 쓰는 것만 */
+function font_face_css($all = false)
+{
+    $used = $all ? null : design_used_fonts();
+    $css = '';
+    foreach (uploaded_fonts() as $f) {
+        if ($used !== null && !in_array('u' . (int) $f['id'], $used, true)) {
+            continue;
+        }
+        $files = array(400 => $f['file_regular'], 700 => $f['file_bold']);
+        foreach ($files as $weight => $path) {
+            if ((string) $path === '' || !preg_match('~^/uploads/fonts/[A-Za-z0-9.-]+$~', $path)) {
+                continue;
+            }
+            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            $format = isset(FONT_FORMATS[$ext]) ? FONT_FORMATS[$ext][2] : 'truetype';
+            $css .= "@font-face{font-family:'mkfont-" . (int) $f['id'] . "';src:url('" . $path . "') format('" . $format . "');font-weight:" . $weight . ";font-style:normal;font-display:swap}";
+        }
+    }
+    return $css;
+}
+
+/** 글씨체 파일 검사 후 저장(public/uploads/fonts). 반환: [공개 경로, 크기] */
+function store_font_file($file)
+{
+    $err = upload_error($file);
+    if ($err !== '') {
+        throw new RuntimeException($err);
+    }
+    if ($file['size'] > FONT_MAX_MB * 1048576) {
+        throw new RuntimeException('글씨체 파일은 ' . FONT_MAX_MB . 'MB 이하로 올려 주세요. 웹용 WOFF2 파일이 가장 작아요.');
+    }
+    $ext = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+    $head = (string) file_get_contents($file['tmp_name'], false, null, 0, 4);
+    $format = null;
+    foreach (FONT_FORMATS as $key => $f) {
+        if (in_array($head, $f[1], true)) {
+            $format = $key;
+        }
+    }
+    if (!isset(FONT_FORMATS[$ext]) || $format === null) {
+        throw new RuntimeException('WOFF2, WOFF, TTF, OTF 글씨체 파일만 올릴 수 있어요.');
+    }
+    $dir = UPLOAD_DIR . '/fonts';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+    $name = random_name(FONT_FORMATS[$format][0]);
+    if (!move_uploaded_file($file['tmp_name'], $dir . '/' . $name)) {
+        throw new RuntimeException('글씨체 파일을 저장하지 못했어요. 폴더 권한을 확인해 주세요.');
+    }
+    return array('/uploads/fonts/' . $name, (int) $file['size']);
 }
 
 /** 공개 화면에 넣는 CSS 변수 */
@@ -148,7 +239,7 @@ function design_style()
     foreach ($vars as $k => $v) {
         $css .= $k . ':' . $v . ';';
     }
-    return '<style>:root{' . str_replace('</', '<\\/', $css) . '}</style>';
+    return '<style>' . font_face_css() . ':root{' . str_replace('</', '<\\/', $css) . '}</style>';
 }
 
 /** 배경색에 맞는 글씨·선 색(어두운 배경이면 밝은 글씨) */

@@ -339,3 +339,15 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .dp-cards i:nth-child(2) { background: #E9D8A6; } .dp-cards i:nth-child(3) { background: #1D1C1A; }
 .dp-footer { padding: 14px 16px; background: var(--p-footer-bg); color: var(--p-footer-sub); font-family: var(--p-footer-font); font-size: calc(12px * var(--p-footer-scale)); border-top: 1px solid rgba(0,0,0,.08); }
 @media (max-width: 1100px) { .design-grid { grid-template-columns: 1fr; } .design-side { position: static; } }
+
+/* 디자인 › 글씨체 */
+.design-tabs { margin: -8px 0 12px; }
+.design-font-note { margin: 0 0 20px; }
+.font-sample { margin-top: 6px; font-size: 17px; line-height: 1.5; color: var(--ink); word-break: keep-all; }
+.font-sample b { font-weight: 700; }
+.font-table td:first-child { min-width: 240px; }
+.font-table td:nth-child(2), .font-table td:nth-child(3) { white-space: nowrap; }
+.base-fonts { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.base-fonts .font-sample { margin: 0; font-size: 16px; }
+.pad-head { padding: 20px 24px 8px; }
+.pad-head h2 { margin: 0; }
