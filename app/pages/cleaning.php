@@ -20,6 +20,7 @@ function cleaning_routes()
         array('POST', '~^/admin/inquiries/(\d+)$~', 'admin_inquiry_action'),
         array('GET|POST', '~^/admin/site$~', 'admin_cleaning_site'),
         array('GET|POST', '~^/admin/photos$~', 'admin_cleaning_photos'),
+        array('GET|POST', '~^/admin/reviews$~', 'admin_cleaning_reviews'),
         array('GET|POST', '~^/admin/account$~', 'admin_account'),
     );
 }
@@ -152,6 +153,17 @@ function admin_cleaning_site()
     require_admin();
     $errors = array();
     $values = settings();
+    if (is_post() && input('action') === 'test_mail') {
+        require_csrf('/admin/site');
+        $result = send_notice_mail('[' . gc('name') . '] 알림 메일 시험', "홈페이지 견적 문의 알림 메일이 잘 오는지 확인하는 시험 메일이에요.\n\n새 문의가 들어오면 이 주소로 알려 드려요.\n" . site_base_url() . "/admin/inquiries\n");
+        $messages = array(
+            'sent' => gc('notify_email') . '로 시험 메일을 보냈어요. 몇 분 안에 안 오면 스팸함도 확인해 주세요.',
+            'failed' => '서버에서 메일을 보내지 못했어요. 견적 문의는 관리자 화면에서 그대로 확인할 수 있어요.',
+            'off' => '알림 받을 이메일을 먼저 저장해 주세요.',
+        );
+        flash($messages[$result], $result === 'sent' ? 'ok' : 'error');
+        redirect('/admin/site#notify');
+    }
     if (is_post()) {
         require_csrf('/admin/site');
         foreach (CLEANING_SITE_FIELDS as $key) {
@@ -229,6 +241,35 @@ function admin_cleaning_photos()
         }
     }
     render_admin('cleaning_photos', array('title' => '사진 관리', 'nav' => 'photos', 'photos' => $photos, 'errors' => $errors));
+}
+
+/** 고객 후기 고치기(최대 6개). 글이 빈 칸은 빠집니다. */
+function admin_cleaning_reviews()
+{
+    require_admin();
+    $errors = array();
+    $reviews = cleaning_reviews();
+    if (is_post()) {
+        require_csrf('/admin/reviews');
+        $reviews = array();
+        for ($i = 0; $i < CLEANING_REVIEW_MAX; $i++) {
+            $text = trim(str_replace(array("\r\n", "\n"), ' ', input('review_text_' . $i)));
+            $who = trim(input('review_who_' . $i));
+            if ($text === '') {
+                continue;
+            }
+            if (str_len($text) > 200) {
+                $errors[] = '후기 ' . ($i + 1) . '은(는) 200자 이내로 줄여 주세요.';
+            }
+            $reviews[] = array(str_cut($text, 200, ''), str_cut(mask_reviewer($who), 20, ''));
+        }
+        if (!$errors) {
+            save_settings(array('gc_reviews' => json_encode($reviews, JSON_UNESCAPED_UNICODE)));
+            flash($reviews ? '후기를 저장했어요. 홈페이지에 바로 반영돼요.' : '후기를 모두 비웠어요. 홈페이지에서 고객 후기 구역이 숨겨져요.');
+            redirect('/admin/reviews');
+        }
+    }
+    render_admin('cleaning_reviews', array('title' => '후기 관리', 'nav' => 'reviews', 'reviews' => $reviews, 'errors' => $errors));
 }
 
 /** 관리자 비밀번호 바꾸기 */

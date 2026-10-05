@@ -155,6 +155,11 @@ function migrate(PDO $pdo)
         $pdo->exec('CREATE INDEX idx_inquiries_status ON inquiries (status, id)');
         $pdo->prepare("UPDATE settings SET v = '6' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 7) {
+        // 7: 견적 문의 알림 메일을 보냈는지(sent/failed/off)
+        $pdo->exec("ALTER TABLE inquiries ADD COLUMN mailed VARCHAR(12) NOT NULL DEFAULT ''");
+        $pdo->prepare("UPDATE settings SET v = '7' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

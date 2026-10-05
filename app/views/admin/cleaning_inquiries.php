@@ -12,6 +12,8 @@ $total = array_sum($counts);
 </div>
 <?php if (gc('notify_email') === ''): ?>
 <div class="notice-box"><p>새 문의가 들어올 때 메일로 받으려면 <a href="/admin/site#notify">홈페이지 관리 › 알림 이메일</a>을 넣어 주세요.</p></div>
+<?php else: ?>
+<p class="muted small">새 문의는 <strong><?= e(gc('notify_email')) ?></strong>으로도 메일을 보내요. 바꾸거나 시험 메일을 보내려면 <a href="/admin/site#notify">홈페이지 관리</a>에서 하세요.</p>
 <?php endif; ?>
 <div class="toolbar">
   <nav class="tabs" aria-label="문의 상태">
@@ -29,6 +31,8 @@ $total = array_sum($counts);
       <strong class="inquiry-name"><?= e($q['name']) ?></strong>
       <span class="status inquiry-status-<?= e($q['status']) ?>"><?= e(INQUIRY_STATUS[$q['status']] ?? $q['status']) ?></span>
       <span class="sub"><?= e(fmt_date($q['created_at'], 'Y.m.d H:i')) ?> 접수</span>
+<?php if (!empty($q['mailed']) && isset(INQUIRY_MAILED[$q['mailed']])): ?>      <span class="mail-pill mail-<?= e($q['mailed']) ?>"><?= e(INQUIRY_MAILED[$q['mailed']]) ?></span>
+<?php endif; ?>
     </div>
     <dl class="inquiry-info">
       <div><dt>연락처</dt><dd><a class="inquiry-phone" href="<?= e(tel_href($q['phone'])) ?>"><?= e($q['phone']) ?></a></dd></div>

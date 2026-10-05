@@ -6,6 +6,7 @@ $tel = tel_href($phone);
 $kakao = gc('kakao_url');
 $channelKey = gc('channeltalk_key');
 $services = cleaning_services();
+$reviews = cleaning_reviews();
 $scope = cleaning_scope();
 $sitePhotos = array_values(array_filter($photos['site']));
 $pairs = array_values(array_filter($photos['ba'], function ($p) {
@@ -61,7 +62,7 @@ $ld = array(
 <script>document.documentElement.classList.add('js');</script>
 <script type="application/ld+json"><?= str_replace('</', '<\/', json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?></script>
 </head>
-<body class="g-body<?= $kakao !== '' ? ' has-kakao' : '' ?><?= $channelKey !== '' ? ' has-channeltalk' : '' ?>"<?= $channelKey !== '' ? ' data-channeltalk="' . e($channelKey) . '"' : '' ?>>
+<body class="g-body<?= $kakao !== '' ? ' has-kakao' : '' ?><?= $channelKey !== '' ? ' has-channeltalk' : ' has-mobile-bar' ?>"<?= $channelKey !== '' ? ' data-channeltalk="' . e($channelKey) . '"' : '' ?>>
 <a class="g-skip" href="#main">본문 바로가기</a>
 
 <header class="g-header" data-header>
@@ -228,16 +229,18 @@ $ld = array(
 </section>
 <?php endif; ?>
 
+<?php if ($reviews): ?>
 <section class="g-section" id="reviews" aria-labelledby="reviews-title">
   <div class="g-wrap">
     <div class="g-head"><span class="g-kicker">— 고객 후기 —</span><h2 id="reviews-title">맡겨본 분들의 이야기</h2></div>
     <div class="g-reviews">
-<?php foreach (cleaning_reviews() as $r): ?>
-      <blockquote class="g-review"><span class="g-quote-mark" aria-hidden="true">“</span><p><?= e($r[0]) ?></p><footer><?= e($r[1]) ?></footer></blockquote>
+<?php foreach ($reviews as $r): ?>
+      <blockquote class="g-review"><span class="g-quote-mark" aria-hidden="true">“</span><p><?= e($r[0]) ?></p><?php if ($r[1] !== ''): ?><footer><?= e($r[1]) ?></footer><?php endif; ?></blockquote>
 <?php endforeach; ?>
     </div>
   </div>
 </section>
+<?php endif; ?>
 
 <section class="g-section g-soft" id="regions" aria-labelledby="regions-title">
   <div class="g-wrap g-regions">
@@ -311,12 +314,14 @@ $ld = array(
 <?php if ($kakao !== ''): ?>
 <a class="g-kakao-float" href="<?= e($kakao) ?>" target="_blank" rel="noopener" aria-label="카카오톡 상담"><?= $kakaoIcon ?></a>
 <?php endif; ?>
+<?php if ($channelKey === ''): /* 모바일 아래 빠른 문의 막대는 채널톡을 쓰지 않을 때만 */ ?>
 <nav class="g-mobile-bar<?= $kakao !== '' ? '' : ' no-kakao' ?>" aria-label="빠른 문의">
   <a class="g-mb-call" href="<?= e($tel) ?>"><?= $phoneIcon ?>전화</a>
 <?php if ($kakao !== ''): ?>  <a class="g-mb-kakao" href="<?= e($kakao) ?>" target="_blank" rel="noopener"><?= $kakaoIcon ?>카톡</a>
 <?php endif; ?>
   <a class="g-mb-quote" href="#quote" data-go-quote>무료 견적</a>
 </nav>
+<?php endif; ?>
 <script src="<?= e($asset('green.js')) ?>" defer></script>
 </body>
 </html>

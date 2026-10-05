@@ -49,6 +49,8 @@ $text = function ($key, $label, $opts = array()) use ($v) {
 
   <section class="card stack-lg" id="notify" aria-labelledby="s-notify">
     <div class="card-intro"><h2 id="s-notify">새 문의 알림</h2><p class="muted">견적 문의가 들어오면 이 주소로 메일을 보내 드려요. 처음 몇 통은 스팸함에 들어갈 수 있으니 확인해 주세요.</p></div>
-    <?= $text('gc_notify_email', '알림 받을 이메일', array('type' => 'email', 'placeholder' => gc('email') !== '' ? gc('email') : '예: name@naver.com')) ?>
+    <?= $text('gc_notify_email', '알림 받을 이메일', array('type' => 'email', 'placeholder' => gc('email') !== '' ? gc('email') : '예: name@naver.com', 'help' => '비워 두면 메일은 보내지 않고, 관리자 › 견적 문의에서만 볼 수 있어요.')) ?>
+    <div><button type="submit" form="test-mail" class="btn btn-outline"<?= gc('notify_email') === '' ? ' disabled' : '' ?>>시험 메일 보내기</button></div>
   </section>
 </form>
+<form method="post" action="/admin/site" id="test-mail"><?= csrf_field() ?><input type="hidden" name="action" value="test_mail"></form>

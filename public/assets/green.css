@@ -4,7 +4,8 @@
   --chat-hover: #5A37E0;
   --hero-ink: #1D3329;
   --hero-sub: #46594F;
-  --hero-line: #D3E7DB;
+  --hero-line: #CFE3D6;
+  --hero-bg: #E6F2EA;
   --g: #2F7D5C;
   --g-dark: #235F47;
   --g-light: #3B9672;
@@ -78,7 +79,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .g-menu-btn { display: none; width: 44px; height: 44px; margin-right: -8px; border: 0; background: none; color: var(--ink); cursor: pointer; align-items: center; justify-content: center; }
 
 /* ── 첫 화면 ── */
-.g-hero { color: var(--hero-ink); background: radial-gradient(circle at 88% 12%, rgba(168, 213, 186, .45), transparent 45%), radial-gradient(circle at 8% 92%, rgba(168, 213, 186, .22), transparent 40%), linear-gradient(135deg, #F5FAF7 0%, #EAF5EE 55%, #DDEFE4 100%); border-top: 1px solid #EEF4F0; }
+.g-hero { color: var(--hero-ink); background: var(--hero-bg); }
 .g-hero-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; align-items: center; padding-top: 72px; padding-bottom: 88px; }
 .g-hero-text { display: flex; flex-direction: column; gap: 32px; }
 .g-eyebrow { display: flex; align-items: center; gap: 14px; font-size: 18px; font-weight: 700; color: var(--g); }
@@ -290,14 +291,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (max-width: 760px) {
   :root { --pad: 20px; --section: 44px; }
   html { scroll-padding-top: 72px; }
-  body.g-body { padding-bottom: 76px; }
+  body.g-body.has-mobile-bar { padding-bottom: 76px; }
   .g-header { border-bottom: 1px solid #EEF1EF; }
   .g-header-inner { padding-top: 14px; padding-bottom: 14px; }
   .g-logo-mark { width: 30px; height: 29px; }
   .g-logo-text { font-size: 22px; }
   .g-header-phone { display: none; }
   .g-simple .g-header-phone { display: inline; font-size: 15px; }
-  .g-hero { background: radial-gradient(circle at 90% 8%, rgba(168, 213, 186, .45), transparent 50%), linear-gradient(170deg, #F5FAF7 0%, #EAF5EE 60%, #E0F0E6 100%); }
   .g-hero-grid { padding-top: 36px; padding-bottom: 0; gap: 32px; }
   .g-hero-text { gap: 20px; }
   .g-eyebrow { font-size: 14px; gap: 10px; }
@@ -386,7 +386,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .g-footer-info p { flex-direction: column; gap: 0; }
   .g-copy { font-size: 12px; }
   .g-kakao-float { display: none; }
-  .g-chat-float { right: 16px; bottom: calc(88px + env(safe-area-inset-bottom)); height: 56px; width: 56px; padding: 0; justify-content: center; }
+  .g-chat-float { right: 16px; bottom: calc(20px + env(safe-area-inset-bottom)); height: 58px; width: 58px; padding: 0; justify-content: center; }
+  .has-mobile-bar .g-chat-float { bottom: calc(88px + env(safe-area-inset-bottom)); }
   .g-chat-float span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .g-mobile-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 6px; padding: 10px 12px calc(14px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--line); }
   .g-mobile-bar.no-kakao { grid-template-columns: 1fr 1.6fr; }

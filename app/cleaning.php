@@ -21,9 +21,12 @@ function cleaning_defaults()
         'gc_address' => '경기도 화성시 동탄면 동탄대로9길 19, 2629동 1103호',
         'gc_email' => 'hledan@naver.com',
         'gc_area' => '충북 음성 · 진천 · 혁신도시',
-        'gc_notify_email' => '',
+        // 새 견적 문의를 메일로 받을 주소(관리자 › 홈페이지 관리에서 바꿈)
+        'gc_notify_email' => 'hledan@naver.com',
         // 사진: {"site":[6], "ba":[{title,before,after}×2], "map":""}
         'gc_photos' => '',
+        // 고객 후기: [[글, 누가]…]. 비어 있으면 처음 후기(cleaning_default_reviews)
+        'gc_reviews' => '',
     );
 }
 
@@ -47,6 +50,7 @@ function tel_href($phone)
 
 const CLEANING_KINDS = array('office' => '사무실', 'building' => '건물·상가', 'restroom' => '화장실');
 const INQUIRY_STATUS = array('new' => '새 문의', 'contacted' => '연락함', 'contracted' => '계약', 'closed' => '종료');
+const INQUIRY_MAILED = array('sent' => '메일 보냄', 'failed' => '메일 못 보냄', 'off' => '메일 알림 꺼짐');
 const CLEANING_SITE_PHOTOS = 6;
 const CLEANING_BA_PAIRS = 2;
 
@@ -92,12 +96,41 @@ function cleaning_regions()
     );
 }
 
+const CLEANING_REVIEW_MAX = 6;
+
+/** 후기 작성자 이름 가리기: 장혜진 → 장** (이미 *가 있으면 그대로) */
+function mask_reviewer($name)
+{
+    $name = trim(preg_replace('/\s+/u', ' ', (string) $name));
+    if ($name === '' || strpos($name, '*') !== false) {
+        return $name;
+    }
+    return mb_substr($name, 0, 1) . '**';
+}
+
+/** 홈페이지 고객 후기: 관리자 › 후기 관리에서 고친 것, 아직 안 고쳤으면 처음 후기 */
 function cleaning_reviews()
 {
+    $saved = gc('reviews');
+    if ($saved === '') {
+        return cleaning_default_reviews();
+    }
+    $list = json_decode($saved, true);
+    $out = array();
+    foreach (is_array($list) ? $list : array() as $r) {
+        if (is_array($r) && isset($r[0]) && trim((string) $r[0]) !== '') {
+            $out[] = array((string) $r[0], (string) ($r[1] ?? ''));
+        }
+    }
+    return $out;
+}
+
+function cleaning_default_reviews()
+{
     return array(
-        array('매주 같은 분이 오셔서 따로 설명할 필요가 없어요. 월요일 아침 출근이 달라졌습니다.', '혁신도시 사무실 · 40평'),
-        array('매장 오픈 전에 끝내주셔서 영업에 지장이 전혀 없습니다. 화장실 관리가 특히 만족스러워요.', '진천 카페 운영 · 상가 1층'),
-        array('건물 공용부 민원이 확실히 줄었습니다. 견적도 현장 보고 투명하게 주셨어요.', '음성 상가건물 · 관리인'),
+        array('매주 같은 분이 오셔서 따로 설명할 필요가 없어요. 월요일 아침 출근이 달라졌습니다.', '김**'),
+        array('영업 시작 전에 끝내주셔서 지장이 전혀 없습니다. 화장실 관리가 특히 만족스러워요.', '장**'),
+        array('공용 공간 민원이 확실히 줄었습니다. 견적도 현장 보고 투명하게 주셨어요.', '이**'),
     );
 }
 
@@ -184,29 +217,54 @@ function save_inquiry($v)
         'kind' => $v['kind'], 'name' => $v['name'], 'phone' => $v['phone'], 'address' => $v['address'],
         'status' => 'new', 'memo' => '', 'ip_hash' => inquiry_ip_hash(), 'created_at' => now(), 'updated_at' => now(),
     ));
-    notify_inquiry($v);
+    // 알림 메일을 보냈는지 함께 남겨 관리자 화면에서 확인할 수 있게 합니다.
+    q_update('inquiries', $id, array('mailed' => notify_inquiry($v)));
     return $id;
 }
 
-/** 새 문의 알림 메일(관리자 › 홈페이지 관리에 알림 이메일을 넣었을 때만). 못 보내도 문의 접수는 그대로 됩니다. */
-function notify_inquiry($v)
+/** 관리자 화면 주소(메일 본문용) */
+function site_base_url()
+{
+    return (is_https() ? 'https' : 'http') . '://' . preg_replace('/[^A-Za-z0-9.:\-]/', '', $_SERVER['HTTP_HOST'] ?? 'localhost');
+}
+
+/** 알림 메일 한 통 보내기. 반환: sent | failed | off(받을 주소 없음) */
+function send_notice_mail($subject, $body)
 {
     $to = gc('notify_email');
-    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL) || !function_exists('mail')) {
-        return false;
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return 'off';
     }
+    if (!function_exists('mail')) {
+        return 'failed';
+    }
+    // 보내는 주소: 접속한 도메인(포트·www 제외). IP 주소로 접속했으면 쓰지 않습니다.
+    $host = strtolower(preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')));
+    $host = preg_replace('/^www\./', '', preg_replace('/[^a-z0-9.\-]/', '', $host));
+    $isDomain = $host !== '' && strpos($host, '.') !== false && !filter_var($host, FILTER_VALIDATE_IP);
+    $from = 'no-reply@' . ($isDomain ? $host : 'localhost.localdomain');
+    $headers = 'From: =?UTF-8?B?' . base64_encode(gc('name')) . '?= <' . $from . ">\r\n"
+        . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64";
+    $subjectLine = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+    $encoded = chunk_split(base64_encode($body));
+    // 보내는 주소(-f)를 함께 알려 주면 받는 쪽에서 스팸으로 덜 분류합니다. 서버가 막으면 기본 방식으로 다시 보냅니다.
+    $ok = @mail($to, $subjectLine, $encoded, $headers, '-f' . $from) || @mail($to, $subjectLine, $encoded, $headers);
+    return $ok ? 'sent' : 'failed';
+}
+
+/** 새 문의 알림 메일. 못 보내도 문의 접수는 그대로 되고, 관리자 › 견적 문의에서 볼 수 있습니다. */
+function notify_inquiry($v)
+{
     $subject = '[' . gc('name') . '] 새 견적 문의 · ' . CLEANING_KINDS[$v['kind']] . ' · ' . $v['name'];
-    $body = "새 견적 문의가 들어왔어요.\n\n"
-        . '종류: ' . CLEANING_KINDS[$v['kind']] . "\n"
+    $body = "홈페이지로 새 견적 문의가 들어왔어요.\n\n"
+        . '청소 종류: ' . CLEANING_KINDS[$v['kind']] . "\n"
         . '업체명 / 담당자: ' . $v['name'] . "\n"
         . '연락처: ' . $v['phone'] . "\n"
         . '주소 · 면적: ' . ($v['address'] !== '' ? $v['address'] : '-') . "\n"
-        . '접수: ' . date('Y-m-d H:i') . "\n\n"
-        . "관리자 화면에서 확인: " . (is_https() ? 'https' : 'http') . '://' . preg_replace('/[^A-Za-z0-9.:\-]/', '', $_SERVER['HTTP_HOST'] ?? '') . "/admin/inquiries\n";
-    $host = preg_replace('/^www\./', '', preg_replace('/[^A-Za-z0-9.\-]/', '', $_SERVER['HTTP_HOST'] ?? 'localhost'));
-    $headers = 'From: =?UTF-8?B?' . base64_encode(gc('name')) . '?= <no-reply@' . ($host !== '' ? $host : 'localhost') . ">\r\n"
-        . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64";
-    return @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', chunk_split(base64_encode($body)), $headers);
+        . '접수 시각: ' . date('Y-m-d H:i') . "\n\n"
+        . "연락한 뒤에는 관리자 화면에서 상태와 메모를 남겨 주세요.\n"
+        . site_base_url() . "/admin/inquiries\n";
+    return send_notice_mail($subject, $body);
 }
 
 function inquiry_counts()
