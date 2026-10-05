@@ -611,3 +611,25 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .role-add { flex-wrap: wrap; }
 .role-add input { flex: 1 1 140px; }
 .role-add button { flex-shrink: 0; }
+/* 파트너 · 계좌 */
+.partner-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.partner-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.partner-list li { padding: 12px 14px; border-radius: 10px; background: #F7F8F6; display: flex; flex-direction: column; gap: 6px; }
+.role-gap .partner-list li { background: #F1F7F3; } .role-eul .partner-list li { background: #F5F3FE; } .role-byeong .partner-list li { background: #FBF4EA; }
+.partner-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.partner-top strong { font-size: 16px; color: var(--ink); }
+.partner-edit { margin-left: auto; font-size: 13px; font-weight: 600; }
+.partner-account { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.partner-account .mono { font-weight: 700; color: var(--ink); }
+.bank-chip { display: inline-block; padding: 2px 8px; border-radius: 6px; background: #fff; border: 1px solid var(--line); font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.partner-pick select, .partner-pick input { margin-top: 0; }
+.partner-pick input { margin-top: 6px; }
+.form-actions-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.push-right { margin-left: auto; }
+.pay-to { list-style: none; margin: 0; padding: 10px 12px; border-radius: 10px; background: #FBFAF7; border: 1px dashed var(--line); display: flex; flex-direction: column; gap: 6px; }
+.pay-to li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.pay-role { font-weight: 600; color: var(--ink); min-width: 160px; }
+.pay-acc { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pay-acc .mono { font-weight: 700; }
+@media (max-width: 1100px) { .partner-board { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 760px) { .partner-board { grid-template-columns: 1fr; } .pay-role { min-width: 0; } }

@@ -204,6 +204,17 @@ function migrate(PDO $pdo)
         $pdo->exec("ALTER TABLE contract_settlements ADD COLUMN settled_by VARCHAR(60) NOT NULL DEFAULT ''");
         $pdo->prepare("UPDATE settings SET v = '10' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 11) {
+        // 11: 파트너(대표·운영·청소 담당)와 지급 계좌, 청소마다 담당 파트너
+        $pdo->exec("CREATE TABLE IF NOT EXISTS partners (
+            id $id, role VARCHAR(12) NOT NULL, name VARCHAR(60) NOT NULL, phone VARCHAR(40) NOT NULL DEFAULT '',
+            bank_name VARCHAR(40) NOT NULL DEFAULT '', bank_account VARCHAR(40) NOT NULL DEFAULT '', bank_holder VARCHAR(60) NOT NULL DEFAULT '',
+            memo TEXT, created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NOT NULL)" . $tail);
+        foreach (array('gap_partner_id', 'eul_partner_id', 'byeong_partner_id') as $col) {
+            $pdo->exec("ALTER TABLE contracts ADD COLUMN $col INT NULL");
+        }
+        $pdo->prepare("UPDATE settings SET v = '11' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

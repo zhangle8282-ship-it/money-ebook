@@ -73,10 +73,10 @@ $pending = $sum['count'] - $sum['done'];
       <div class="minus"><dt>세금 <?= CONTRACT_TAX_RATE ?>%</dt><dd><?= $r['tax'] ? '− ' . won($r['tax']) : '없음' ?></dd></div>
       <div><dt>청소 담당 몫 <?= $r['byeong_rate'] ?>%</dt><dd><?= won($r['byeong_amount']) ?></dd></div>
       <div class="minus"><dt>원천징수 <?= CONTRACT_WITHHOLDING ?>%</dt><dd><?= $r['withholding_amount'] ? '− ' . won($r['withholding_amount']) : '없음' ?></dd><?php if ($r['withholding_amount']): ?><small>소득세 <?= number_format($r['income_tax']) ?> + 지방세 <?= number_format($r['local_tax']) ?></small><?php endif; ?></div>
-      <div class="is-byeong"><dt>청소 담당 실지급</dt><dd><?= won($r['byeong_pay']) ?></dd><?php if ($c['byeong_name'] !== ''): ?><small><?= e($c['byeong_name']) ?></small><?php endif; ?></div>
+      <div class="is-byeong"><dt>청소 담당 실지급</dt><dd><?= won($r['byeong_pay']) ?></dd><?php if (contract_partner_name($c, 'byeong') !== ''): ?><small><?= e(contract_partner_name($c, 'byeong')) ?></small><?php endif; ?></div>
       <div><dt>도급 몫 <?= $r['contract_rate'] ?>%</dt><dd><?= won($r['contract_amount']) ?></dd></div>
-      <div class="is-gap"><dt>대표파트너 <?= $r['gap_rate'] ?>%</dt><dd><?= won($r['gap_amount']) ?></dd><?php if ($c['gap_name'] !== ''): ?><small><?= e($c['gap_name']) ?></small><?php endif; ?></div>
-      <div class="is-eul"><dt>운영파트너 <?= 100 - $r['gap_rate'] ?>%</dt><dd><?= won($r['eul_amount']) ?></dd><?php if ($c['eul_name'] !== ''): ?><small><?= e($c['eul_name']) ?></small><?php endif; ?></div>
+      <div class="is-gap"><dt>대표파트너 <?= $r['gap_rate'] ?>%</dt><dd><?= won($r['gap_amount']) ?></dd><?php if (contract_partner_name($c, 'gap') !== ''): ?><small><?= e(contract_partner_name($c, 'gap')) ?></small><?php endif; ?></div>
+      <div class="is-eul"><dt>운영파트너 <?= 100 - $r['gap_rate'] ?>%</dt><dd><?= won($r['eul_amount']) ?></dd><?php if (contract_partner_name($c, 'eul') !== ''): ?><small><?= e(contract_partner_name($c, 'eul')) ?></small><?php endif; ?></div>
     </dl>
     <div class="settle-steps">
       <span class="settle-steps-label">대표파트너 정산</span>
@@ -97,6 +97,20 @@ $pending = $sum['count'] - $sum['done'];
 <?php endif; ?>
       </div>
     </div>
+    <ul class="pay-to">
+<?php foreach (array('byeong' => $r['byeong_pay'], 'eul' => $r['eul_amount']) as $role => $amount): $pp = contract_partner($c, $role); $nm = contract_partner_name($c, $role); ?>
+      <li>
+        <span class="pay-role"><?= e(CONTRACT_ROLE_SIDES[$role]) ?><?= $nm !== '' ? ' ' . e($nm) : '' ?></span>
+        <strong><?= won($amount) ?></strong>
+<?php if ($pp && $pp['bank_account'] !== ''): ?>
+        <span class="pay-acc"><span class="bank-chip"><?= e($pp['bank_name']) ?></span> <span class="mono"><?= e($pp['bank_account']) ?></span> <span class="sub">예금주 <?= e($pp['bank_holder'] !== '' ? $pp['bank_holder'] : $pp['name']) ?></span></span>
+        <button type="button" class="icon-btn" data-copy-text="<?= e($pp['bank_name'] . ' ' . $pp['bank_account'] . ' ' . ($pp['bank_holder'] !== '' ? $pp['bank_holder'] : $pp['name'])) ?>">계좌 복사</button>
+<?php else: ?>
+        <a class="sub warn-text" href="/admin/contracts/<?= (int) $c['id'] ?>/edit">지급 계좌를 정해 주세요 ›</a>
+<?php endif; ?>
+      </li>
+<?php endforeach; ?>
+    </ul>
 <?php if ($r['memo'] !== ''): ?>    <p class="sub memo-line">메모: <?= e($r['memo']) ?></p>
 <?php endif; ?>
 <?php if (!$done): ?>

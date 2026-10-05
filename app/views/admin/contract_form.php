@@ -67,9 +67,21 @@ $fee = $form['monthly_fee'] !== '' ? number_format((int) $form['monthly_fee']) :
         <div class="field"><span class="field-label-strong">빠르게 고르기</span>
           <div class="quick-rates"><button type="button" class="btn btn-outline btn-sm" data-gap="60">60 : 40</button><button type="button" class="btn btn-outline btn-sm" data-gap="50">50 : 50</button><button type="button" class="btn btn-outline btn-sm" data-gap="70">70 : 30</button></div>
         </div>
-        <div class="field"><label for="cf-gapname">대표파트너 이름 (선택)</label><input id="cf-gapname" name="gap_name" type="text" maxlength="60" value="<?= e($form['gap_name']) ?>" placeholder="예: 그린청소"></div>
-        <div class="field"><label for="cf-eulname">운영파트너 이름 (선택)</label><input id="cf-eulname" name="eul_name" type="text" maxlength="60" value="<?= e($form['eul_name']) ?>" placeholder="예: 홍보 담당 ○○"></div>
-        <div class="field"><label for="cf-byeongname">청소 담당 파트너 이름 (선택)</label><input id="cf-byeongname" name="byeong_name" type="text" maxlength="60" value="<?= e($form['byeong_name']) ?>" placeholder="예: 김○○"></div>
+<?php $groups = partners_by_role(); foreach (CONTRACT_ROLE_SIDES as $role => $label): $sel = (int) ($form[$role . '_partner_id'] ?? 0); $selP = $sel ? (partners_all()[$sel] ?? null) : null; ?>
+        <div class="field partner-pick">
+          <label for="cf-<?= $role ?>-partner"><?= e($label) ?></label>
+          <select id="cf-<?= $role ?>-partner" name="<?= $role ?>_partner_id">
+            <option value="">등록한 파트너에서 고르기</option>
+<?php foreach ($groups[$role] as $p): ?>
+            <option value="<?= (int) $p['id'] ?>"<?= $sel === (int) $p['id'] ? ' selected' : '' ?>><?= e($p['name']) ?><?= $p['bank_account'] !== '' ? ' · ' . e($p['bank_name']) : ' · 계좌 없음' ?></option>
+<?php endforeach; ?>
+          </select>
+          <input name="<?= $role ?>_name" type="text" maxlength="60" value="<?= e($form[$role . '_name']) ?>" placeholder="또는 이름만 적기" aria-label="<?= e($label) ?> 이름 직접 적기">
+<?php if ($selP && $selP['bank_account'] !== ''): ?>          <p class="field-help">지급 계좌: <?= e(partner_account($selP)) ?></p>
+<?php elseif (!$groups[$role]): ?>          <p class="field-help"><a href="/admin/contracts/partners?role=<?= $role ?>#partner-add"><?= e(CONTRACT_ROLE_SHORT[$role]) ?> 파트너와 계좌 등록하기 ›</a></p>
+<?php endif; ?>
+        </div>
+<?php endforeach; ?>
         <div class="field">
           <span class="field-label-strong">청소 담당 파트너 원천징수</span>
           <fieldset class="segmented">

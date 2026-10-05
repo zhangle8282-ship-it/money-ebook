@@ -562,3 +562,16 @@
   form.addEventListener('change', update);
   update();
 })();
+
+// 계좌 복사: 은행 계좌번호 예금주를 클립보드로
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest && e.target.closest('[data-copy-text]');
+  if (!btn) return;
+  var text = btn.getAttribute('data-copy-text');
+  var done = function () { var old = btn.textContent; btn.textContent = '복사됨'; setTimeout(function () { btn.textContent = old; }, 1500); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, function () { window.prompt('복사해 주세요', text); });
+  } else {
+    window.prompt('복사해 주세요', text);
+  }
+});

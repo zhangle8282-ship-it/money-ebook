@@ -18,9 +18,9 @@
         <td><a class="strong" href="/admin/contracts/<?= (int) $c['id'] ?>/edit"><?= e($c['name']) ?></a><?php if ($c['client'] !== ''): ?><div class="sub"><?= e($c['client']) ?></div><?php endif; ?></td>
         <td class="num"><?= won($c['monthly_fee']) ?></td>
         <td class="nowrap">세금 <?= $c['invoice'] ? CONTRACT_TAX_RATE . '%' : '없음' ?> · 청소 담당 <?= 100 - (int) $c['contract_rate'] ?>% · 도급 <?= (int) $c['contract_rate'] ?>%<div class="sub">대표:운영 <?= (int) $c['gap_rate'] ?>:<?= 100 - (int) $c['gap_rate'] ?> · 원천징수 <?= (int) $c['withholding'] ? CONTRACT_WITHHOLDING . '%' : '없음' ?></div></td>
-        <td class="num"><?= won($c['calc']['byeong_pay']) ?><?php if ($c['byeong_name'] !== ''): ?><div class="sub"><?= e($c['byeong_name']) ?></div><?php endif; ?></td>
-        <td class="num"><?= won($c['calc']['gap_amount']) ?><?php if ($c['gap_name'] !== ''): ?><div class="sub"><?= e($c['gap_name']) ?></div><?php endif; ?></td>
-        <td class="num"><?= won($c['calc']['eul_amount']) ?><?php if ($c['eul_name'] !== ''): ?><div class="sub"><?= e($c['eul_name']) ?></div><?php endif; ?></td>
+        <td class="num"><?= won($c['calc']['byeong_pay']) ?><?php if (contract_partner_name($c, 'byeong') !== ''): ?><div class="sub"><?= e(contract_partner_name($c, 'byeong')) ?></div><?php endif; ?></td>
+        <td class="num"><?= won($c['calc']['gap_amount']) ?><?php if (contract_partner_name($c, 'gap') !== ''): ?><div class="sub"><?= e(contract_partner_name($c, 'gap')) ?></div><?php endif; ?></td>
+        <td class="num"><?= won($c['calc']['eul_amount']) ?><?php if (contract_partner_name($c, 'eul') !== ''): ?><div class="sub"><?= e(contract_partner_name($c, 'eul')) ?></div><?php endif; ?></td>
         <td class="nowrap"><?= e(month_label($c['start_month'])) ?> ~ <?= $c['end_month'] ? e(month_label($c['end_month'])) : '' ?><div class="sub">정산 완료 <?= (int) $c['done_count'] ?>달</div></td>
         <td><span class="status <?= $c['active'] ? 'status-paid' : ($c['upcoming'] ? 'status-pending' : 'status-cancelled') ?>"><?= $c['active'] ? '진행 중' : ($c['upcoming'] ? '시작 전' : '끝남') ?></span></td>
       </tr>

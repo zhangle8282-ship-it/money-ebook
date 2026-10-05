@@ -46,6 +46,58 @@ const CONTRACT_ROLE_SIDES = array('gap' => '대표파트너', 'eul' => '운영�
 const CONTRACT_ROLE_SHORT = array('gap' => '대표', 'eul' => '운영', 'byeong' => '청소');
 const CONTRACT_ROLE_MAX = 20;
 
+/* ───────── 파트너(사람)와 지급 계좌 ───────── */
+
+const PARTNER_BANKS = array('국민은행', '신한은행', '우리은행', '하나은행', 'NH농협은행', '지역농협', 'IBK기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', '새마을금고', '우체국', '신협', '수협', 'SC제일은행', '대구은행', '부산은행', '경남은행', '광주은행', '전북은행', '제주은행');
+
+function partners_all()
+{
+    static $all = null;
+    if ($all === null) {
+        $all = array();
+        foreach (q_all('SELECT * FROM partners ORDER BY name, id') as $p) {
+            $all[(int) $p['id']] = $p;
+        }
+    }
+    return $all;
+}
+
+/** 역할별 파트너: gap|eul|byeong => [파트너…] */
+function partners_by_role()
+{
+    $out = array_fill_keys(array_keys(CONTRACT_ROLE_SIDES), array());
+    foreach (partners_all() as $p) {
+        if (isset($out[$p['role']])) {
+            $out[$p['role']][] = $p;
+        }
+    }
+    return $out;
+}
+
+/** 청소에 정한 그 역할의 파트너(없으면 null) */
+function contract_partner($contract, $role)
+{
+    $id = (int) ($contract[$role . '_partner_id'] ?? 0);
+    $all = partners_all();
+    return $id && isset($all[$id]) ? $all[$id] : null;
+}
+
+/** 표시할 이름: 고른 파트너, 없으면 직접 적은 이름 */
+function contract_partner_name($contract, $role)
+{
+    $p = contract_partner($contract, $role);
+    return $p ? $p['name'] : (string) ($contract[$role . '_name'] ?? '');
+}
+
+/** 계좌 한 줄: 은행 계좌번호 (예금주) */
+function partner_account($p)
+{
+    if (!$p || $p['bank_account'] === '') {
+        return '';
+    }
+    return trim($p['bank_name'] . ' ' . $p['bank_account']) . ($p['bank_holder'] !== '' ? ' (' . $p['bank_holder'] . ')' : '');
+}
+
 /** 파트너가 하는 일 목록 */
 function contract_roles()
 {
