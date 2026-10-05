@@ -316,28 +316,68 @@ function admin_cleaning_reviews()
     render_admin('cleaning_reviews', array('title' => '후기 관리', 'nav' => 'reviews', 'reviews' => $reviews, 'errors' => $errors));
 }
 
-/** 관리자 비밀번호 바꾸기 */
+/** 관리자 계정: 내 비밀번호 바꾸기 · 관리자 추가 · 다른 관리자 지우기 */
 function admin_account()
 {
     $admin = require_admin();
     $errors = array();
+    $created = array('username' => '');
+    $form = input('form');
     if (is_post()) {
-        $row = q_one('SELECT * FROM admins WHERE id = ?', array($admin['id']));
-        $new = input_raw('new_password');
+        $me = q_one('SELECT * FROM admins WHERE id = ?', array($admin['id']));
         if (!csrf_valid()) {
             $errors[] = '보안 확인이 만료되었어요. 다시 시도해 주세요.';
-        } elseif (!password_verify(input_raw('current_password'), $row['password_hash'])) {
-            $errors[] = '지금 비밀번호가 맞지 않아요.';
-        } elseif (strlen($new) < 10) {
-            $errors[] = '새 비밀번호는 10자 이상으로 정해 주세요.';
-        } elseif ($new !== input_raw('new_password2')) {
-            $errors[] = '새 비밀번호 확인이 일치하지 않아요.';
+        } elseif ($form === 'create') {
+            // 새 관리자 추가: 내 비밀번호를 한 번 더 확인합니다.
+            $username = trim(input('new_username'));
+            $password = input_raw('new_admin_password');
+            $created['username'] = $username;
+            if (!password_verify(input_raw('my_password'), $me['password_hash'])) {
+                $errors[] = '지금 내 비밀번호가 맞지 않아요.';
+            } elseif (!preg_match('/^[A-Za-z0-9_.-]{3,30}$/', $username)) {
+                $errors[] = '새 아이디는 영문·숫자(그리고 _ . -) 3~30자로 정해 주세요.';
+            } elseif (q_value('SELECT COUNT(*) FROM admins WHERE LOWER(username) = LOWER(?)', array($username))) {
+                $errors[] = '‘' . $username . '’은(는) 이미 있는 아이디예요.';
+            } elseif (strlen($password) < 10) {
+                $errors[] = '새 관리자 비밀번호는 10자 이상으로 정해 주세요.';
+            } elseif ($password !== input_raw('new_admin_password2')) {
+                $errors[] = '새 관리자 비밀번호 확인이 일치하지 않아요.';
+            } else {
+                q_insert('admins', array('username' => $username, 'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'created_at' => now()));
+                flash('관리자 ‘' . $username . '’을(를) 만들었어요. 이 아이디와 비밀번호로 /admin 에 로그인할 수 있어요.');
+                redirect('/admin/account');
+            }
+        } elseif ($form === 'delete') {
+            $target = q_one('SELECT * FROM admins WHERE id = ?', array(input_int('admin_id')));
+            if (!$target) {
+                $errors[] = '관리자를 찾을 수 없어요.';
+            } elseif ((int) $target['id'] === (int) $admin['id']) {
+                $errors[] = '지금 로그인한 내 계정은 지울 수 없어요.';
+            } elseif ((int) q_value('SELECT COUNT(*) FROM admins') <= 1) {
+                $errors[] = '관리자는 한 명 이상 있어야 해요.';
+            } else {
+                q('DELETE FROM admins WHERE id = ?', array((int) $target['id']));
+                flash('관리자 ‘' . $target['username'] . '’을(를) 지웠어요. 그 아이디로 로그인해 있던 화면도 바로 풀려요.');
+                redirect('/admin/account');
+            }
         } else {
-            q('UPDATE admins SET password_hash = ? WHERE id = ?', array(password_hash($new, PASSWORD_DEFAULT), $admin['id']));
-            login_admin(q_one('SELECT * FROM admins WHERE id = ?', array($admin['id'])));
-            flash('비밀번호를 바꿨어요.');
-            redirect('/admin/account');
+            $new = input_raw('new_password');
+            if (!password_verify(input_raw('current_password'), $me['password_hash'])) {
+                $errors[] = '지금 비밀번호가 맞지 않아요.';
+            } elseif (strlen($new) < 10) {
+                $errors[] = '새 비밀번호는 10자 이상으로 정해 주세요.';
+            } elseif ($new !== input_raw('new_password2')) {
+                $errors[] = '새 비밀번호 확인이 일치하지 않아요.';
+            } else {
+                q('UPDATE admins SET password_hash = ? WHERE id = ?', array(password_hash($new, PASSWORD_DEFAULT), $admin['id']));
+                login_admin(q_one('SELECT * FROM admins WHERE id = ?', array($admin['id'])));
+                flash('비밀번호를 바꿨어요.');
+                redirect('/admin/account');
+            }
         }
     }
-    render_admin('cleaning_account', array('title' => '계정', 'nav' => 'account', 'errors' => $errors));
+    render_admin('cleaning_account', array(
+        'title' => '계정', 'nav' => 'account', 'errors' => $errors, 'form' => $form, 'created' => $created,
+        'admins' => q_all('SELECT id, username, created_at FROM admins ORDER BY id'),
+    ));
 }

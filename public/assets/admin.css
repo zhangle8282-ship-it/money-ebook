@@ -591,3 +591,14 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .settle-total { padding: 18px 22px; display: flex; flex-direction: column; gap: 10px; background: #FBFAF7; }
 @media (max-width: 1200px) { .settle-amounts { grid-template-columns: repeat(4, minmax(0, 1fr)); } .settle-amounts > div:nth-child(4n) { border-right: 0; } .settle-amounts > div:nth-child(-n+4) { border-bottom: 1px solid var(--line); } }
 @media (max-width: 600px) { .settle-amounts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .settle-amounts > div { border-bottom: 1px solid var(--line); } .settle-actions { margin-left: 0; } }
+/* 관리자 계정 */
+.account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.account-grid > section:first-child { grid-column: 1 / -1; }
+.account-grid .account-form { max-width: none; }
+.admin-list { list-style: none; margin: 0; padding: 0 24px 16px; }
+.admin-list li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.admin-list li:first-child { border-top: 0; }
+.admin-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-dark); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+.admin-who { flex: 1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.admin-list form { margin: 0; }
+@media (max-width: 900px) { .account-grid { grid-template-columns: 1fr; } }
