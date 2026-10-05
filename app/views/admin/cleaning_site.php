@@ -27,6 +27,7 @@ $text = function ($key, $label, $opts = array()) use ($v) {
       <?= $text('gc_name', '업체 이름', array('required' => true)) ?>
       <?= $text('gc_phone', '대표 전화번호', array('required' => true, 'type' => 'tel', 'help' => '머리말·문의 띠·바닥글·모바일 전화 단추에 쓰여요.')) ?>
     </div>
+    <?= $text('gc_channeltalk_key', '채널톡 플러그인 키', array('placeholder' => '예: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d', 'help' => '채널톡 관리자 화면의 설정에서 <b>플러그인 키(Plugin Key)</b>를 복사해 넣으세요. 넣으면 홈페이지 오른쪽 아래에 채팅 상담 버튼이 떠 있어요. 비워 두면 숨겨져요.')) ?>
     <?= $text('gc_kakao_url', '카카오톡 채널 상담 주소', array('placeholder' => 'https://pf.kakao.com/_xxxxxx/chat', 'help' => '카카오톡 채널 관리자센터 › 채널 홍보 › 채널 URL 끝에 <b>/chat</b>을 붙여 넣으세요. 비워 두면 카카오톡 단추가 숨겨져요.')) ?>
     <div class="grid-2">
       <?= $text('gc_tagline', '첫 화면 윗줄 문구', array('help' => '예: 음성 · 진천 · 충북혁신도시 정기청소 전문')) ?>

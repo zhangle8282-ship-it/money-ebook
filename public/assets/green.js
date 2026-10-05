@@ -23,6 +23,33 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
   }
 
+  // 채널톡(channel.io) 채팅 상담 버튼: 관리자에 플러그인 키를 넣었을 때만 불러옵니다.
+  var channelKey = document.body.getAttribute('data-channeltalk');
+  if (channelKey) {
+    (function () {
+      var w = window;
+      if (w.ChannelIO) return;
+      var ch = function () { ch.c(arguments); };
+      ch.q = [];
+      ch.c = function (args) { ch.q.push(args); };
+      w.ChannelIO = ch;
+      function load() {
+        if (w.ChannelIOInitialized) return;
+        w.ChannelIOInitialized = true;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://cdn.channel.io/plugin/ch-plugin-web.js';
+        document.head.appendChild(s);
+      }
+      if (document.readyState === 'complete') load(); else { w.addEventListener('DOMContentLoaded', load); w.addEventListener('load', load); }
+    })();
+    // 채널톡 기본 단추는 위치를 바꿀 수 없어(모바일 아래 막대를 가림) 숨기고, 홈페이지의 떠 있는 ‘채팅 상담’ 단추로 엽니다.
+    window.ChannelIO('boot', { pluginKey: channelKey, hideChannelButtonOnBoot: true });
+    document.querySelectorAll('[data-open-chat]').forEach(function (a) {
+      a.addEventListener('click', function (e) { e.preventDefault(); window.ChannelIO('showMessenger'); });
+    });
+  }
+
   var form = document.querySelector('[data-inquiry-form]');
   var sent = document.querySelector('[data-sent]');
   var quote = document.getElementById('quote');

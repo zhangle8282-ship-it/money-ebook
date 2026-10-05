@@ -4,6 +4,7 @@ $name = gc('name');
 $phone = gc('phone');
 $tel = tel_href($phone);
 $kakao = gc('kakao_url');
+$channelKey = gc('channeltalk_key');
 $services = cleaning_services();
 $scope = cleaning_scope();
 $sitePhotos = array_values(array_filter($photos['site']));
@@ -60,7 +61,7 @@ $ld = array(
 <script>document.documentElement.classList.add('js');</script>
 <script type="application/ld+json"><?= str_replace('</', '<\/', json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?></script>
 </head>
-<body class="g-body<?= $kakao !== '' ? ' has-kakao' : '' ?>">
+<body class="g-body<?= $kakao !== '' ? ' has-kakao' : '' ?><?= $channelKey !== '' ? ' has-channeltalk' : '' ?>"<?= $channelKey !== '' ? ' data-channeltalk="' . e($channelKey) . '"' : '' ?>>
 <a class="g-skip" href="#main">본문 바로가기</a>
 
 <header class="g-header" data-header>
@@ -283,6 +284,8 @@ $ld = array(
   <div class="g-wrap g-cta-inner">
     <div><span class="g-cta-kicker">— 청소 문의 · 견적 상담 —</span><a class="g-cta-phone" href="<?= e($tel) ?>"><?= e($phone) ?></a></div>
     <div class="g-cta-btns">
+<?php if ($channelKey !== ''): ?>      <a class="g-btn-chat" href="#" data-open-chat><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>채팅 상담</a>
+<?php endif; ?>
 <?php if ($kakao !== ''): ?>      <a class="g-btn-kakao" href="<?= e($kakao) ?>" target="_blank" rel="noopener"><?= $kakaoIcon ?>카카오톡 상담</a>
 <?php endif; ?>
       <a class="g-btn-white" href="#quote" data-go-quote>견적 문의하기</a>
@@ -302,6 +305,9 @@ $ld = array(
   </div>
 </footer>
 
+<?php if ($channelKey !== ''): ?>
+<a class="g-chat-float" href="#" data-open-chat aria-label="채팅 상담"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg><span>채팅 상담</span></a>
+<?php endif; ?>
 <?php if ($kakao !== ''): ?>
 <a class="g-kakao-float" href="<?= e($kakao) ?>" target="_blank" rel="noopener" aria-label="카카오톡 상담"><?= $kakaoIcon ?></a>
 <?php endif; ?>

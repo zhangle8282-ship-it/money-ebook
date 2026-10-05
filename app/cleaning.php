@@ -11,6 +11,8 @@ function cleaning_defaults()
         'gc_name' => '그린청소',
         'gc_phone' => '010-6636-7748',
         'gc_kakao_url' => '',
+        // 채널톡(channel.io) 플러그인 키: 넣으면 홈페이지 오른쪽 아래에 채팅 상담 버튼이 떠 있습니다.
+        'gc_channeltalk_key' => '11082e32-c584-482f-85ca-1d17724aaa7a',
         'gc_tagline' => '음성 · 진천 · 충북혁신도시 정기청소 전문',
         'gc_owner' => '김대열',
         'gc_biz_number' => '304-06-81659',

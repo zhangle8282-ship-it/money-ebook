@@ -143,7 +143,7 @@ function admin_inquiry_action($id)
 }
 
 const CLEANING_SITE_FIELDS = array(
-    'gc_name', 'gc_phone', 'gc_kakao_url', 'gc_tagline', 'gc_area',
+    'gc_name', 'gc_phone', 'gc_kakao_url', 'gc_channeltalk_key', 'gc_tagline', 'gc_area',
     'gc_owner', 'gc_biz_number', 'gc_biz_type', 'gc_biz_item', 'gc_address', 'gc_email', 'gc_notify_email',
 );
 
@@ -166,6 +166,9 @@ function admin_cleaning_site()
         }
         if ($values['gc_kakao_url'] !== '' && !preg_match('~^https?://[^\s<>"]+$~i', $values['gc_kakao_url'])) {
             $errors[] = '카카오톡 채널 주소는 http:// 또는 https:// 로 시작하게 넣어 주세요.';
+        }
+        if ($values['gc_channeltalk_key'] !== '' && !preg_match('/^[A-Za-z0-9-]{8,64}$/', $values['gc_channeltalk_key'])) {
+            $errors[] = '채널톡 플러그인 키는 영문·숫자·하이픈(-)으로 된 값을 그대로 붙여 넣어 주세요.';
         }
         foreach (array('gc_email' => '이메일', 'gc_notify_email' => '알림 이메일') as $key => $label) {
             if ($values[$key] !== '' && !filter_var($values[$key], FILTER_VALIDATE_EMAIL)) {
