@@ -90,7 +90,7 @@ $ld = array(
   <div class="g-wrap g-hero-grid">
     <div class="g-hero-text">
       <p class="g-eyebrow"><span aria-hidden="true"></span><?= e(gc('tagline')) ?></p>
-      <h1 id="hero-title">사무실·상가 청소,<br>이제 신경 끄세요.</h1>
+      <h1 id="hero-title">사무실·상가 청소,<br><span class="g-accent">이제 신경 끄세요.</span></h1>
       <p class="g-lead">요일과 시간만 정해주시면, <?= e($name) ?> 전담 인력이 매번 같은 기준으로 관리합니다.</p>
       <ul class="g-hero-services">
 <?php foreach ($services as $key => $s): ?>
