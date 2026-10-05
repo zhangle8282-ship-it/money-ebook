@@ -27,6 +27,8 @@ function cleaning_defaults()
         'gc_photos' => '',
         // 고객 후기: [[글, 누가]…]. 비어 있으면 처음 후기(cleaning_default_reviews)
         'gc_reviews' => '',
+        // 도급 정산 › 갑·을이 하는 일: {"gap":[…], "eul":[…]}. 비어 있으면 처음 목록(CONTRACT_ROLE_DEFAULTS)
+        'gc_roles' => '',
     );
 }
 
@@ -228,8 +230,8 @@ function site_base_url()
     return (is_https() ? 'https' : 'http') . '://' . preg_replace('/[^A-Za-z0-9.:\-]/', '', $_SERVER['HTTP_HOST'] ?? 'localhost');
 }
 
-/** 알림 메일 한 통 보내기. 반환: sent | failed | off(받을 주소 없음) */
-function send_notice_mail($subject, $body)
+/** 알림 메일 한 통 보내기($html 이 있으면 HTML + 글자 메일을 함께). 반환: sent | failed | off(받을 주소 없음) */
+function send_notice_mail($subject, $text, $html = '')
 {
     $to = gc('notify_email');
     if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
@@ -243,28 +245,105 @@ function send_notice_mail($subject, $body)
     $host = preg_replace('/^www\./', '', preg_replace('/[^a-z0-9.\-]/', '', $host));
     $isDomain = $host !== '' && strpos($host, '.') !== false && !filter_var($host, FILTER_VALIDATE_IP);
     $from = 'no-reply@' . ($isDomain ? $host : 'localhost.localdomain');
-    $headers = 'From: =?UTF-8?B?' . base64_encode(gc('name')) . '?= <' . $from . ">\r\n"
-        . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64";
+    $headers = 'From: =?UTF-8?B?' . base64_encode(gc('name')) . '?= <' . $from . ">\r\nMIME-Version: 1.0\r\n";
+    if ($html !== '') {
+        // 메일 앱이 HTML을 못 보여 주면 글자 메일이 대신 보입니다.
+        $boundary = 'gc-' . bin2hex(random_bytes(8));
+        $headers .= 'Content-Type: multipart/alternative; boundary="' . $boundary . '"';
+        $body = "--$boundary\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($text))
+            . "--$boundary\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($html))
+            . "--$boundary--\r\n";
+    } else {
+        $headers .= "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64";
+        $body = chunk_split(base64_encode($text));
+    }
     $subjectLine = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-    $encoded = chunk_split(base64_encode($body));
     // 보내는 주소(-f)를 함께 알려 주면 받는 쪽에서 스팸으로 덜 분류합니다. 서버가 막으면 기본 방식으로 다시 보냅니다.
-    $ok = @mail($to, $subjectLine, $encoded, $headers, '-f' . $from) || @mail($to, $subjectLine, $encoded, $headers);
+    $ok = @mail($to, $subjectLine, $body, $headers, '-f' . $from) || @mail($to, $subjectLine, $body, $headers);
     return $ok ? 'sent' : 'failed';
+}
+
+/**
+ * 알림 메일 HTML(그린청소 디자인). 메일 앱마다 지원이 달라 표(table)와 인라인 스타일만 씁니다.
+ * $o: preheader, badge, title, intro, rows([이름, 값 HTML]), buttons([글자, 주소, primary?]), note
+ */
+function cleaning_mail_html($o)
+{
+    $font = "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif";
+    $name = gc('name');
+    $logo = mb_substr($name, 0, 2) === '그린'
+        ? '<span style="color:#ffffff">그린</span><span style="color:#D7EEDF">' . e(mb_substr($name, 2)) . '</span>'
+        : e($name);
+    $rows = '';
+    foreach ($o['rows'] ?? array() as $i => $r) {
+        $border = $i ? 'border-top:1px solid #E3ECE6;' : '';
+        $rows .= '<tr><td style="' . $border . 'padding:14px 18px;width:92px;font-size:14px;color:#5B6068;vertical-align:top;font-family:' . $font . '">' . e($r[0]) . '</td>'
+            . '<td style="' . $border . 'padding:14px 18px 14px 0;font-size:16px;font-weight:700;color:#1D3329;line-height:1.5;word-break:keep-all;font-family:' . $font . '">' . $r[1] . '</td></tr>';
+    }
+    $buttons = '';
+    foreach ($o['buttons'] ?? array() as $b) {
+        $style = !empty($b[2])
+            ? 'background:#2F7D5C;color:#ffffff;border:1px solid #2F7D5C;'
+            : 'background:#ffffff;color:#2A2D33;border:1px solid #CFD8D2;';
+        $buttons .= '<a href="' . e($b[1]) . '" style="display:inline-block;margin:0 8px 10px 0;padding:13px 22px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;font-family:' . $font . ';' . $style . '">' . e($b[0]) . '</a>';
+    }
+    return '<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . e($o['title']) . '</title></head>'
+        . '<body style="margin:0;padding:0;background:#EEF3EF;-webkit-text-size-adjust:100%">'
+        . '<div style="display:none;max-height:0;overflow:hidden;opacity:0">' . e($o['preheader'] ?? '') . '</div>'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#EEF3EF"><tr><td align="center" style="padding:28px 12px">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid #DCE8E0;border-radius:18px;overflow:hidden">'
+        // 머리: 녹색 띠 + 업체 이름
+        . '<tr><td style="background:#2F7D5C;padding:20px 28px;font-family:' . $font . '">'
+        . '<span style="font-size:22px;font-weight:800;letter-spacing:-0.5px">' . $logo . '</span>'
+        . '<span style="font-size:13px;font-weight:600;color:#D7EEDF;padding-left:10px">' . e($o['label'] ?? '홈페이지 알림') . '</span></td></tr>'
+        // 제목
+        . '<tr><td style="padding:28px 28px 6px;font-family:' . $font . '">'
+        . (!empty($o['badge']) ? '<span style="display:inline-block;background:#E6F2EA;color:#235F47;font-size:13px;font-weight:700;padding:5px 12px;border-radius:999px">' . e($o['badge']) . '</span>' : '')
+        . '<h1 style="margin:12px 0 8px;font-size:23px;line-height:1.35;font-weight:800;color:#1D3329;word-break:keep-all">' . e($o['title']) . '</h1>'
+        . '<p style="margin:0;font-size:15px;line-height:1.6;color:#555A62;word-break:keep-all">' . e($o['intro'] ?? '') . '</p></td></tr>'
+        // 내용 표
+        . ($rows !== '' ? '<tr><td style="padding:18px 28px 6px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F6FAF7;border:1px solid #E3ECE6;border-radius:14px">' . $rows . '</table></td></tr>' : '')
+        // 단추
+        . ($buttons !== '' ? '<tr><td style="padding:18px 28px 18px">' . $buttons . '</td></tr>' : '')
+        // 바닥
+        . '<tr><td style="padding:16px 28px 20px;background:#F6FAF7;border-top:1px solid #E3ECE6;font-size:12px;line-height:1.6;color:#8A9098;word-break:keep-all;font-family:' . $font . '">'
+        . e($o['note'] ?? '') . '</td></tr>'
+        . '</table></td></tr></table></body></html>';
 }
 
 /** 새 문의 알림 메일. 못 보내도 문의 접수는 그대로 되고, 관리자 › 견적 문의에서 볼 수 있습니다. */
 function notify_inquiry($v)
 {
-    $subject = '[' . gc('name') . '] 새 견적 문의 · ' . CLEANING_KINDS[$v['kind']] . ' · ' . $v['name'];
-    $body = "홈페이지로 새 견적 문의가 들어왔어요.\n\n"
-        . '청소 종류: ' . CLEANING_KINDS[$v['kind']] . "\n"
+    $kind = CLEANING_KINDS[$v['kind']];
+    $when = date('Y.m.d H:i');
+    $admin = site_base_url() . '/admin/inquiries';
+    $subject = '[' . gc('name') . '] 새 견적 문의 · ' . $kind . ' · ' . $v['name'];
+    $text = "홈페이지로 새 견적 문의가 들어왔어요.\n\n"
+        . '청소 종류: ' . $kind . " 정기청소\n"
         . '업체명 / 담당자: ' . $v['name'] . "\n"
         . '연락처: ' . $v['phone'] . "\n"
         . '주소 · 면적: ' . ($v['address'] !== '' ? $v['address'] : '-') . "\n"
-        . '접수 시각: ' . date('Y-m-d H:i') . "\n\n"
-        . "연락한 뒤에는 관리자 화면에서 상태와 메모를 남겨 주세요.\n"
-        . site_base_url() . "/admin/inquiries\n";
-    return send_notice_mail($subject, $body);
+        . '접수: ' . $when . "\n\n"
+        . "연락한 뒤에는 관리자 화면에서 상태와 메모를 남겨 주세요.\n" . $admin . "\n";
+    $html = cleaning_mail_html(array(
+        'label' => '견적 문의 알림',
+        'preheader' => $v['name'] . ' · ' . $v['phone'] . ' · ' . $kind . ' 정기청소 문의',
+        'badge' => $kind . ' 정기청소',
+        'title' => '새 견적 문의가 들어왔어요',
+        'intro' => '고객에게 영업일 하루 안에 연락드린다고 안내했어요. 아래 번호로 연락해 주세요.',
+        'rows' => array(
+            array('업체 / 담당자', e($v['name'])),
+            array('연락처', '<a href="' . e(tel_href($v['phone'])) . '" style="color:#2F7D5C;text-decoration:none">' . e($v['phone']) . '</a>'),
+            array('주소 · 면적', $v['address'] !== '' ? e($v['address']) : '<span style="color:#9AA19C;font-weight:400">적지 않음</span>'),
+            array('접수', e($when)),
+        ),
+        'buttons' => array(
+            array('전화 걸기', tel_href($v['phone']), true),
+            array('관리자 화면에서 보기', $admin, false),
+        ),
+        'note' => gc('name') . ' 홈페이지 ‘무료 견적 문의’로 들어온 내용을 자동으로 보내 드렸어요. 이 메일은 보내기 전용이라 답장은 받지 않아요.',
+    ));
+    return send_notice_mail($subject, $text, $html);
 }
 
 function inquiry_counts()

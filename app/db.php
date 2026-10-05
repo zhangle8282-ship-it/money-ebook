@@ -160,6 +160,25 @@ function migrate(PDO $pdo)
         $pdo->exec("ALTER TABLE inquiries ADD COLUMN mailed VARCHAR(12) NOT NULL DEFAULT ''");
         $pdo->prepare("UPDATE settings SET v = '7' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 8) {
+        // 8: 청소 도급 정산(청소별 계약 조건, 달마다 정산)
+        $pdo->exec("CREATE TABLE IF NOT EXISTS contracts (
+            id $id, name VARCHAR(100) NOT NULL, client VARCHAR(100) NOT NULL DEFAULT '',
+            monthly_fee INT NOT NULL DEFAULT 0, invoice INT NOT NULL DEFAULT 1, contract_rate INT NOT NULL DEFAULT 10,
+            gap_rate INT NOT NULL DEFAULT 60, gap_name VARCHAR(60) NOT NULL DEFAULT '', eul_name VARCHAR(60) NOT NULL DEFAULT '',
+            start_month VARCHAR(7) NOT NULL, end_month VARCHAR(7) NULL, memo TEXT,
+            created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NOT NULL)" . $tail);
+        $pdo->exec("CREATE TABLE IF NOT EXISTS contract_settlements (
+            id $id, contract_id INT NOT NULL, month VARCHAR(7) NOT NULL,
+            fee INT NOT NULL DEFAULT 0, invoice INT NOT NULL DEFAULT 1, tax INT NOT NULL DEFAULT 0,
+            contract_rate INT NOT NULL DEFAULT 10, contract_amount INT NOT NULL DEFAULT 0,
+            gap_rate INT NOT NULL DEFAULT 60, gap_amount INT NOT NULL DEFAULT 0, eul_amount INT NOT NULL DEFAULT 0,
+            status VARCHAR(12) NOT NULL DEFAULT 'pending', memo TEXT, settled_at VARCHAR(19) NULL,
+            created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NOT NULL)" . $tail);
+        $pdo->exec('CREATE UNIQUE INDEX idx_settlement_month ON contract_settlements (contract_id, month)');
+        $pdo->exec('CREATE INDEX idx_settlement_by_month ON contract_settlements (month)');
+        $pdo->prepare("UPDATE settings SET v = '8' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

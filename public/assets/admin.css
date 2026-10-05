@@ -439,3 +439,82 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .review-edit h2 { font-size: 16px; }
 .review-edit textarea { width: 100%; }
 @media (max-width: 900px) { .review-edit-list { grid-template-columns: 1fr; } }
+
+/* ── 도급 정산 ── */
+.contract-tabs { margin: -8px 0 4px; }
+.month-bar { margin-bottom: 0; }
+.month-nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.month-now { font-size: 20px; font-weight: 700; color: var(--ink); min-width: 120px; text-align: center; }
+.month-today { font-size: 14px; }
+.month-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.month-actions form { margin: 0; }
+.settle-cards { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.settle-card { padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.settle-card span { font-size: 13px; color: var(--sub); }
+.settle-card strong { font-size: 20px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.settle-card strong.minus { color: #8A5A0B; }
+.settle-card small { font-size: 12px; color: var(--sub); }
+.settle-card.is-gap { background: #EEF6F1; border-color: #CFE3D6; }
+.settle-card.is-gap strong { color: #1F4A3C; }
+.settle-card.is-eul { background: #F1EEFD; border-color: #DCD3FA; }
+.settle-card.is-eul strong { color: #3E2A9E; }
+.contract-table td.num, .contract-table th.num, .year-table td.num { white-space: nowrap; }
+.contract-table .minus, .year-table .minus { color: #8A5A0B; }
+.contract-table .gap-col strong { color: #1F4A3C; }
+.contract-table .eul-col strong { color: #3E2A9E; }
+.contract-table tr.is-done td { background: #FBFDFB; }
+.contract-table tfoot th, .contract-table tfoot td, .year-table tfoot th, .year-table tfoot td { padding: 14px 16px; background: #FBFAF7; border-top: 1px solid var(--line); font-weight: 600; }
+.settle-cell { white-space: nowrap; }
+.settle-cell form { margin: 6px 0 0; }
+.memo-line { color: #6A4A12; }
+.fee-edit { margin-top: 8px; font-size: 13px; }
+.fee-edit summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.inline-edit { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 4px; }
+.inline-edit input { height: 34px; padding: 0 10px; border: 1px solid var(--field); border-radius: 8px; font-size: 14px; width: 130px; }
+.inline-edit input[name="memo"] { width: 180px; }
+.link-btn { padding: 0; border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.year-table tr.is-current td { background: #EEF6F1; font-weight: 600; }
+.year-table tr.is-empty td { color: var(--sub); }
+.nowrap { white-space: nowrap; }
+.contract-grid .calc-card { position: sticky; top: 24px; }
+.calc .split { border-bottom: 0; padding: 8px 0; }
+.calc .gap-row dd { color: #1F4A3C; font-size: 19px; }
+.calc .eul-row dd { color: #3E2A9E; font-size: 19px; }
+.quick-rates { display: flex; gap: 6px; flex-wrap: wrap; }
+.danger-zone { margin: 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+/* 갑·을 역할 */
+.role-strip { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: stretch; }
+.role-strip-col { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--line); background: #fff; min-width: 0; }
+.role-strip-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.role-strip-col li { font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+.role-gap .role-strip-col li, .role-strip-col.role-gap li { background: #EEF6F1; color: #1F4A3C; }
+.role-strip-col.role-eul li { background: #F1EEFD; color: #3E2A9E; }
+.role-strip-edit { align-self: center; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.role-badge { flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: #fff; background: #2F7D5C; }
+.role-eul .role-badge { background: #6C4BF0; }
+.role-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.role-card { display: flex; flex-direction: column; gap: 16px; }
+.role-card.role-gap { border-top: 4px solid #2F7D5C; }
+.role-card.role-eul { border-top: 4px solid #6C4BF0; }
+.role-head { display: flex; align-items: center; gap: 12px; }
+.role-head .role-badge { width: 44px; height: 44px; font-size: 19px; }
+.role-head h2 { font-size: 19px; }
+.role-head .sub { margin: 2px 0 0; }
+.role-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.role-list li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; background: #F7F8F6; }
+.role-gap .role-list li { background: #F1F7F3; }
+.role-eul .role-list li { background: #F5F3FE; }
+.role-no { width: 24px; height: 24px; border-radius: 50%; background: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--sub); flex-shrink: 0; }
+.role-task { flex: 1; font-size: 16px; font-weight: 600; color: var(--ink); min-width: 0; }
+.role-actions form { display: flex; gap: 4px; margin: 0; }
+.icon-btn { min-width: 30px; height: 30px; padding: 0 8px; border: 1px solid var(--field); border-radius: 8px; background: #fff; color: var(--sub); font-size: 13px; cursor: pointer; }
+.icon-btn:hover:not(:disabled) { color: var(--ink); border-color: var(--sub); }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+.del-btn:hover { color: var(--danger) !important; border-color: var(--danger) !important; }
+.role-empty { margin: 0; }
+.role-add { display: flex; gap: 8px; margin: 0; }
+.role-add input { flex: 1; min-width: 0; height: 38px; padding: 0 12px; border: 1px solid var(--field); border-radius: 8px; font-size: 14px; }
+.role-reset { margin: 0; text-align: right; }
+@media (max-width: 1100px) { .settle-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .role-board, .role-strip { grid-template-columns: 1fr; } .contract-grid .calc-card { position: static; } }
+@media (max-width: 560px) { .settle-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .role-list li { flex-wrap: wrap; } }

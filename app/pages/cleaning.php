@@ -21,6 +21,14 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/site$~', 'admin_cleaning_site'),
         array('GET|POST', '~^/admin/photos$~', 'admin_cleaning_photos'),
         array('GET|POST', '~^/admin/reviews$~', 'admin_cleaning_reviews'),
+        // 도급 정산
+        array('GET', '~^/admin/contracts$~', 'admin_contracts_month'),
+        array('POST', '~^/admin/contracts/settle$~', 'admin_contracts_settle'),
+        array('GET', '~^/admin/contracts/list$~', 'admin_contracts_list'),
+        array('GET|POST', '~^/admin/contracts/roles$~', 'admin_contract_roles'),
+        array('GET|POST', '~^/admin/contracts/new$~', 'admin_contract_form'),
+        array('GET|POST', '~^/admin/contracts/(\d+)/edit$~', 'admin_contract_form'),
+        array('POST', '~^/admin/contracts/(\d+)/delete$~', 'admin_contract_delete'),
         array('GET|POST', '~^/admin/account$~', 'admin_account'),
     );
 }
@@ -155,7 +163,18 @@ function admin_cleaning_site()
     $values = settings();
     if (is_post() && input('action') === 'test_mail') {
         require_csrf('/admin/site');
-        $result = send_notice_mail('[' . gc('name') . '] 알림 메일 시험', "홈페이지 견적 문의 알림 메일이 잘 오는지 확인하는 시험 메일이에요.\n\n새 문의가 들어오면 이 주소로 알려 드려요.\n" . site_base_url() . "/admin/inquiries\n");
+        $text = "홈페이지 견적 문의 알림 메일이 잘 오는지 확인하는 시험 메일이에요.\n\n새 문의가 들어오면 이 주소로 알려 드려요.\n" . site_base_url() . "/admin/inquiries\n";
+        $html = cleaning_mail_html(array(
+            'label' => '알림 메일 시험',
+            'preheader' => '견적 문의 알림 메일이 잘 오는지 확인하는 시험 메일이에요.',
+            'badge' => '시험 메일',
+            'title' => '알림 메일이 잘 도착했어요',
+            'intro' => '홈페이지로 견적 문의가 들어오면 이런 모양의 메일로 바로 알려 드려요. 스팸함에 들어갔다면 ‘스팸 아님’으로 옮겨 주세요.',
+            'rows' => array(array('받는 주소', e(gc('notify_email'))), array('보낸 시각', e(date('Y.m.d H:i')))),
+            'buttons' => array(array('관리자 화면 열기', site_base_url() . '/admin/inquiries', true)),
+            'note' => gc('name') . ' 관리자 화면 › 홈페이지 관리에서 보낸 시험 메일이에요.',
+        ));
+        $result = send_notice_mail('[' . gc('name') . '] 알림 메일 시험', $text, $html);
         $messages = array(
             'sent' => gc('notify_email') . '로 시험 메일을 보냈어요. 몇 분 안에 안 오면 스팸함도 확인해 주세요.',
             'failed' => '서버에서 메일을 보내지 못했어요. 견적 문의는 관리자 화면에서 그대로 확인할 수 있어요.',

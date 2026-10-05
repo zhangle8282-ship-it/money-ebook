@@ -402,3 +402,45 @@
     });
   });
 })();
+
+// 도급 정산: 금액 칸 천 단위 쉼표, 새 청소 화면 한 달 정산 미리보기(세금 10% → 도급 → 갑·을)
+(function () {
+  document.querySelectorAll('input[data-money]').forEach(function (input) {
+    input.addEventListener('input', function () {
+      var digits = input.value.replace(/[^0-9]/g, '');
+      input.value = digits ? Number(digits).toLocaleString('ko-KR') : '';
+    });
+  });
+  var form = document.querySelector('[data-contract-form]');
+  if (!form) return;
+  var won = function (n) { return Number(n).toLocaleString('ko-KR') + '원'; };
+  var set = function (key, text) { form.querySelectorAll('[data-calc="' + key + '"]').forEach(function (el) { el.textContent = text; }); };
+  function calc() {
+    var fee = Number((form.monthly_fee.value || '').replace(/[^0-9]/g, '')) || 0;
+    var invoice = (form.querySelector('input[name="invoice"]:checked') || {}).value !== '0';
+    var rate = Number((form.querySelector('input[name="contract_rate"]:checked') || {}).value || 10);
+    var gap = Math.max(0, Math.min(100, Number(form.gap_rate.value) || 0));
+    var tax = invoice ? Math.round(fee * 0.1) : 0;
+    var after = fee - tax;
+    var contract = Math.round(after * rate / 100);
+    var base = after - contract;
+    var gapAmt = Math.round(base * gap / 100);
+    set('fee', won(fee));
+    set('tax', tax ? '− ' + won(tax) : '0원 (발행 안 함)');
+    set('after_tax', won(after));
+    set('rate', rate);
+    set('contract', '− ' + won(contract));
+    set('base', won(base));
+    set('gap_rate', gap);
+    set('eul_rate', 100 - gap);
+    set('eul_rate2', 100 - gap);
+    set('gap', won(gapAmt));
+    set('eul', won(base - gapAmt));
+  }
+  form.addEventListener('input', calc);
+  form.addEventListener('change', calc);
+  form.querySelectorAll('[data-gap]').forEach(function (b) {
+    b.addEventListener('click', function () { form.gap_rate.value = b.getAttribute('data-gap'); calc(); });
+  });
+  calc();
+})();
