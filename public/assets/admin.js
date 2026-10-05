@@ -575,3 +575,43 @@ document.addEventListener('click', function (e) {
     window.prompt('복사해 주세요', text);
   }
 });
+
+// 헤드 코드: Tab 들여쓰기, 줄·글자 수, 저장할 때 base64로 감싸 보내기(웹 방화벽이 <script> 를 막지 않게)
+(function () {
+  var form = document.querySelector('[data-code-form]');
+  if (!form) return;
+  var areas = form.querySelectorAll('textarea.code-area');
+  var count = function (ta) {
+    var el = form.querySelector('[data-code-count="' + ta.name + '"]');
+    if (el) el.textContent = (ta.value ? ta.value.split('\n').length : 0) + '줄 · ' + ta.value.length.toLocaleString('ko-KR') + '자';
+  };
+  areas.forEach(function (ta) {
+    count(ta);
+    ta.addEventListener('input', function () { count(ta); });
+    ta.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab' || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+      e.preventDefault();
+      var s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(en);
+      ta.selectionStart = ta.selectionEnd = s + 2;
+      count(ta);
+    });
+  });
+  form.addEventListener('submit', function () {
+    areas.forEach(function (ta) {
+      var hidden = form.querySelector('input[name="' + ta.name + '_b64"]');
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = ta.name + '_b64';
+        form.appendChild(hidden);
+      }
+      var bytes = new TextEncoder().encode(ta.value);
+      var bin = '';
+      bytes.forEach(function (b) { bin += String.fromCharCode(b); });
+      hidden.value = ta.value === '' ? '' : btoa(bin);
+      ta.dataset.name = ta.name;
+      ta.removeAttribute('name'); // 원래 글자는 보내지 않음
+    });
+  });
+})();

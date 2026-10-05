@@ -32,5 +32,6 @@ $channelKey = gc('channeltalk_key');
 </nav>
 <?php endif; ?>
 <script src="<?= e(cleaning_asset('green.js')) ?>" defer></script>
+<?= custom_code('body') ?>
 </body>
 </html>

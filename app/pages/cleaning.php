@@ -42,6 +42,7 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/contracts/(\d+)/edit$~', 'admin_contract_form'),
         array('POST', '~^/admin/contracts/(\d+)/delete$~', 'admin_contract_delete'),
         array('GET|POST', '~^/admin/account$~', 'admin_account'),
+        array('GET|POST', '~^/admin/code$~', 'admin_custom_code'),
     );
 }
 
@@ -317,6 +318,51 @@ function admin_cleaning_reviews()
         }
     }
     render_admin('cleaning_reviews', array('title' => '후기 관리', 'nav' => 'reviews', 'reviews' => $reviews, 'errors' => $errors));
+}
+
+/**
+ * 헤드 코드: 공개 화면 <head>(와 </body> 앞)에 넣을 코드.
+ * 카페24 웹 방화벽이 <script> 가 든 요청을 막을 수 있어서, 화면에서 base64 로 감싸 보내고 여기서 풉니다.
+ */
+function admin_custom_code()
+{
+    require_admin();
+    $errors = array();
+    $values = array('head' => gc('head_code'), 'body' => gc('body_code'), 'enabled' => gc('code_enabled') !== '0');
+    if (is_post()) {
+        require_csrf('/admin/code');
+        $decode = function ($field) {
+            $b64 = input_raw($field . '_b64');
+            if ($b64 !== '') {
+                $raw = base64_decode($b64, true);
+                return $raw === false ? null : $raw;
+            }
+            return input_raw($field);
+        };
+        $head = $decode('head_code');
+        $body = $decode('body_code');
+        if ($head === null || $body === null) {
+            $errors[] = '코드를 받지 못했어요. 새로고침한 뒤 다시 저장해 주세요.';
+        } else {
+            $head = str_replace("\r\n", "\n", $head);
+            $body = str_replace("\r\n", "\n", $body);
+            $values = array('head' => $head, 'body' => $body, 'enabled' => input('enabled') === '1');
+            foreach (array('head' => '헤드 코드', 'body' => '본문 끝 코드') as $k => $label) {
+                if (strlen($values[$k]) > 50000) {
+                    $errors[] = $label . '가 너무 길어요(50,000자까지).';
+                }
+                if (preg_match('~</?(head|body|html)[\s>]~i', $values[$k])) {
+                    $errors[] = $label . '에는 <head>, <body>, <html> 태그 자체는 넣지 말고, 그 안에 들어갈 코드만 넣어 주세요.';
+                }
+            }
+        }
+        if (!$errors) {
+            save_settings(array('gc_head_code' => $values['head'], 'gc_body_code' => $values['body'], 'gc_code_enabled' => $values['enabled'] ? '1' : '0'));
+            flash($values['enabled'] ? '코드를 저장했어요. 홈페이지 모든 화면에 바로 들어가요.' : '코드를 저장했어요. 지금은 꺼 두어서 홈페이지에는 들어가지 않아요.');
+            redirect('/admin/code');
+        }
+    }
+    render_admin('custom_code', array('title' => '헤드 코드', 'nav' => 'code', 'values' => $values, 'errors' => $errors));
 }
 
 /** 관리자 계정: 내 비밀번호 바꾸기 · 관리자 추가 · 다른 관리자 지우기 */

@@ -43,4 +43,5 @@ $google = verify_code(gc('google_verify'));
 <script>document.documentElement.classList.add('js');</script>
 <?php foreach ($m['ld'] as $ld): ?><script type="application/ld+json"><?= str_replace('</', '<\/', json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?></script>
 <?php endforeach; ?>
+<?= custom_code('head') ?>
 </head>

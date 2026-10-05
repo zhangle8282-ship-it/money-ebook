@@ -10,6 +10,7 @@ $name = gc('name');
 <?= icon_links() ?>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link rel="stylesheet" href="/assets/green.css?v=<?= @filemtime(PUBLIC_DIR . '/assets/green.css') ?>">
+<?= custom_code('head') ?>
 </head>
 <body class="g-body g-simple">
 <header class="g-header">
@@ -20,5 +21,6 @@ $name = gc('name');
 </header>
 <main id="main" class="g-wrap g-page"><?= $content ?></main>
 <footer class="g-footer g-footer-mini"><div class="g-wrap"><p class="g-copy">© <?= e($name) ?>. All rights reserved. <a href="/">홈으로</a></p></div></footer>
+<?= custom_code('body') ?>
 </body>
 </html>

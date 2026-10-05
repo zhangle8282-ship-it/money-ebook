@@ -19,6 +19,7 @@ $menu = $cleaning ? array(
     'photos' => array('/admin/photos', '사진 관리', '<rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5-5-8 8"></path>'),
     'blog' => array('/admin/blog', '블로그', '<path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 7l4 4"></path>'),
     'reviews' => array('/admin/reviews', '후기 관리', '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path>'),
+    'code' => array('/admin/code', '헤드 코드', '<path d="M8 8l-4 4 4 4"></path><path d="M16 8l4 4-4 4"></path><path d="M13.5 5l-3 14"></path>'),
     'account' => array('/admin/account', '계정', '<circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path>'),
 ) : array(
     'dashboard' => array('/admin', '대시보드', '<rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect>'),

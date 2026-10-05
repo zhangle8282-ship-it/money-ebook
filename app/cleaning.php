@@ -34,6 +34,10 @@ function cleaning_defaults()
         'gc_seo_desc' => '충북음성청소업체 그린청소 – 금왕사무실정기청소, 음성공장청소, 충북혁신도시화장실청소, 진천상가청소, 대소공단청소까지. 요일·시간만 정하면 전담 인력이 매번 같은 기준으로 관리합니다. 현장 방문 견적 무료.',
         'gc_seo_keywords' => '충북음성청소업체, 금왕사무실정기청소, 음성공장청소, 충북혁신도시화장실청소, 진천상가청소, 대소공단청소, 음성청소업체, 진천청소업체, 사무실정기청소, 화장실청소, 상가청소, 공장청소',
         'gc_naver_verify' => '',
+        // 관리자 › 헤드 코드: 공개 화면 <head> 끝과 </body> 바로 앞에 그대로 넣는 코드(분석·광고·확인 태그 등)
+        'gc_head_code' => '',
+        'gc_body_code' => '',
+        'gc_code_enabled' => '1',
         'gc_google_verify' => '',
     );
 }
@@ -96,6 +100,16 @@ function cleaning_local_services()
         array('진천 상가 청소', '진천 상가 매장 내부와 공용 계단·복도·엘리베이터를 영업 시작 전에 깔끔하게 마칩니다.', 'building'),
         array('대소공단 청소', '대소면 공단 공장·사무동 정기청소, 휴게실·화장실 위생 관리까지 한 번에 맡길 수 있습니다.', 'building'),
     );
+}
+
+/** 관리자가 넣은 코드(켜 둔 경우만). $where: head | body */
+function custom_code($where)
+{
+    if (gc('code_enabled') === '0') {
+        return '';
+    }
+    $code = gc($where === 'body' ? 'body_code' : 'head_code');
+    return trim($code) !== '' ? "\n<!-- 관리자 › 헤드 코드 -->\n" . $code . "\n<!-- /헤드 코드 -->\n" : '';
 }
 
 /** tel: 링크용 숫자만 */
