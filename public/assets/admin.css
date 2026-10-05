@@ -602,3 +602,12 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .admin-who { flex: 1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .admin-list form { margin: 0; }
 @media (max-width: 900px) { .account-grid { grid-template-columns: 1fr; } }
+/* 파트너 역할: 할 일은 한 줄 넉넉하게, 단추는 그 아래 작게 */
+.role-list li { flex-wrap: wrap; row-gap: 8px; padding: 12px 14px 10px; }
+.role-task { flex: 1 1 calc(100% - 40px); min-width: 0; word-break: keep-all; overflow-wrap: anywhere; line-height: 1.45; }
+.role-actions { flex-basis: 100%; display: flex; justify-content: flex-end; }
+.role-actions form { flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.icon-btn { white-space: nowrap; min-width: 28px; height: 28px; padding: 0 8px; font-size: 12px; line-height: 1; }
+.role-add { flex-wrap: wrap; }
+.role-add input { flex: 1 1 140px; }
+.role-add button { flex-shrink: 0; }

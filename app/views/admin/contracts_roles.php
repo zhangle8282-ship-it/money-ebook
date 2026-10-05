@@ -26,7 +26,7 @@ $descs = array('gap' => '계약 · 세금 · 고객 응대', 'eul' => '홈페이
             <button type="submit" name="action" value="up" class="icon-btn" aria-label="‘<?= e($task) ?>’ 위로"<?= $i === 0 ? ' disabled' : '' ?>>↑</button>
             <button type="submit" name="action" value="down" class="icon-btn" aria-label="‘<?= e($task) ?>’ 아래로"<?= $i === count($list) - 1 ? ' disabled' : '' ?>>↓</button>
 <?php foreach (CONTRACT_ROLE_SIDES as $to => $toLabel): if ($to === $side) { continue; } ?>
-            <button type="submit" name="action" value="move_<?= $to ?>" class="icon-btn move-btn" title="<?= e($toLabel) ?>에게 넘기기" aria-label="‘<?= e($task) ?>’ <?= e($toLabel) ?>에게 넘기기"><?= e(CONTRACT_ROLE_SHORT[$to]) ?>로</button>
+            <button type="submit" name="action" value="move_<?= $to ?>" class="icon-btn move-btn" title="<?= e($toLabel) ?>에게 넘기기" aria-label="‘<?= e($task) ?>’ <?= e($toLabel) ?>에게 넘기기">→ <?= e(CONTRACT_ROLE_SHORT[$to]) ?></button>
 <?php endforeach; ?>
             <button type="submit" name="action" value="delete" class="icon-btn del-btn" aria-label="‘<?= e($task) ?>’ 빼기" data-confirm-click="‘<?= e($task) ?>’을(를) <?= e($label) ?>가 하는 일에서 뺄까요?">×</button>
           </form>
@@ -40,7 +40,7 @@ $descs = array('gap' => '계약 · 세금 · 고객 응대', 'eul' => '홈페이
     <form method="post" action="/admin/contracts/roles" class="role-add">
       <?= csrf_field() ?><input type="hidden" name="side" value="<?= $side ?>"><input type="hidden" name="action" value="add">
       <label class="sr-only" for="add-<?= $side ?>"><?= e($label) ?>가 할 일</label>
-      <input id="add-<?= $side ?>" name="task" type="text" maxlength="40" placeholder="<?= e(CONTRACT_ROLE_SHORT[$side]) ?> 할 일 더하기 (예: <?= array('gap' => '입금 확인', 'eul' => '청소 사진 올리기', 'byeong' => '청소 일지 쓰기')[$side] ?>)" required>
+      <input id="add-<?= $side ?>" name="task" type="text" maxlength="40" placeholder="예: <?= array('gap' => '입금 확인', 'eul' => '청소 사진 올리기', 'byeong' => '청소 일지 쓰기')[$side] ?>" required>
       <button type="submit" class="btn btn-primary btn-sm">+ 더하기</button>
     </form>
   </section>
