@@ -39,6 +39,17 @@ function cleaning_defaults()
         'gc_body_code' => '',
         'gc_code_enabled' => '1',
         'gc_google_verify' => '',
+        // 관리자 › 검색 등록: 빙 사이트 확인 코드, 다음 웹마스터도구 robots.txt 인증 줄
+        'gc_bing_verify' => '',
+        'gc_daum_verify' => '',
+        // IndexNow(바뀐 주소를 네이버 · 빙에 바로 알리기): 켜기, 열쇠, 최근 기록, 최근 알린 주소, 다음 예약 글 공개 시각
+        'gc_indexnow_on' => '1',
+        'gc_indexnow_key' => '',
+        'gc_indexnow_log' => '',
+        'gc_indexnow_sent' => '',
+        'gc_indexnow_next' => '',
+        // 첫 화면 내용(홈페이지 정보 · 사진 · 후기)을 마지막으로 바꾼 시각(사이트맵 lastmod)
+        'gc_home_updated' => '',
     );
 }
 

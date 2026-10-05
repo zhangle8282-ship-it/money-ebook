@@ -6,6 +6,7 @@
 $m = $meta + array('type' => 'website', 'image' => base_url() . '/assets/green-og.jpg', 'keywords' => false, 'ld' => array(), 'published' => null, 'modified' => null);
 $naver = verify_code(gc('naver_verify'));
 $google = verify_code(gc('google_verify'));
+$bing = verify_code(gc('bing_verify'));
 ?><!doctype html>
 <html lang="ko">
 <head>
@@ -20,6 +21,8 @@ $google = verify_code(gc('google_verify'));
 <?php if ($naver !== ''): ?><meta name="naver-site-verification" content="<?= e($naver) ?>">
 <?php endif; ?>
 <?php if ($google !== ''): ?><meta name="google-site-verification" content="<?= e($google) ?>">
+<?php endif; ?>
+<?php if ($bing !== ''): ?><meta name="msvalidate.01" content="<?= e($bing) ?>">
 <?php endif; ?>
 <meta property="og:type" content="<?= e($m['type']) ?>">
 <meta property="og:locale" content="ko_KR">

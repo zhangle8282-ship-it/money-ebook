@@ -15,6 +15,8 @@ function cleaning_routes()
         array('GET', '~^/rss\.xml$~', 'blog_rss'),
         array('GET', '~^/blog$~', 'page_blog_list'),
         array('GET', '~^/blog/(\d+)(?:-([^/]*))?$~', 'page_blog_post'),
+        // IndexNow 주인 확인 파일(/{열쇠}.txt)
+        array('GET', '~^/([a-f0-9]{32})\.txt$~', 'indexnow_key_file'),
         // 관리자
         array('GET|POST', '~^/admin/login$~', 'admin_login'),
         array('POST', '~^/admin/logout$~', 'admin_logout'),
@@ -43,6 +45,7 @@ function cleaning_routes()
         array('POST', '~^/admin/contracts/(\d+)/delete$~', 'admin_contract_delete'),
         array('GET|POST', '~^/admin/account$~', 'admin_account'),
         array('GET|POST', '~^/admin/code$~', 'admin_custom_code'),
+        array('GET|POST', '~^/admin/search$~', 'admin_search_submit'),
     );
 }
 
@@ -51,6 +54,7 @@ function cleaning_routes()
 function page_cleaning_home()
 {
     // 화면 새로고침 없이 보내지 못했을 때(자바스크립트 꺼짐) 입력값과 오류를 한 번만 되살립니다.
+    indexnow_due();
     start_session();
     $form = $_SESSION['inquiry_form'] ?? null;
     unset($_SESSION['inquiry_form']);
@@ -102,27 +106,31 @@ function page_cleaning_privacy()
     render('cleaning/privacy', array('title' => '개인정보처리방침'), 'cleaning/simple');
 }
 
+/** robots.txt: 검색 로봇이 사이트맵 · RSS 주소를 스스로 찾아가게 적어 두고, 관리자 화면은 막습니다. */
 function cleaning_robots()
 {
     header('Content-Type: text/plain; charset=utf-8');
-    echo "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /inquiry\nSitemap: " . base_url() . "/sitemap.xml\n";
+    $base = base_url();
+    $out = "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /inquiry\n\nSitemap: " . $base . "/sitemap.xml\n";
+    if (blog_has_posts()) {
+        $out .= 'Sitemap: ' . $base . "/rss.xml\n";
+    }
+    // 다음 웹마스터도구 사이트 인증(맨 끝에 한 줄)
+    $daum = daum_verify_line(gc('daum_verify'));
+    if ($daum !== '') {
+        $out .= "\n" . $daum . "\n";
+    }
+    echo $out;
     exit;
 }
 
 function cleaning_sitemap()
 {
+    indexnow_due();
     header('Content-Type: application/xml; charset=utf-8');
-    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-    $latest = blog_latest(1);
-    $urls = array(array('/', null), array('/privacy', null));
-    if ($latest) {
-        $urls[] = array('/blog', $latest[0]['updated_at']);
-    }
-    foreach ($urls as $u) {
-        echo '<url><loc>' . e(base_url() . $u[0]) . '</loc>' . ($u[1] ? '<lastmod>' . e(date('c', strtotime($u[1]))) . '</lastmod>' : '') . '</url>';
-    }
-    foreach (blog_latest(1000) as $p) {
-        echo '<url><loc>' . e(blog_url($p, true)) . '</loc><lastmod>' . e(date('c', strtotime($p['updated_at']))) . '</lastmod></url>';
+    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+    foreach (sitemap_entries() as $u) {
+        echo '<url><loc>' . e(base_url() . $u[0]) . '</loc>' . ($u[1] ? '<lastmod>' . e(date('c', strtotime($u[1]))) . '</lastmod>' : '') . "</url>\n";
     }
     echo '</urlset>';
     exit;
@@ -174,7 +182,7 @@ function admin_inquiry_action($id)
 
 const CLEANING_SITE_FIELDS = array(
     'gc_name', 'gc_phone', 'gc_kakao_url', 'gc_channeltalk_key', 'gc_tagline', 'gc_area',
-    'gc_seo_title', 'gc_seo_desc', 'gc_seo_keywords', 'gc_naver_verify', 'gc_google_verify',
+    'gc_seo_title', 'gc_seo_desc', 'gc_seo_keywords',
     'gc_owner', 'gc_biz_number', 'gc_biz_type', 'gc_biz_item', 'gc_address', 'gc_email', 'gc_notify_email',
 );
 
@@ -210,10 +218,6 @@ function admin_cleaning_site()
         foreach (CLEANING_SITE_FIELDS as $key) {
             $values[$key] = str_cut(trim(preg_replace('/\s+/u', ' ', input($key))), $key === 'gc_seo_desc' || $key === 'gc_seo_keywords' ? 300 : 200, '');
         }
-        // 사이트 확인 코드: 태그를 통째로 붙여 넣어도 값만 저장
-        foreach (array('gc_naver_verify', 'gc_google_verify') as $key) {
-            $values[$key] = verify_code($values[$key]);
-        }
         if ($values['gc_seo_title'] === '') {
             $errors[] = '검색 제목을 적어 주세요.';
         }
@@ -236,8 +240,10 @@ function admin_cleaning_site()
             }
         }
         if (!$errors) {
-            save_settings(array_intersect_key($values, array_flip(CLEANING_SITE_FIELDS)));
-            flash('홈페이지 정보를 저장했어요. 바로 반영돼요.');
+            $fields = array_flip(CLEANING_SITE_FIELDS);
+            $changed = array_intersect_key(settings(), $fields) != array_intersect_key($values, $fields);
+            save_settings(array_intersect_key($values, $fields));
+            flash('홈페이지 정보를 저장했어요. 바로 반영돼요.' . ($changed ? indexnow_result_text(home_changed('홈페이지 정보 수정')) : ''));
             redirect('/admin/site');
         }
     }
@@ -283,8 +289,9 @@ function admin_cleaning_photos()
         }
         $photos['map'] = $slot('map', $photos['map'], '서비스 지역 지도');
         save_cleaning_photos($photos);
+        $pinged = home_changed('사진 수정');
         if (!$errors) {
-            flash('사진을 저장했어요. 홈페이지에 바로 보여요.');
+            flash('사진을 저장했어요. 홈페이지에 바로 보여요.' . indexnow_result_text($pinged));
             redirect('/admin/photos');
         }
     }
@@ -313,7 +320,8 @@ function admin_cleaning_reviews()
         }
         if (!$errors) {
             save_settings(array('gc_reviews' => json_encode($reviews, JSON_UNESCAPED_UNICODE)));
-            flash($reviews ? '후기를 저장했어요. 홈페이지에 바로 반영돼요.' : '후기를 모두 비웠어요. 홈페이지에서 고객 후기 구역이 숨겨져요.');
+            $pinged = home_changed('후기 수정');
+            flash(($reviews ? '후기를 저장했어요. 홈페이지에 바로 반영돼요.' : '후기를 모두 비웠어요. 홈페이지에서 고객 후기 구역이 숨겨져요.') . indexnow_result_text($pinged));
             redirect('/admin/reviews');
         }
     }
@@ -428,5 +436,57 @@ function admin_account()
     render_admin('cleaning_account', array(
         'title' => '계정', 'nav' => 'account', 'errors' => $errors, 'form' => $form, 'created' => $created,
         'admins' => q_all('SELECT id, username, created_at FROM admins ORDER BY id'),
+    ));
+}
+
+/** 검색 등록: 사이트맵 · RSS 주소 안내, 검색 사이트 확인 코드, 바뀐 주소 바로 알리기(IndexNow) */
+const SEARCH_SUBMIT_FIELDS = array('gc_naver_verify', 'gc_google_verify', 'gc_bing_verify', 'gc_daum_verify', 'gc_indexnow_on');
+
+function admin_search_submit()
+{
+    require_admin();
+    $errors = array();
+    $values = settings();
+    if (is_post() && input('action') === 'ping_all') {
+        require_csrf('/admin/search');
+        if (gc('indexnow_on') !== '1') {
+            flash('바로 알리기가 꺼져 있어요. 켜고 저장한 뒤 다시 눌러 주세요.', 'error');
+        } else {
+            $paths = array_map(function ($row) {
+                return $row[0];
+            }, sitemap_entries());
+            $entry = indexnow_ping($paths, '모두 알리기', true);
+            $ok = $entry && !empty($entry['codes']) && array_filter($entry['codes'], 'indexnow_ok');
+            flash('사이트맵에 있는 주소 ' . count($paths) . '개를 보냈어요.' . indexnow_result_text($entry), $ok ? 'ok' : (isset($entry['skip']) ? 'info' : 'error'));
+        }
+        redirect('/admin/search#indexnow');
+    }
+    if (is_post()) {
+        require_csrf('/admin/search');
+        // 사이트 확인 코드: 태그를 통째로 붙여 넣어도 값만 저장
+        foreach (array('gc_naver_verify', 'gc_google_verify', 'gc_bing_verify') as $key) {
+            $values[$key] = verify_code(str_cut(trim(input($key)), 300, ''));
+        }
+        $daum = trim(str_cut(input('gc_daum_verify'), 300, ''));
+        $values['gc_daum_verify'] = daum_verify_line($daum);
+        if ($daum !== '' && $values['gc_daum_verify'] === '') {
+            $errors[] = '다음 웹마스터도구 인증 줄은 #DaumWebMasterTool: 로 시작하는 한 줄을 그대로 붙여 넣어 주세요.';
+            $values['gc_daum_verify'] = $daum;
+        }
+        $values['gc_indexnow_on'] = input('indexnow_on') === '1' ? '1' : '0';
+        if (!$errors) {
+            save_settings(array_intersect_key($values, array_flip(SEARCH_SUBMIT_FIELDS)));
+            flash('저장했어요. 확인 코드는 홈페이지에 바로 들어가요. 이제 검색 사이트 화면에서 ‘소유 확인’을 눌러 주세요.');
+            redirect('/admin/search');
+        }
+    }
+    render_admin('search_submit', array(
+        'title' => '검색 등록', 'nav' => 'search', 'values' => $values, 'errors' => $errors,
+        'base' => base_url(),
+        'key' => indexnow_key(),
+        'entries' => count(sitemap_entries()),
+        'posts' => (int) q_value('SELECT COUNT(*) FROM blog_posts WHERE ' . blog_public_sql(), array(now())),
+        'log' => array_slice(indexnow_log(), 0, INDEXNOW_LOG_MAX),
+        'local' => !indexnow_public_host(),
     ));
 }

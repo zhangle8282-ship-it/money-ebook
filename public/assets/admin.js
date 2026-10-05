@@ -615,3 +615,14 @@ document.addEventListener('click', function (e) {
     });
   });
 })();
+
+// 검색 등록: 확인 태그(<meta … content="값">)를 통째로 붙여 넣으면 값만 남겨 보내기(웹 방화벽이 태그를 막지 않게)
+document.querySelectorAll('input[data-verify]').forEach(function (input) {
+  var clean = function () {
+    var m = input.value.match(/content\s*=\s*["']([^"']+)["']/i);
+    if (m) input.value = m[1];
+  };
+  input.addEventListener('change', clean);
+  input.addEventListener('paste', function () { setTimeout(clean, 0); });
+  if (input.form) input.form.addEventListener('submit', clean);
+});

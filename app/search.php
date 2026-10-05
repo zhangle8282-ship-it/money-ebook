@@ -1,0 +1,282 @@
+<?php
+/**
+ * 그린청소 검색 등록: 사이트맵 · RSS를 검색 사이트가 읽어 가게 하고, 바뀐 주소는 IndexNow로 바로 알립니다.
+ *
+ * IndexNow: 주소가 새로 생기거나 바뀌거나 지워졌을 때 검색 사이트에 "이 주소 다시 읽어 가세요"라고 알리는 공용 방식.
+ *   네이버 · 빙(Bing) · 얀덱스 등이 함께 쓰고, 참여한 검색 사이트끼리 받은 주소를 나눠 씁니다.
+ *   구글은 받지 않으므로 구글 서치 콘솔에 사이트맵을 한 번 제출해 두면 알아서 다시 읽어 갑니다.
+ *   주인 확인: 사이트 맨 위의 /{열쇠}.txt(내용 = 열쇠)를 검색 사이트가 열어 봅니다(이 앱이 그 주소를 만들어 줌).
+ */
+
+const INDEXNOW_ENDPOINTS = array(
+    'naver' => array('네이버', 'https://searchadvisor.naver.com/indexnow'),
+    'indexnow' => array('빙 · 기타', 'https://api.indexnow.org/indexnow'),
+);
+const INDEXNOW_LOG_MAX = 10;
+const INDEXNOW_GAP = 600; // 같은 주소를 다시 알리기까지 기다리는 시간(초). ‘지금 모두 알리기’는 예외
+
+/** 열쇠(32자리 16진수). 처음 쓸 때 만들어 저장합니다. */
+function indexnow_key()
+{
+    $key = gc('indexnow_key');
+    if (!preg_match('/^[a-f0-9]{32}$/', $key)) {
+        $key = bin2hex(random_bytes(16));
+        save_settings(array('gc_indexnow_key' => $key));
+    }
+    return $key;
+}
+
+/** /{열쇠}.txt: 저장된 열쇠와 같을 때만 열쇠를 글자로 보여 줍니다. */
+function indexnow_key_file($key)
+{
+    if ($key !== gc('indexnow_key')) {
+        not_found();
+    }
+    header('Content-Type: text/plain; charset=utf-8');
+    echo $key;
+    exit;
+}
+
+/** 인터넷에서 열리는 주소인지(내 컴퓨터 · IP 주소면 알리지 않음) */
+function indexnow_public_host()
+{
+    $host = strtolower((string) parse_url(base_url(), PHP_URL_HOST));
+    if ($host === '' || $host === 'localhost' || filter_var(trim($host, '[]'), FILTER_VALIDATE_IP) || strpos($host, '.') === false) {
+        return false;
+    }
+    return !preg_match('/\.(localhost|test|local|invalid)$/', $host);
+}
+
+/** 사이트맵에 담기는 주소 전부: [주소(‘/’로 시작), 마지막 수정 시각 또는 null] */
+function sitemap_entries()
+{
+    $postsUpdated = q_value('SELECT MAX(updated_at) FROM blog_posts WHERE ' . blog_public_sql(), array(now()));
+    $home = max((string) gc('home_updated'), (string) $postsUpdated);
+    $rows = array(array('/', $home !== '' ? $home : null), array('/privacy', null));
+    if ($postsUpdated) {
+        $rows[] = array('/blog', $postsUpdated);
+    }
+    foreach (blog_latest(1000) as $p) {
+        $rows[] = array(blog_url($p), $p['updated_at']);
+    }
+    return $rows;
+}
+
+/** 주소 묶음을 검색 사이트들에 함께 보냅니다. 반환: [검색 사이트 => 응답 코드(0 = 연결 안 됨)] */
+function indexnow_send($urls, $endpoints)
+{
+    $base = base_url();
+    $key = indexnow_key();
+    $body = json_encode(array(
+        'host' => parse_url($base, PHP_URL_HOST),
+        'key' => $key,
+        'keyLocation' => $base . '/' . $key . '.txt',
+        'urlList' => array_values($urls),
+    ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $headers = array('Content-Type: application/json; charset=utf-8', 'User-Agent: GreenCleaning-IndexNow/1.0');
+    $codes = array();
+    if (function_exists('curl_multi_init')) {
+        $multi = curl_multi_init();
+        $handles = array();
+        foreach ($endpoints as $id => $ep) {
+            $ch = curl_init($ep[1]);
+            curl_setopt_array($ch, array(
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $body,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CONNECTTIMEOUT => 3,
+                CURLOPT_TIMEOUT => 6,
+            ));
+            curl_multi_add_handle($multi, $ch);
+            $handles[$id] = $ch;
+        }
+        do {
+            $status = curl_multi_exec($multi, $running);
+            if ($running) {
+                curl_multi_select($multi, 1.0);
+            }
+        } while ($running && $status === CURLM_OK);
+        foreach ($handles as $id => $ch) {
+            $codes[$id] = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_multi_remove_handle($multi, $ch);
+        }
+        curl_multi_close($multi);
+        return $codes;
+    }
+    foreach ($endpoints as $id => $ep) {
+        $ctx = stream_context_create(array('http' => array(
+            'method' => 'POST', 'header' => implode("\r\n", $headers), 'content' => $body, 'timeout' => 6, 'ignore_errors' => true,
+        )));
+        $codes[$id] = 0;
+        if (@file_get_contents($ep[1], false, $ctx) !== false && function_exists('http_get_last_response_headers')) {
+            $head = http_get_last_response_headers();
+            if ($head && preg_match('~^HTTP/\S+\s+(\d{3})~', $head[0], $m)) {
+                $codes[$id] = (int) $m[1];
+            }
+        }
+    }
+    return $codes;
+}
+
+function indexnow_ok($code)
+{
+    return $code === 200 || $code === 202;
+}
+
+function indexnow_code_label($code)
+{
+    $labels = array(0 => '연결 안 됨', 200 => '접수', 202 => '접수(확인 중)', 400 => '형식 오류', 403 => '열쇠 확인 실패', 422 => '주소 오류', 429 => '너무 자주 보냄');
+    return $labels[$code] ?? ('응답 ' . $code);
+}
+
+/** 최근 알림 기록(새것부터) */
+function indexnow_log()
+{
+    $log = json_decode(gc('indexnow_log'), true);
+    return is_array($log) ? $log : array();
+}
+
+/** 최근에 알린 주소 => 시각(초) */
+function indexnow_sent()
+{
+    $sent = json_decode(gc('indexnow_sent'), true);
+    return is_array($sent) ? $sent : array();
+}
+
+/**
+ * 바뀐 주소를 검색 사이트에 알립니다.
+ * $paths: ‘/’로 시작하는 주소. $force: 방금 알린 주소도 다시 보냄(‘지금 모두 알리기’).
+ * 반환: 남긴 기록 한 줄(꺼져 있거나 보낼 주소가 없으면 null)
+ */
+function indexnow_ping($paths, $why, $force = false, $endpoints = null)
+{
+    if (SITE_MODE !== 'cleaning' || gc('indexnow_on') !== '1') {
+        return null;
+    }
+    $base = base_url();
+    $urls = array_keys(array_flip(array_map(function ($p) use ($base) {
+        return $base . $p;
+    }, $paths)));
+    $entry = array('at' => now(), 'why' => $why);
+    $save = array();
+    if (!indexnow_public_host()) {
+        $entry += array('count' => count($urls), 'urls' => array_slice($urls, 0, 5), 'skip' => 'local');
+    } else {
+        $sent = indexnow_sent();
+        $time = time();
+        if (!$force) {
+            $urls = array_values(array_filter($urls, function ($u) use ($sent, $time) {
+                return !isset($sent[$u]) || $time - (int) $sent[$u] >= INDEXNOW_GAP;
+            }));
+            if (!$urls) {
+                return null;
+            }
+        }
+        $urls = array_slice($urls, 0, 10000);
+        $codes = indexnow_send($urls, $endpoints ?: INDEXNOW_ENDPOINTS);
+        $entry += array('count' => count($urls), 'urls' => array_slice($urls, 0, 5), 'codes' => $codes);
+        if (array_filter($codes, 'indexnow_ok')) {
+            foreach ($urls as $u) {
+                $sent[$u] = $time;
+            }
+            $save['gc_indexnow_sent'] = json_encode(array_filter($sent, function ($t) use ($time) {
+                return $time - (int) $t < 86400;
+            }), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
+    }
+    $save['gc_indexnow_log'] = json_encode(array_slice(array_merge(array($entry), indexnow_log()), 0, INDEXNOW_LOG_MAX), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    save_settings($save);
+    return $entry;
+}
+
+/** 알림 결과를 한 문장으로(관리자 저장 메시지 뒤에 붙임) */
+function indexnow_result_text($entry)
+{
+    if (!$entry) {
+        return '';
+    }
+    if (isset($entry['skip'])) {
+        return ' (지금은 내 컴퓨터 주소라서 검색 사이트에 알리지 않았어요)';
+    }
+    $ok = array();
+    foreach ($entry['codes'] as $id => $code) {
+        if (indexnow_ok((int) $code)) {
+            $ok[] = INDEXNOW_ENDPOINTS[$id][0] ?? $id;
+        }
+    }
+    return $ok ? ' ' . implode(' · ', $ok) . '에 바로 알렸어요.' : ' 검색 사이트 알림은 실패했어요. ‘검색 등록’ 메뉴에서 다시 보낼 수 있어요.';
+}
+
+/** 첫 화면 내용이 바뀌었을 때: 사이트맵의 수정 시각을 바꾸고 검색 사이트에 알립니다. */
+function home_changed($why)
+{
+    save_settings(array('gc_home_updated' => now()));
+    return indexnow_ping(array('/'), $why);
+}
+
+/**
+ * 예약 글 중 가장 빠른 공개 시각을 적어 둡니다(블로그 글을 저장 · 삭제할 때마다).
+ * 이미 공개 시각이 지났는데 아직 알리지 않은 예약 글이 있으면 그대로 두어 다음 방문 때 알리게 합니다.
+ */
+function indexnow_schedule($afterDue = false)
+{
+    $current = gc('indexnow_next');
+    if (!$afterDue && $current !== '' && $current <= now()) {
+        return;
+    }
+    $next = (string) q_value("SELECT MIN(published_at) FROM blog_posts WHERE status = 'published' AND published_at > ?", array(now()));
+    if ($next !== gc('indexnow_next')) {
+        save_settings(array('gc_indexnow_next' => $next));
+    }
+}
+
+/**
+ * 예약해 둔 블로그 글이 공개 시각을 지났으면 알립니다.
+ * 공개 화면이 열릴 때 확인하고, 화면을 다 보낸 뒤에 알려서 방문자는 기다리지 않습니다.
+ */
+function indexnow_due()
+{
+    $next = gc('indexnow_next');
+    if ($next === '' || $next > now() || gc('indexnow_on') !== '1') {
+        return;
+    }
+    $posts = q_all('SELECT * FROM blog_posts WHERE ' . blog_public_sql() . ' AND published_at >= ?', array(now(), $next));
+    indexnow_schedule(true); // 먼저 다음 시각으로 바꿔 두어 동시에 들어온 요청이 두 번 알리지 않게
+    if (!$posts) {
+        return;
+    }
+    $paths = array_merge(array_map('blog_url', $posts), array('/blog', '/'));
+    register_shutdown_function(function () use ($paths) {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+        if (function_exists('fastcgi_finish_request')) {
+            fastcgi_finish_request();
+        }
+        try {
+            indexnow_ping($paths, '예약 글 공개');
+        } catch (Throwable $e) {
+            error_log('indexnow: ' . $e->getMessage());
+        }
+    });
+}
+
+/** 다음 웹마스터도구 robots.txt 인증 줄: 붙여 넣은 글에서 #DaumWebMasterTool:… 만 남깁니다. */
+function daum_verify_line($raw)
+{
+    return preg_match('/DaumWebMasterTool:[A-Za-z0-9]+:[A-Za-z0-9+\/=]+/', (string) $raw, $m) ? '#' . $m[0] : '';
+}
+
+/** 화면에 보일 주소(한글 도메인은 한글로) */
+function display_url($url)
+{
+    $host = (string) parse_url($url, PHP_URL_HOST);
+    if (strpos($host, 'xn--') !== false && function_exists('idn_to_utf8')) {
+        $utf = idn_to_utf8($host, 0, INTL_IDNA_VARIANT_UTS46);
+        if ($utf) {
+            return preg_replace('~^(https?://)' . preg_quote($host, '~') . '~i', '$1' . $utf, $url);
+        }
+    }
+    return $url;
+}

@@ -5,6 +5,7 @@
 
 function page_blog_list()
 {
+    indexnow_due();
     $page = max(1, input_int('page', 1));
     list($posts, $total) = blog_page($page);
     $pages = max(1, (int) ceil($total / BLOG_PER_PAGE));
@@ -16,6 +17,7 @@ function page_blog_list()
 
 function page_blog_post($id, $slug = '')
 {
+    indexnow_due();
     $post = find_blog_post($id);
     $admin = current_admin();
     if (!$post || (!blog_is_public($post) && !$admin)) {
@@ -36,23 +38,36 @@ function page_blog_post($id, $slug = '')
     ), null);
 }
 
+/** RSS 2.0: 최근 글 30개(요약 + 본문 전체). 네이버 · 다음 · 구글에 RSS로 제출하는 주소예요. */
 function blog_rss()
 {
+    indexnow_due();
     header('Content-Type: application/rss+xml; charset=utf-8');
     $name = gc('name');
+    $base = base_url();
+    $posts = blog_latest(30);
+    $built = q_value('SELECT MAX(updated_at) FROM blog_posts WHERE ' . blog_public_sql(), array(now()));
     echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
-        . '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel>'
+        . '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel>' . "\n"
         . '<title>' . e($name . ' 블로그') . '</title>'
-        . '<link>' . e(base_url() . '/blog') . '</link>'
-        . '<atom:link href="' . e(base_url() . '/rss.xml') . '" rel="self" type="application/rss+xml"/>'
+        . '<link>' . e($base . '/blog') . '</link>'
+        . '<atom:link href="' . e($base . '/rss.xml') . '" rel="self" type="application/rss+xml"/>'
         . '<description>' . e($name . ' – 충북 음성·진천·혁신도시 사무실·상가·공장·화장실 청소 이야기') . '</description>'
-        . '<language>ko</language>';
-    foreach (blog_latest(30) as $p) {
+        . '<language>ko</language>'
+        . ($built ? '<lastBuildDate>' . e(date('r', strtotime($built))) . '</lastBuildDate>' : '') . "\n";
+    foreach ($posts as $p) {
+        // 본문 속 사진 · 링크의 /로 시작하는 주소는 전체 주소로(다른 사이트에서 읽어도 보이게)
+        $html = preg_replace('/(src|href)="\/(?!\/)/', '$1="' . $base . '/', blog_render($p['body']));
+        $image = blog_image($p);
+        if ($image !== '') {
+            $html = '<p><img src="' . e(strpos($image, '/') === 0 ? $base . $image : $image) . '" alt="' . e($p['title']) . '"></p>' . "\n" . $html;
+        }
         echo '<item><title>' . e($p['title']) . '</title>'
             . '<link>' . e(blog_url($p, true)) . '</link>'
             . '<guid isPermaLink="true">' . e(blog_url($p, true)) . '</guid>'
             . '<pubDate>' . e(date('r', strtotime($p['published_at']))) . '</pubDate>'
-            . '<description>' . e(blog_desc($p, 200)) . '</description></item>';
+            . '<description>' . e(blog_desc($p, 200)) . '</description>'
+            . '<content:encoded><![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', $html) . ']]></content:encoded></item>' . "\n";
     }
     echo '</channel></rss>';
     exit;
@@ -137,6 +152,7 @@ function admin_blog_form($id = null)
             }
         }
         if (!$errors) {
+            $wasPublic = $post && blog_is_public($post);
             $data = array_intersect_key($form, array_flip(array('title', 'slug', 'summary', 'body', 'cover', 'seo_title', 'keywords', 'status', 'published_at')));
             $data['updated_at'] = now();
             if ($post) {
@@ -146,7 +162,25 @@ function admin_blog_form($id = null)
                 $data['created_at'] = now();
                 $newId = q_insert('blog_posts', $data);
             }
-            flash($status === 'published' ? '글을 저장하고 공개했어요. 검색 사이트에는 보통 며칠 안에 반영돼요.' : '임시저장했어요. 공개하려면 ‘공개’로 바꿔 저장하세요.');
+            // 검색 사이트에 알리기: 공개 글이면 그 주소, 공개를 내렸으면 사라진 주소(목록 · 첫 화면도 함께)
+            $saved = find_blog_post($newId);
+            $isPublic = blog_is_public($saved);
+            $paths = array();
+            if ($isPublic) {
+                $paths[] = blog_url($saved);
+            }
+            if ($wasPublic && (!$isPublic || blog_url($post) !== blog_url($saved))) {
+                $paths[] = blog_url($post);
+            }
+            indexnow_schedule();
+            $pinged = $paths ? indexnow_ping(array_merge($paths, array('/blog', '/')), $isPublic ? ($post ? '블로그 글 수정' : '블로그 글 공개') : '블로그 글 내림') : null;
+            if ($isPublic) {
+                flash('글을 저장하고 공개했어요.' . ($pinged ? indexnow_result_text($pinged) : '') . ' 검색 결과에는 보통 며칠 안에 반영돼요.');
+            } elseif ($status === 'published') {
+                flash(date('Y.m.d', strtotime($saved['published_at'])) . '에 공개되도록 예약했어요. 공개되면 검색 사이트에 자동으로 알려요.');
+            } else {
+                flash('임시저장했어요. 공개하려면 ‘공개’로 바꿔 저장하세요.');
+            }
             redirect('/admin/blog/' . $newId . '/edit');
         }
     }
@@ -163,7 +197,10 @@ function admin_blog_delete($id)
     }
     q('DELETE FROM blog_posts WHERE id = ?', array((int) $post['id']));
     delete_public_file($post['cover']);
-    flash('‘' . $post['title'] . '’ 글을 지웠어요.');
+    indexnow_schedule();
+    // 공개돼 있던 글이면 사라진 주소를 검색 사이트에 알려 검색 결과에서도 빨리 빠지게
+    $pinged = blog_is_public($post) ? indexnow_ping(array(blog_url($post), '/blog', '/'), '블로그 글 삭제') : null;
+    flash('‘' . $post['title'] . '’ 글을 지웠어요.' . ($pinged ? indexnow_result_text($pinged) : ''));
     redirect('/admin/blog');
 }
 
