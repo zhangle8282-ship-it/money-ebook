@@ -367,3 +367,38 @@
   form.addEventListener('input', render);
   render();
 })();
+
+// 사진 관리: 큰 사진은 올리기 전에 가로·세로 1600px 안으로 줄이고(JPG), 미리보기를 바로 바꿉니다.
+(function () {
+  var inputs = document.querySelectorAll('input[type="file"][data-resize]');
+  if (!inputs.length || !window.DataTransfer || !window.URL) return;
+  var MAX = 1600;
+  inputs.forEach(function (input) {
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var preview = input.closest('.photo-slot') && input.closest('.photo-slot').querySelector('.photo-preview');
+        if (preview) preview.innerHTML = '<img alt="" src="' + url + '">';
+        var scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+        if (scale === 1 && file.size < 900 * 1024) return;
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function (blob) {
+          if (!blob || blob.size >= file.size) return;
+          var dt = new DataTransfer();
+          dt.items.add(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+          input.files = dt.files;
+        }, 'image/jpeg', 0.85);
+      };
+      img.src = url;
+    });
+  });
+})();

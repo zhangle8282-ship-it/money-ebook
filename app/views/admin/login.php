@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title><?= e($title) ?> · <?= e(setting('store_name')) ?></title>
+<title><?= e($title) ?> · <?= e(site_name()) ?></title>
 <?= icon_links() ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
 <body class="admin admin-auth">
 <main class="auth-card">
   <div class="sidebar-brand auth-brand">
-    <span class="brand-name"><?= e(setting('store_name')) ?></span>
+    <span class="brand-name"><?= e(site_name()) ?></span>
     <span class="brand-badge">관리자</span>
   </div>
   <h1><?= e($title) ?></h1>

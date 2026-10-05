@@ -1,12 +1,23 @@
 <?php
 /** 관리자 공통 틀: 왼쪽 메뉴 + 본문. */
-$store = setting('store_name');
+$store = site_name();
 $flash = flash();
-$pendingBadge = (int) q_value("SELECT COUNT(*) FROM orders WHERE status = 'pending'");
-$counts = market_pending_counts();
-$bookBadge = $counts['reviews'];
-$marketBadge = $counts['applications'] + $counts['referrers'] + $counts['withdrawals'];
-$menu = array(
+$cleaning = SITE_MODE === 'cleaning';
+$pendingBadge = $bookBadge = $marketBadge = 0;
+if ($cleaning) {
+    $inquiryBadge = (int) q_value("SELECT COUNT(*) FROM inquiries WHERE status = 'new'");
+} else {
+    $pendingBadge = (int) q_value("SELECT COUNT(*) FROM orders WHERE status = 'pending'");
+    $counts = market_pending_counts();
+    $bookBadge = $counts['reviews'];
+    $marketBadge = $counts['applications'] + $counts['referrers'] + $counts['withdrawals'];
+}
+$menu = $cleaning ? array(
+    'inquiries' => array('/admin/inquiries', '견적 문의', '<path d="M4 4h16v12H7l-3 3z"></path><path d="M8 9h8M8 12h5"></path>'),
+    'site' => array('/admin/site', '홈페이지 관리', '<path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path>'),
+    'photos' => array('/admin/photos', '사진 관리', '<rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5-5-8 8"></path>'),
+    'account' => array('/admin/account', '계정', '<circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path>'),
+) : array(
     'dashboard' => array('/admin', '대시보드', '<rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect>'),
     'books' => array('/admin/books', '전자책 관리', '<path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"></path><path d="M4 19a2 2 0 0 0 2 2h13"></path>'),
     'reviews' => array('/admin/reviews', '리뷰 관리', '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path>'),
@@ -40,7 +51,8 @@ $menu = array(
 <?php foreach ($menu as $key => $m): ?>
       <a href="<?= $m[0] ?>"<?= ($nav ?? '') === $key ? ' aria-current="page"' : '' ?>>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $m[2] ?></svg><?= e($m[1]) ?>
-<?php if ($key === 'orders' && $pendingBadge): ?>        <span class="nav-badge" aria-label="입금 대기 <?= $pendingBadge ?>건"><?= $pendingBadge ?></span>
+<?php if ($key === 'inquiries' && !empty($inquiryBadge)): ?>        <span class="nav-badge" aria-label="새 문의 <?= $inquiryBadge ?>건"><?= $inquiryBadge ?></span>
+<?php elseif ($key === 'orders' && $pendingBadge): ?>        <span class="nav-badge" aria-label="입금 대기 <?= $pendingBadge ?>건"><?= $pendingBadge ?></span>
 <?php elseif ($key === 'market' && $marketBadge): ?>        <span class="nav-badge" aria-label="처리할 일 <?= $marketBadge ?>건"><?= $marketBadge ?></span>
 <?php elseif ($key === 'books' && $bookBadge): ?>        <span class="nav-badge" aria-label="승인 대기 <?= $bookBadge ?>권"><?= $bookBadge ?></span>
 <?php endif; ?>
@@ -49,7 +61,7 @@ $menu = array(
     </nav>
     <div class="sidebar-foot">
       <a href="/" class="sidebar-back">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>스토어로 돌아가기</a>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg><?= $cleaning ? '홈페이지 보기' : '스토어로 돌아가기' ?></a>
       <form method="post" action="/admin/logout"><?= csrf_field() ?><button type="submit" class="sidebar-logout"><?= e($admin['username']) ?> · 로그아웃</button></form>
       <span class="sidebar-version">버전 <?= e(app_version()) ?></span>
     </div>

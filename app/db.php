@@ -146,6 +146,15 @@ function migrate(PDO $pdo)
             created_at VARCHAR(19) NOT NULL)" . $tail);
         $pdo->prepare("UPDATE settings SET v = '5' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 6) {
+        // 6: 그린청소 홈페이지 견적 문의
+        $pdo->exec("CREATE TABLE IF NOT EXISTS inquiries (
+            id $id, kind VARCHAR(20) NOT NULL DEFAULT 'office', name VARCHAR(100) NOT NULL, phone VARCHAR(40) NOT NULL,
+            address VARCHAR(255) NOT NULL DEFAULT '', status VARCHAR(12) NOT NULL DEFAULT 'new', memo TEXT,
+            ip_hash VARCHAR(64) NOT NULL DEFAULT '', created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NOT NULL)" . $tail);
+        $pdo->exec('CREATE INDEX idx_inquiries_status ON inquiries (status, id)');
+        $pdo->prepare("UPDATE settings SET v = '6' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

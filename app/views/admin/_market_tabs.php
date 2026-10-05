@@ -3,6 +3,7 @@ $counts = market_pending_counts();
 $tabs = array(
     'apps' => array('/admin/market', '솔루션 신청', $counts['applications']),
     'referrers' => array('/admin/market/referrers', '추천인', $counts['referrers']),
+    'settlement' => array('/admin/market/settlement', '추천 정산', 0),
     'withdrawals' => array('/admin/market/withdrawals', '출금·정산 신청', $counts['withdrawals']),
 );
 ?>

@@ -47,7 +47,7 @@ function admin_login()
                     'created_at' => now(),
                 ));
                 login_admin(q_one('SELECT * FROM admins WHERE id = ?', array($id)));
-                flash('관리자 계정을 만들었어요. 먼저 설정에서 입금 계좌를 등록해 주세요.');
+                flash(SITE_MODE === 'cleaning' ? '관리자 계정을 만들었어요.' : '관리자 계정을 만들었어요. 먼저 설정에서 입금 계좌를 등록해 주세요.');
                 redirect('/admin/settings');
             }
         } else {

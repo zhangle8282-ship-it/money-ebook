@@ -352,6 +352,142 @@ function seller_balance($userId)
     );
 }
 
+/* ───────── 추천 정산 ─────────
+ * 수익은 솔루션 신청의 입금 확인일(paid_at)에 생기고, 신청할 때 적어 둔 추천 수익(commission)으로 계산합니다.
+ * 출금 가능 = 누적 수익 − 지급 완료 − 출금 신청 중
+ */
+
+/** 정산 기간. $month: 'YYYY-MM'(한 달) 또는 'all'(전체). 반환: [키, 시작, 끝(미포함), 이름] */
+function settlement_period($month)
+{
+    if ($month === 'all') {
+        return array('all', null, null, '전체 기간');
+    }
+    if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) $month)) {
+        $month = date('Y-m');
+    }
+    $from = $month . '-01 00:00:00';
+    $to = date('Y-m-01 00:00:00', strtotime($from . ' +1 month'));
+    return array($month, $from, $to, (int) substr($month, 0, 4) . '년 ' . (int) substr($month, 5, 2) . '월');
+}
+
+/** 정산 화면에서 고를 수 있는 달(첫 추천·지급이 있던 달부터 이번 달까지, 최근 순) */
+function settlement_months()
+{
+    $first = q_value("SELECT MIN(d) FROM (
+        SELECT MIN(COALESCE(paid_at, created_at)) AS d FROM market_applications WHERE referrer_user_id IS NOT NULL
+        UNION ALL SELECT MIN(processed_at) AS d FROM withdrawals WHERE kind = 'referral') t");
+    $cur = date('Y-m');
+    $m = $first ? substr($first, 0, 7) : $cur;
+    $list = array();
+    while ($m <= $cur && count($list) < 120) {
+        $list[] = $m;
+        $m = date('Y-m', strtotime($m . '-01 +1 month'));
+    }
+    return array_reverse($list);
+}
+
+/** 추천인별 정산표: 기간(입금 확인일 기준) 실적 + 전체 누적 잔액 */
+function referral_settlement($period)
+{
+    list(, $from, $to) = $period;
+    $appRange = $from ? ' AND COALESCE(paid_at, created_at) >= ? AND COALESCE(paid_at, created_at) < ?' : '';
+    $payRange = $from ? ' AND processed_at >= ? AND processed_at < ?' : '';
+    $range = $from ? array($from, $to) : array();
+    $rows = q_all("SELECT r.user_id, r.code, r.status, r.bank_name, r.bank_account, r.bank_holder, u.name AS user_name, u.email AS user_email
+        FROM referrers r LEFT JOIN users u ON u.id = r.user_id
+        WHERE r.status = 'approved' OR EXISTS (SELECT 1 FROM market_applications a WHERE a.referrer_user_id = r.user_id)
+        ORDER BY r.user_id");
+    foreach ($rows as &$r) {
+        $id = (int) $r['user_id'];
+        $p = q_one("SELECT COUNT(*) AS n, COALESCE(SUM(total), 0) AS sales, COALESCE(SUM(commission), 0) AS commission
+            FROM market_applications WHERE referrer_user_id = ? AND status = 'paid'" . $appRange, array_merge(array($id), $range));
+        $r['period_count'] = (int) $p['n'];
+        $r['period_sales'] = (int) $p['sales'];
+        $r['period_commission'] = (int) $p['commission'];
+        $r['period_payout'] = (int) q_value("SELECT COALESCE(SUM(amount), 0) FROM withdrawals
+            WHERE user_id = ? AND kind = 'referral' AND status = 'paid'" . $payRange, array_merge(array($id), $range));
+        $r['balance'] = referral_balance($id);
+    }
+    unset($r);
+    return $rows;
+}
+
+/** 정산표 합계 */
+function settlement_totals($rows)
+{
+    $t = array('period_count' => 0, 'period_sales' => 0, 'period_commission' => 0, 'period_payout' => 0, 'earned' => 0, 'paid' => 0, 'requested' => 0, 'available' => 0);
+    foreach ($rows as $r) {
+        foreach (array('period_count', 'period_sales', 'period_commission', 'period_payout') as $k) {
+            $t[$k] += $r[$k];
+        }
+        foreach (array('earned', 'paid', 'requested', 'available') as $k) {
+            $t[$k] += $r['balance'][$k];
+        }
+    }
+    return $t;
+}
+
+/** 추천인의 추천 상품 내역(가입자 정보 포함, 관리자용) */
+function referral_items($userId)
+{
+    return q_all('SELECT a.*, u.name AS user_name, u.email AS user_email FROM market_applications a
+        LEFT JOIN users u ON u.id = a.user_id WHERE a.referrer_user_id = ? ORDER BY a.id DESC', array((int) $userId));
+}
+
+/** 추천인의 월별 정산: 달 => [결제 건수, 결제금액, 수익, 지급액] (최근 순) */
+function referral_monthly($userId)
+{
+    $months = array();
+    $blank = array('count' => 0, 'sales' => 0, 'commission' => 0, 'payout' => 0);
+    foreach (q_all("SELECT SUBSTR(COALESCE(paid_at, created_at), 1, 7) AS ym, COUNT(*) AS n, SUM(total) AS sales, SUM(commission) AS commission
+        FROM market_applications WHERE referrer_user_id = ? AND status = 'paid' GROUP BY SUBSTR(COALESCE(paid_at, created_at), 1, 7)", array((int) $userId)) as $r) {
+        $months[$r['ym']] = array('count' => (int) $r['n'], 'sales' => (int) $r['sales'], 'commission' => (int) $r['commission'], 'payout' => 0);
+    }
+    foreach (q_all("SELECT SUBSTR(processed_at, 1, 7) AS ym, SUM(amount) AS amount FROM withdrawals
+        WHERE user_id = ? AND kind = 'referral' AND status = 'paid' GROUP BY SUBSTR(processed_at, 1, 7)", array((int) $userId)) as $r) {
+        if (!isset($months[$r['ym']])) {
+            $months[$r['ym']] = $blank;
+        }
+        $months[$r['ym']]['payout'] = (int) $r['amount'];
+    }
+    krsort($months);
+    return $months;
+}
+
+/** 이 출금·정산 신청을 지급해도 되는 최대 금액(다른 신청 중 금액은 빼고). 반환: [잔액 정보, 지급 가능 최대] */
+function withdrawal_room($row)
+{
+    $b = $row['kind'] === 'seller' ? seller_balance($row['user_id']) : referral_balance($row['user_id']);
+    $mine = $row['status'] === 'requested' ? (int) $row['amount'] : 0;
+    return array($b, $b['earned'] - $b['paid'] - ($b['requested'] - $mine));
+}
+
+/** 관리자가 신청 없이 바로 지급한 추천 수익을 기록합니다(월 정산 등). */
+function record_referral_payout($userId, $amount, $memo)
+{
+    $ref = referrer_of($userId);
+    q_insert('withdrawals', array(
+        'user_id' => (int) $userId, 'amount' => (int) $amount, 'kind' => 'referral',
+        'bank_name' => $ref['bank_name'], 'bank_account' => $ref['bank_account'], 'bank_holder' => $ref['bank_holder'],
+        'status' => 'paid', 'admin_memo' => $memo !== '' ? $memo : '관리자 정산', 'created_at' => now(), 'processed_at' => now(),
+    ));
+}
+
+/** 엑셀에서 수식으로 읽히지 않게 막고 CSV 한 줄로 */
+function csv_line($cells)
+{
+    $out = array();
+    foreach ($cells as $c) {
+        $c = (string) $c;
+        if ($c !== '' && strpos('=+-@', $c[0]) !== false && !is_numeric($c)) {
+            $c = "'" . $c;
+        }
+        $out[] = '"' . str_replace('"', '""', $c) . '"';
+    }
+    return implode(',', $out) . "\r\n";
+}
+
 /** 관리자 메뉴에 표시할 처리 대기 건수 */
 function market_pending_counts()
 {
@@ -359,6 +495,7 @@ function market_pending_counts()
         'applications' => (int) q_value("SELECT COUNT(*) FROM market_applications WHERE status = 'pending'"),
         'referrers' => (int) q_value("SELECT COUNT(*) FROM referrers WHERE status = 'pending'"),
         'withdrawals' => (int) q_value("SELECT COUNT(*) FROM withdrawals WHERE status = 'requested'"),
+        'withdraw_amount' => (int) q_value("SELECT COALESCE(SUM(amount), 0) FROM withdrawals WHERE status = 'requested'"),
         'reviews' => (int) q_value("SELECT COUNT(*) FROM books WHERE status = 'review'"),
     );
 }

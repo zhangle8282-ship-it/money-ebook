@@ -60,7 +60,7 @@ $zipPath = $out . '/' . $name . '.zip';
 @unlink($zipPath);
 $zip = new ZipArchive();
 $zip->open($zipPath, ZipArchive::CREATE);
-add_tree($zip, $root . '/app', $name . '/app/', array('config.local.php'));
+add_tree($zip, $root . '/app', $name . '/app/', array('config.local.php', 'SITE_MODE'));
 add_tree($zip, $root . '/public', $name . '/www/', array('uploads/', 'install.php'));
 $zip->addFromString($name . '/설치방법.txt', $guide);
 $zip->close();

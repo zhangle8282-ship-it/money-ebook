@@ -82,6 +82,27 @@ $status = $ref ? $ref['status'] : '';
   </div>
 <?php if ($balance['requested']): ?>  <p class="muted small">출금 신청 중인 <?= won($balance['requested']) ?>은 출금 가능 금액에서 빠져 있어요.</p>
 <?php endif; ?>
+  <p class="muted small">출금 가능 = 누적 수익 <?= won($balance['earned']) ?> − 출금 완료 <?= won($balance['paid']) ?> − 출금 신청 중 <?= won($balance['requested']) ?></p>
+
+<?php if ($monthly): ?>
+  <h2 class="block-title">월별 정산</h2>
+  <div class="data-table-wrap">
+    <table class="data-table">
+      <thead><tr><th scope="col">월</th><th scope="col" class="num">결제 건수</th><th scope="col" class="num">결제금액</th><th scope="col" class="num">내 수익</th><th scope="col" class="num">받은 금액</th></tr></thead>
+      <tbody>
+<?php foreach ($monthly as $ym => $m): ?>
+        <tr>
+          <td><?= (int) substr($ym, 0, 4) ?>년 <?= (int) substr($ym, 5, 2) ?>월</td>
+          <td class="num"><?= number_format($m['count']) ?>건</td>
+          <td class="num"><?= won($m['sales']) ?></td>
+          <td class="num"><?= won($m['commission']) ?></td>
+          <td class="num"><?= won($m['payout']) ?></td>
+        </tr>
+<?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+<?php endif; ?>
 
   <h2 class="block-title">추천으로 가입된 상품</h2>
 <?php if ($referred): ?>

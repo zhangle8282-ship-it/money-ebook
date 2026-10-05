@@ -13,9 +13,14 @@ require APP_DIR . '/pages/seller.php';
 require APP_DIR . '/pages/admin_design.php';
 require APP_DIR . '/pages/admin.php';
 require APP_DIR . '/pages/admin_books.php';
+require APP_DIR . '/pages/cleaning.php';
 
 function routes()
 {
+    // 그린청소 홈페이지 모드면 스토어 주소는 열지 않습니다(없는 페이지).
+    if (SITE_MODE === 'cleaning') {
+        return cleaning_routes();
+    }
     return array(
         // 서버 점검(DB·폴더 권한). 값은 참/거짓만 보여 줍니다.
         array('GET', '~^/health$~', 'page_health'),
@@ -79,7 +84,9 @@ function routes()
         array('GET', '~^/admin/market$~', 'admin_market'),
         array('POST', '~^/admin/market/(\d+)$~', 'admin_market_action'),
         array('GET', '~^/admin/market/referrers$~', 'admin_referrers'),
+        array('GET', '~^/admin/market/referrers/(\d+)$~', 'admin_referrer_detail'),
         array('POST', '~^/admin/market/referrers/(\d+)$~', 'admin_referrer_action'),
+        array('GET', '~^/admin/market/settlement$~', 'admin_referral_settlement'),
         array('GET', '~^/admin/market/withdrawals$~', 'admin_withdrawals'),
         array('POST', '~^/admin/market/withdrawals/(\d+)$~', 'admin_withdrawal_action'),
     );

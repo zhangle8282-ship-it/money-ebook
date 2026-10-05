@@ -149,6 +149,7 @@ function page_market_referral()
         'balance' => $ref ? referral_balance($user['id']) : null,
         'referred' => $ref ? referred_applications($user['id']) : array(),
         'withdrawals' => $ref ? user_withdrawals($user['id']) : array(),
+        'monthly' => $ref ? referral_monthly($user['id']) : array(),
         'shareUrl' => $ref && $ref['code'] ? base_url() . '/market?ref=' . $ref['code'] : '',
     ));
 }

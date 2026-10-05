@@ -23,7 +23,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/market/referrers';
 <?php endif; ?>
       </div>
       <p class="review-admin-body"><?= trim((string) $r['intro']) !== '' ? nl2br(e($r['intro']), false) : '<span class="muted">홍보 계획을 적지 않았어요.</span>' ?></p>
-      <p class="sub">추천 가입 <?= (int) $r['referred'] ?>건 · 누적 수익 <?= won($r['earned']) ?><?= $r['bank_name'] !== '' ? ' · 출금 계좌 ' . e($r['bank_name'] . ' ' . $r['bank_account'] . ' (' . $r['bank_holder'] . ')') : '' ?><?= trim((string) $r['admin_memo']) !== '' ? ' · 메모: ' . e($r['admin_memo']) : '' ?></p>
+      <p class="sub"><a href="/admin/market/referrers/<?= (int) $r['user_id'] ?>">정산 보기 ›</a> · 추천 가입 <?= (int) $r['referred'] ?>건 · 누적 수익 <?= won($r['earned']) ?><?= $r['bank_name'] !== '' ? ' · 출금 계좌 ' . e($r['bank_name'] . ' ' . $r['bank_account'] . ' (' . $r['bank_holder'] . ')') : '' ?><?= trim((string) $r['admin_memo']) !== '' ? ' · 메모: ' . e($r['admin_memo']) : '' ?></p>
       <form method="post" action="/admin/market/referrers/<?= (int) $r['user_id'] ?>" class="decide-form">
         <?= csrf_field() ?><input type="hidden" name="back" value="<?= e($back) ?>">
         <input type="text" name="admin_memo" maxlength="500" placeholder="메모 (반려 사유 등, 신청자에게 보여요)" aria-label="메모" value="<?= e($r['admin_memo']) ?>">

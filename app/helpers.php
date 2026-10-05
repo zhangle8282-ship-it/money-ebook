@@ -24,6 +24,12 @@ function e($s)
  */
 function icon_links()
 {
+    if (SITE_MODE === 'cleaning') {
+        return '<link rel="icon" href="/icons/green-icon.svg?v=1" type="image/svg+xml">' . "\n"
+            . '<link rel="icon" href="/icons/green-icon-32.png?v=1" type="image/png" sizes="32x32">' . "\n"
+            . '<link rel="shortcut icon" href="/icons/green-icon.ico?v=1">' . "\n"
+            . '<link rel="apple-touch-icon" href="/icons/green-icon-180.png?v=1" sizes="180x180">' . "\n";
+    }
     return '<link rel="icon" href="/icons/book-icon.svg?v=2" type="image/svg+xml">' . "\n"
         . '<link rel="icon" href="/icons/book-icon-32.png?v=2" type="image/png" sizes="32x32">' . "\n"
         . '<link rel="shortcut icon" href="/favicon.ico?v=2">' . "\n"
@@ -117,6 +123,10 @@ function render($name, $vars = array(), $layout = 'layout')
 function not_found()
 {
     http_response_code(404);
+    if (SITE_MODE === 'cleaning') {
+        render('cleaning/not_found', array('title' => '페이지를 찾을 수 없어요'), 'cleaning/simple');
+        exit;
+    }
     render('not_found', array('title' => '페이지를 찾을 수 없어요'));
     exit;
 }

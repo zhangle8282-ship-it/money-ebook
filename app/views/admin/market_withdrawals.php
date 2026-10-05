@@ -17,11 +17,15 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/market/withdrawals';
 <table class="table">
   <thead><tr><th scope="col">신청</th><th scope="col">신청자</th><th scope="col" class="num">금액</th><th scope="col">보낼 계좌</th><th scope="col">상태 · 처리</th></tr></thead>
   <tbody>
-<?php foreach ($rows as $w): ?>
+<?php foreach ($rows as $w):
+    list($wb, $room) = withdrawal_room($w); ?>
     <tr>
       <td><?= e(fmt_date($w['created_at'], 'Y.m.d H:i')) ?></td>
-      <td><span class="kind-pill kind-<?= e($w['kind']) ?>"><?= e(WITHDRAW_KIND[$w['kind']] ?? $w['kind']) ?></span> <?= e($w['user_name'] ?? '(탈퇴)') ?><div class="sub"><?= e($w['user_email'] ?? '') ?><?= $w['code'] && $w['kind'] === 'referral' ? ' · ' . e($w['code']) : '' ?></div></td>
-      <td class="num"><strong><?= won($w['amount']) ?></strong></td>
+      <td><span class="kind-pill kind-<?= e($w['kind']) ?>"><?= e(WITHDRAW_KIND[$w['kind']] ?? $w['kind']) ?></span> <?php if ($w['kind'] === 'referral'): ?><a href="/admin/market/referrers/<?= (int) $w['user_id'] ?>"><?= e($w['user_name'] ?? '(탈퇴)') ?></a><?php else: ?><?= e($w['user_name'] ?? '(탈퇴)') ?><?php endif; ?><div class="sub"><?= e($w['user_email'] ?? '') ?><?= $w['code'] && $w['kind'] === 'referral' ? ' · ' . e($w['code']) : '' ?></div></td>
+      <td class="num"><strong><?= won($w['amount']) ?></strong>
+<?php if ($w['status'] === 'requested'): ?>        <div class="sub balance-check<?= (int) $w['amount'] > $room ? ' is-short' : '' ?>" title="누적 <?= e(won($wb['earned'])) ?> − 지급 <?= e(won($wb['paid'])) ?> − 다른 신청 <?= e(won($wb['requested'] - (int) $w['amount'])) ?>">잔액 <?= won(max(0, $room)) ?><?= (int) $w['amount'] > $room ? ' · 부족' : ' · 확인' ?></div>
+<?php endif; ?>
+      </td>
       <td><?= e($w['bank_name']) ?> <span class="mono"><?= e($w['bank_account']) ?></span><div class="sub">예금주 <?= e($w['bank_holder']) ?></div></td>
       <td>
 <?php if ($w['status'] === 'requested'): ?>

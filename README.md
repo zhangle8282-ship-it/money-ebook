@@ -68,7 +68,16 @@ php tools/build.php ~/Downloads/ebook-store-installer
 - `public/` → 서버의 `www/` (웹에 공개)
 - `app/` → 서버의 `app/` (www 바깥, 웹에서 열 수 없음)
 - `storage/`(DB·전자책 원본·세션)는 서버에서 처음 실행될 때 `www` 바깥에 자동으로 만들어져요. 배포가 건드리지 않아요.
-- 서버 상태 점검: `https://tip82.com/health` (모두 true 면 정상)
+- 서버 상태 점검: `https://그린청소.com/health` (모두 true 면 정상)
 - 첫 배포 직후 곧바로 `/admin`에 들어가 관리자 계정을 만드세요(계정이 없는 동안은 누구나 만들 수 있어요).
 - 큰 전자책을 올리려면 호스팅의 `upload_max_filesize` / `post_max_size`를 늘려야 해요.
 - MySQL을 쓰려면 서버의 `app/`에 `config.local.php`를 FTP로 올려 DB 정보를 넣어요(예시는 `app/config.php` 위쪽 주석).
+
+## 사이트 모드 (그린청소 홈페이지)
+
+`app/SITE_MODE` 파일에 `cleaning` 이 적혀 있으면 첫 화면이 전자책 스토어 대신 **그린청소 홈페이지**가 됩니다.
+
+- 공개 화면: `/`(홈페이지·무료 견적 문의), `/privacy`(개인정보처리방침), `/robots.txt`, `/sitemap.xml`
+- 관리자: `/admin` → 견적 문의 · 홈페이지 관리(전화·카카오톡·사업자 정보·알림 이메일) · 사진 관리 · 계정
+- 전자책 스토어 주소(`/books`, `/market` 등)는 열리지 않고, 스토어 데이터는 DB에 그대로 남습니다.
+- 파일을 지우면 다시 전자책 스토어가 됩니다. 설치 패키지(`tools/build.php`)에는 이 파일이 들어가지 않아 판매용 솔루션은 늘 스토어로 설치됩니다.

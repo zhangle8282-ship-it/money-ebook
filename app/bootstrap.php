@@ -38,6 +38,10 @@ set_exception_handler(function ($e) {
         . '<h1 style="font-size:22px">잠시 문제가 생겼어요</h1><p style="color:#5F5B53">잠시 뒤에 다시 시도해 주세요.</p></body>';
 });
 
+// 이 서버에서 보여 줄 사이트: store(전자책 스토어, 기본) 또는 cleaning(그린청소 홈페이지).
+// app/SITE_MODE 파일로 정하고, 설치 패키지(tools/build.php)에는 넣지 않아 전자책 솔루션은 늘 store 로 설치됩니다.
+define('SITE_MODE', is_file(APP_DIR . '/SITE_MODE') && trim((string) file_get_contents(APP_DIR . '/SITE_MODE')) === 'cleaning' ? 'cleaning' : 'store');
+
 require APP_DIR . '/helpers.php';
 require APP_DIR . '/db.php';
 require APP_DIR . '/auth.php';
@@ -47,6 +51,7 @@ require APP_DIR . '/design.php';
 require APP_DIR . '/sanitize.php';
 require APP_DIR . '/files.php';
 require APP_DIR . '/epub.php';
+require APP_DIR . '/cleaning.php';
 // 설치 도구(install.php)에는 같은 코드가 들어 있어 이미 불러왔을 수 있습니다.
 if (!function_exists('pkg_install')) {
     require APP_DIR . '/package.php';
