@@ -17,15 +17,16 @@ function admin_contracts_month()
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="contract-settlement-' . $month . '.csv"; filename*=UTF-8\'\'' . rawurlencode($name));
         header('Cache-Control: private, no-store');
-        echo "\xEF\xBB\xBF" . contract_csv_line(array('정산 월', month_label($month), '계산 순서', '세금 10% → 도급비용 → 갑·을'));
-        echo contract_csv_line(array('청소 이름', '거래처', '청소비용', '세금계산서', '세금', '세금 뺀 금액', '도급 비율', '도급비용', '나눌 금액', '갑 비율', '갑', '갑 금액', '을', '을 금액', '상태', '메모'));
+        echo "\xEF\xBB\xBF" . contract_csv_line(array('정산 월', month_label($month), '계산', '세금 10% 뺀 금액을 청소 담당 파트너와 도급(대표·운영 파트너)이 나눔, 청소 담당 파트너는 원천징수 3.3%'));
+        echo contract_csv_line(array('청소 이름', '거래처', '청소비용', '세금계산서', '세금', '세금 뺀 금액', '청소 담당 비율', '청소 담당 파트너', '청소 담당 몫', '원천징수', '청소 담당 실지급', '도급 비율', '도급 몫', '대표파트너 비율', '대표파트너', '대표파트너 금액', '운영파트너', '운영파트너 금액', '상태', '메모'));
         foreach ($rows as $r) {
             $c = $r['contract'];
             echo contract_csv_line(array($c['name'], $c['client'], $r['fee'], $r['invoice'] ? '발행' : '미발행', $r['tax'], $r['after_tax'],
-                $r['contract_rate'] . '%', $r['contract_amount'], $r['base'], $r['gap_rate'] . '%', $c['gap_name'], $r['gap_amount'],
+                $r['byeong_rate'] . '%', $c['byeong_name'], $r['byeong_amount'], $r['withholding_amount'], $r['byeong_pay'],
+                $r['contract_rate'] . '%', $r['contract_amount'], $r['gap_rate'] . '%', $c['gap_name'], $r['gap_amount'],
                 $c['eul_name'], $r['eul_amount'], SETTLEMENT_STATUS[$r['status']] ?? $r['status'], $r['memo']));
         }
-        echo contract_csv_line(array('합계', '', $sum['fee'], '', $sum['tax'], $sum['fee'] - $sum['tax'], '', $sum['contract_amount'], $sum['base'], '', '', $sum['gap_amount'], '', $sum['eul_amount'], $sum['done'] . '/' . $sum['count'] . ' 완료', ''));
+        echo contract_csv_line(array('합계', '', $sum['fee'], '', $sum['tax'], $sum['fee'] - $sum['tax'], '', '', $sum['byeong_amount'], $sum['withholding_amount'], $sum['byeong_pay'], '', $sum['contract_amount'], '', '', $sum['gap_amount'], '', $sum['eul_amount'], $sum['done'] . '/' . $sum['count'] . ' 완료', ''));
         exit;
     }
     $year = (int) substr($month, 0, 4);
@@ -45,11 +46,22 @@ function admin_contracts_settle()
     $back = '/admin/contracts?month=' . $month;
     require_csrf($back);
     $action = input('action');
+    $by = current_admin()['username'] ?? '';
+    // 모든 단계에 지금 시각을 넣고 정산 완료로
+    $allSteps = function ($calc) use ($by) {
+        $changes = array('status' => 'done', 'settled_at' => now(), 'settled_by' => $by);
+        foreach (array_keys(settlement_steps($calc)) as $k) {
+            if (empty($calc['step_' . $k])) {
+                $changes['step_' . $k] = now();
+            }
+        }
+        return $changes;
+    };
     if ($action === 'done_all') {
         $n = 0;
         foreach (month_settlements($month) as $r) {
             if ($r['status'] !== 'done') {
-                save_month_settlement($r['contract'], $month, array('status' => 'done', 'settled_at' => now()));
+                save_month_settlement($r['contract'], $month, $allSteps($r));
                 $n++;
             }
         }
@@ -61,11 +73,33 @@ function admin_contracts_settle()
         flash('청소를 찾을 수 없어요.', 'error');
         redirect($back);
     }
-    if ($action === 'done') {
-        save_month_settlement($contract, $month, array('status' => 'done', 'settled_at' => now()));
+    $current = null;
+    foreach (month_settlements($month) as $r) {
+        if ((int) $r['contract']['id'] === (int) $contract['id']) {
+            $current = $r;
+        }
+    }
+    if ($action === 'step' && $current && array_key_exists(input('step'), SETTLEMENT_STEPS)) {
+        // 단계 하나 체크/해제 → 필요한 단계가 모두 끝나면 정산 완료
+        $step = input('step');
+        $on = input('on') === '1';
+        $current['step_' . $step] = $on ? now() : null;
+        $changes = array('step_' . $step => $current['step_' . $step]);
+        $done = true;
+        foreach (array_keys(settlement_steps($current)) as $k) {
+            if (empty($current['step_' . $k])) {
+                $done = false;
+            }
+        }
+        $changes += $done ? array('status' => 'done', 'settled_at' => now(), 'settled_by' => $by) : array('status' => 'pending', 'settled_at' => null, 'settled_by' => '');
+        save_month_settlement($contract, $month, $changes);
+        flash($contract['name'] . ' · ' . SETTLEMENT_STEPS[$step] . ($on ? ' 체크했어요.' : ' 체크를 풀었어요.') . ($done ? ' 모든 단계가 끝나 정산 완료로 기록했어요.' : ''));
+    } elseif ($action === 'done' && $current) {
+        save_month_settlement($contract, $month, $allSteps($current));
         flash($contract['name'] . ' · ' . month_label($month) . ' 정산을 완료했어요.');
     } elseif ($action === 'undo') {
-        save_month_settlement($contract, $month, array('status' => 'pending', 'settled_at' => null));
+        save_month_settlement($contract, $month, array('status' => 'pending', 'settled_at' => null, 'settled_by' => '',
+            'step_received' => null, 'step_invoiced' => null, 'step_paid_byeong' => null, 'step_paid_eul' => null));
         flash($contract['name'] . ' · ' . month_label($month) . ' 정산을 정산 전으로 되돌렸어요.');
     } elseif ($action === 'save') {
         $fee = input_int('fee', -1);
@@ -88,7 +122,7 @@ function admin_contracts_list()
     $now = date('Y-m');
     $contracts = q_all('SELECT c.*, (SELECT COUNT(*) FROM contract_settlements s WHERE s.contract_id = c.id AND s.status = \'done\') AS done_count FROM contracts c ORDER BY c.name, c.id');
     foreach ($contracts as &$c) {
-        $c['calc'] = contract_calc($c['monthly_fee'], (int) $c['invoice'], $c['contract_rate'], $c['gap_rate']);
+        $c['calc'] = contract_calc($c['monthly_fee'], (int) $c['invoice'], $c['contract_rate'], $c['gap_rate'], (int) $c['withholding']);
         $c['active'] = $c['start_month'] <= $now && ($c['end_month'] === null || $c['end_month'] === '' || $c['end_month'] >= $now);
         $c['upcoming'] = $c['start_month'] > $now;
     }
@@ -105,7 +139,7 @@ function admin_contract_form($id = null)
     }
     $form = $contract ?: array(
         'name' => '', 'client' => '', 'monthly_fee' => '', 'invoice' => 1, 'contract_rate' => 10, 'gap_rate' => CONTRACT_GAP_DEFAULT,
-        'gap_name' => gc('name'), 'eul_name' => '', 'start_month' => date('Y-m'), 'end_month' => '', 'memo' => '',
+        'gap_name' => gc('name'), 'eul_name' => '', 'byeong_name' => '', 'withholding' => 1, 'start_month' => date('Y-m'), 'end_month' => '', 'memo' => '',
     );
     $errors = array();
     if (is_post()) {
@@ -119,6 +153,8 @@ function admin_contract_form($id = null)
             'gap_rate' => input('gap_rate') === '' ? -1 : input_int('gap_rate', -1),
             'gap_name' => str_cut(trim(input('gap_name')), 60, ''),
             'eul_name' => str_cut(trim(input('eul_name')), 60, ''),
+            'byeong_name' => str_cut(trim(input('byeong_name')), 60, ''),
+            'withholding' => input('withholding') === '0' ? 0 : 1,
             'start_month' => input('start_month'),
             'end_month' => input('end_month'),
             'memo' => str_cut(str_replace("\r\n", "\n", input('memo')), 1000, ''),
@@ -133,7 +169,7 @@ function admin_contract_form($id = null)
             $errors[] = '도급비용 비율을 10% · 20% · 30% 중에서 골라 주세요.';
         }
         if ($form['gap_rate'] < 0 || $form['gap_rate'] > 100) {
-            $errors[] = '갑 비율은 0~100% 사이로 정해 주세요.';
+            $errors[] = '대표파트너 비율은 0~100% 사이로 정해 주세요.';
         }
         if (!valid_month($form['start_month'])) {
             $errors[] = '시작 월을 골라 주세요.';
@@ -163,7 +199,7 @@ function admin_contract_form($id = null)
     ));
 }
 
-/** 갑·을이 하는 일: 보기 · 더하기 · 빼기 · 순서 바꾸기 · 처음 목록으로 */
+/** 파트너(대표·운영·청소 담당)가 하는 일: 보기 · 더하기 · 빼기 · 순서 바꾸기 · 처음 목록으로 */
 function admin_contract_roles()
 {
     require_admin();
@@ -175,7 +211,7 @@ function admin_contract_roles()
         $index = input_int('index', -1);
         if ($action === 'reset') {
             save_settings(array('gc_roles' => ''));
-            flash('갑 · 을 역할을 처음 목록으로 되돌렸어요.');
+            flash('파트너 역할을 처음 목록으로 되돌렸어요.');
             redirect('/admin/contracts/roles');
         }
         if ($side === null) {
@@ -185,21 +221,21 @@ function admin_contract_roles()
         if ($action === 'add') {
             $task = str_cut(trim(preg_replace('/\s+/u', ' ', input('task'))), 40, '');
             if ($task === '') {
-                flash($label . '이 할 일을 적어 주세요.', 'error');
+                flash($label . '가 할 일을 적어 주세요.', 'error');
             } elseif (count($roles[$side]) >= CONTRACT_ROLE_MAX) {
-                flash($label . '이 하는 일은 ' . CONTRACT_ROLE_MAX . '개까지 넣을 수 있어요.', 'error');
+                flash($label . '가 하는 일은 ' . CONTRACT_ROLE_MAX . '개까지 넣을 수 있어요.', 'error');
             } elseif (in_array($task, $roles[$side], true)) {
                 flash('‘' . $task . '’은(는) 이미 ' . $label . '의 일에 있어요.', 'error');
             } else {
                 $roles[$side][] = $task;
                 save_contract_roles($roles);
-                flash($label . '이 하는 일에 ‘' . $task . '’을(를) 더했어요.');
+                flash($label . '가 하는 일에 ‘' . $task . '’을(를) 더했어요.');
             }
         } elseif ($action === 'delete' && isset($roles[$side][$index])) {
             $task = $roles[$side][$index];
             array_splice($roles[$side], $index, 1);
             save_contract_roles($roles);
-            flash($label . '이 하는 일에서 ‘' . $task . '’을(를) 뺐어요.');
+            flash($label . '가 하는 일에서 ‘' . $task . '’을(를) 뺐어요.');
         } elseif (($action === 'up' || $action === 'down') && isset($roles[$side][$index])) {
             $to = $action === 'up' ? $index - 1 : $index + 1;
             if (isset($roles[$side][$to])) {
@@ -208,20 +244,20 @@ function admin_contract_roles()
                 $roles[$side][$index] = $tmp;
                 save_contract_roles($roles);
             }
-        } elseif ($action === 'move' && isset($roles[$side][$index])) {
-            // 반대편으로 넘기기(갑 → 을, 을 → 갑)
-            $other = $side === 'gap' ? 'eul' : 'gap';
+        } elseif (preg_match('/^move_(gap|eul|byeong)$/', (string) $action, $mv) && $mv[1] !== $side && isset($roles[$side][$index])) {
+            // 다른 사람에게 넘기기
+            $other = $mv[1];
             $task = $roles[$side][$index];
             array_splice($roles[$side], $index, 1);
             if (!in_array($task, $roles[$other], true)) {
                 $roles[$other][] = $task;
             }
             save_contract_roles($roles);
-            flash('‘' . $task . '’을(를) ' . CONTRACT_ROLE_SIDES[$other] . '이 하는 일로 옮겼어요.');
+            flash('‘' . $task . '’을(를) ' . CONTRACT_ROLE_SIDES[$other] . '가 하는 일로 옮겼어요.');
         }
         redirect('/admin/contracts/roles');
     }
-    render_admin('contracts_roles', array('title' => '갑 · 을 역할', 'nav' => 'contracts', 'tab' => 'roles', 'roles' => $roles));
+    render_admin('contracts_roles', array('title' => '파트너 역할', 'nav' => 'contracts', 'tab' => 'roles', 'roles' => $roles));
 }
 
 function admin_contract_delete($id)

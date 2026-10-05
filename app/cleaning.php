@@ -29,6 +29,12 @@ function cleaning_defaults()
         'gc_reviews' => '',
         // 도급 정산 › 갑·을이 하는 일: {"gap":[…], "eul":[…]}. 비어 있으면 처음 목록(CONTRACT_ROLE_DEFAULTS)
         'gc_roles' => '',
+        // 검색 노출(SEO): 첫 화면 제목·설명·키워드, 네이버·구글 사이트 확인 코드
+        'gc_seo_title' => '충북음성청소업체 | 그린청소',
+        'gc_seo_desc' => '충북음성청소업체 그린청소 – 금왕사무실정기청소, 음성공장청소, 충북혁신도시화장실청소, 진천상가청소, 대소공단청소까지. 요일·시간만 정하면 전담 인력이 매번 같은 기준으로 관리합니다. 현장 방문 견적 무료.',
+        'gc_seo_keywords' => '충북음성청소업체, 금왕사무실정기청소, 음성공장청소, 충북혁신도시화장실청소, 진천상가청소, 대소공단청소, 음성청소업체, 진천청소업체, 사무실정기청소, 화장실청소, 상가청소, 공장청소',
+        'gc_naver_verify' => '',
+        'gc_google_verify' => '',
     );
 }
 
@@ -42,6 +48,54 @@ function gc($key)
 function site_name()
 {
     return SITE_MODE === 'cleaning' ? gc('name') : setting('store_name');
+}
+
+/** 공개 화면 파일 주소(바뀌면 새로 받도록 ?v=수정 시각) */
+function cleaning_asset($file)
+{
+    return '/assets/' . $file . '?v=' . @filemtime(PUBLIC_DIR . '/assets/' . $file);
+}
+
+/** 로고(그린 + 청소). $light: 어두운 바탕용 */
+function cleaning_logo($light = false)
+{
+    $name = gc('name');
+    $leaf = $light ? '#A8D5BA' : '#2A2D33';
+    $stroke = $light ? '#fff' : '#2F7D5C';
+    $text = mb_substr($name, 0, 2) === '그린' ? '<span class="g-logo-green">그린</span>' . e(mb_substr($name, 2)) : e($name);
+    return '<svg class="g-logo-mark" viewBox="0 0 66 64" aria-hidden="true"><path d="M47.6 16.4A22 22 0 1 0 54 32H36" fill="none" stroke="' . $stroke . '" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M50 14C50 7 55 3 62 3C62 10 57 14 50 14Z" fill="' . $leaf . '"/></svg><span class="g-logo-text">' . $text . '</span>';
+}
+
+function cleaning_kakao_icon()
+{
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7l-1 3.6c-.1.3.3.6.6.4l4.2-2.8c.5.1 1 .1 1.5.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>';
+}
+
+function cleaning_phone_icon()
+{
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>';
+}
+
+/** 사이트 확인 코드: 메타 태그를 통째로 붙여 넣어도 content 값만 꺼냅니다 */
+function verify_code($raw)
+{
+    if (preg_match('/content=["\']([^"\']+)["\']/', (string) $raw, $m)) {
+        $raw = $m[1];
+    }
+    return preg_replace('/[^A-Za-z0-9_\-]/', '', (string) $raw);
+}
+
+/** 지역·업종별 청소(검색어가 담긴 소개 카드): [제목(검색어), 설명, 견적 종류] */
+function cleaning_local_services()
+{
+    return array(
+        array('충북 음성 청소업체', '음성군 사무실·상가·건물 정기청소를 지역 업체가 맡습니다. 가까이 있어 약속한 요일·시간에 정확히 방문합니다.', 'office'),
+        array('금왕 사무실 정기청소', '금왕읍 사무실의 바닥·책상·탕비실·회의실·화장실까지 정해진 요일에 전담 인력이 같은 기준으로 관리합니다.', 'office'),
+        array('음성 공장 청소', '음성 지역 공장의 사무동·휴게실·식당·화장실·복도를 근무 시간을 피해 깨끗하게 정리합니다.', 'building'),
+        array('충북혁신도시 화장실 청소', '혁신도시 사무실·상가 화장실을 살균 세척하고 물때·냄새 관리와 소모품 보충까지 챙깁니다.', 'restroom'),
+        array('진천 상가 청소', '진천 상가 매장 내부와 공용 계단·복도·엘리베이터를 영업 시작 전에 깔끔하게 마칩니다.', 'building'),
+        array('대소공단 청소', '대소면 공단 공장·사무동 정기청소, 휴게실·화장실 위생 관리까지 한 번에 맡길 수 있습니다.', 'building'),
+    );
 }
 
 /** tel: 링크용 숫자만 */

@@ -6,6 +6,10 @@
 
 function render_admin($view, $vars)
 {
+    // 관리자 화면(도급 정산·문의 등)은 검색 사이트에 절대 나오지 않게 합니다.
+    if (!headers_sent()) {
+        header('X-Robots-Tag: noindex, nofollow, noarchive');
+    }
     $vars['admin'] = current_admin();
     render('admin/' . $view, $vars, 'admin/layout');
 }
@@ -66,6 +70,9 @@ function admin_login()
                 $error = '아이디 또는 비밀번호가 맞지 않아요.';
             }
         }
+    }
+    if (!headers_sent()) {
+        header('X-Robots-Tag: noindex, nofollow, noarchive');
     }
     render('admin/login', array(
         'title' => $setup ? '관리자 계정 만들기' : '관리자 로그인',

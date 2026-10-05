@@ -1,29 +1,52 @@
 <?php
 /**
- * 청소 도급 정산(그린청소 관리자): 청소마다 월 청소비용·도급비율·갑을 비율을 정하고, 매달 정산합니다.
+ * 청소 도급 정산(그린청소 관리자): 대표파트너 · 운영파트너 · 청소 담당 파트너가 청소비용을 나눕니다. 매달 정산합니다.
  *
- * 계산 순서(세금 먼저 → 도급 → 갑·을):
- *   세금(세금계산서 발행 시) = 청소비용 × 10%
- *   세금 뺀 금액            = 청소비용 − 세금
- *   도급비용                = 세금 뺀 금액 × 도급비율(10·20·30%)
- *   나눌 금액               = 세금 뺀 금액 − 도급비용
- *   갑 = 나눌 금액 × 갑 비율(기본 60%),  을 = 나눌 금액 − 갑
+ * 계산(예: 청소비용 100만원, 도급 20%, 대표·운영 60:40):
+ *   세금(세금계산서 발행 시) = 청소비용 × 10%                     → 100,000
+ *   세금 뺀 금액            = 청소비용 − 세금                       → 900,000
+ *   청소 담당 파트너 몫     = 세금 뺀 금액 × (100 − 도급비율)%      → 720,000 (80%)
+ *     원천징수 3.3%        = 청소 담당 몫 × 3.3% (줄 때 떼어 세무서에 냄) → 23,760
+ *     청소 담당 실지급     = 청소 담당 몫 − 원천징수               → 696,240
+ *   도급 몫(대표·운영 수익) = 세금 뺀 금액 × 도급비율(10·20·30%)   → 180,000 (20%)
+ *     대표파트너 = 도급 몫 × 대표 비율(기본 60%)                   → 108,000
+ *     운영파트너 = 도급 몫 − 대표파트너                            →  72,000
  */
 
 const CONTRACT_TAX_RATE = 10;
+const CONTRACT_WITHHOLDING = 3.3; // 청소 담당 파트너에게 줄 때 떼는 원천징수(소득세 3% + 지방소득세 0.3%)
 const CONTRACT_RATES = array(10, 20, 30);
 const CONTRACT_GAP_DEFAULT = 60;
 const SETTLEMENT_STATUS = array('preview' => '정산 전', 'pending' => '정산 전', 'done' => '정산 완료');
+// 대표파트너가 달마다 하는 정산 단계(모두 끝나면 정산 완료). 세금계산서는 발행하는 청소만.
+const SETTLEMENT_STEPS = array(
+    'received' => '청소비용 입금 확인',
+    'invoiced' => '세금계산서 발행',
+    'paid_byeong' => '청소 담당 파트너 지급',
+    'paid_eul' => '운영파트너 지급',
+);
 
-// 갑·을이 하는 일(처음 목록). 관리자 › 도급 정산 › 갑 · 을 역할에서 더하고 뺄 수 있어요.
+/** 이 정산에 필요한 단계 */
+function settlement_steps($calc)
+{
+    $steps = SETTLEMENT_STEPS;
+    if (!$calc['invoice']) {
+        unset($steps['invoiced']);
+    }
+    return $steps;
+}
+
+// 파트너가 하는 일(처음 목록). 관리자 › 도급 정산 › 파트너 역할에서 더하고 뺄 수 있어요.
 const CONTRACT_ROLE_DEFAULTS = array(
     'gap' => array('세금계산서 발행', '전화상담', '방문견적', '계약서 체결'),
     'eul' => array('홈페이지 관리', '홍보', '채널톡상담', '인원배치'),
+    'byeong' => array('현장 청소 작업'),
 );
-const CONTRACT_ROLE_SIDES = array('gap' => '갑', 'eul' => '을');
+const CONTRACT_ROLE_SIDES = array('gap' => '대표파트너', 'eul' => '운영파트너', 'byeong' => '청소 담당 파트너');
+const CONTRACT_ROLE_SHORT = array('gap' => '대표', 'eul' => '운영', 'byeong' => '청소');
 const CONTRACT_ROLE_MAX = 20;
 
-/** 갑·을이 하는 일 목록 */
+/** 파트너가 하는 일 목록 */
 function contract_roles()
 {
     $saved = json_decode(gc('roles'), true);
@@ -37,22 +60,32 @@ function contract_roles()
 
 function save_contract_roles($roles)
 {
-    save_settings(array('gc_roles' => json_encode(array('gap' => array_values($roles['gap']), 'eul' => array_values($roles['eul'])), JSON_UNESCAPED_UNICODE)));
+    $out = array();
+    foreach (array_keys(CONTRACT_ROLE_SIDES) as $side) {
+        $out[$side] = array_values($roles[$side]);
+    }
+    save_settings(array('gc_roles' => json_encode($out, JSON_UNESCAPED_UNICODE)));
 }
 
-/** 금액 계산. 반환: fee, tax, after_tax, contract_amount, base, gap_amount, eul_amount (+ 비율) */
-function contract_calc($fee, $invoice, $contractRate, $gapRate)
+/** 금액 계산. 반환: fee, tax, after_tax, byeong_amount, withholding_amount, byeong_pay, contract_amount, gap_amount, eul_amount (+ 비율) */
+function contract_calc($fee, $invoice, $contractRate, $gapRate, $withholding = 1)
 {
     $fee = max(0, (int) $fee);
     $tax = $invoice ? (int) round($fee * CONTRACT_TAX_RATE / 100) : 0;
     $afterTax = $fee - $tax;
     $contractAmount = (int) round($afterTax * (int) $contractRate / 100);
-    $base = $afterTax - $contractAmount;
-    $gap = (int) round($base * (int) $gapRate / 100);
+    $byeong = $afterTax - $contractAmount;
+    // 원천징수 3.3% = 소득세 3% + 지방소득세(소득세의 10%), 각각 10원 아래는 버림
+    $incomeTax = $withholding ? (int) (floor($byeong * 3 / 100 / 10) * 10) : 0;
+    $localTax = $withholding ? (int) (floor($incomeTax / 10 / 10) * 10) : 0;
+    $withheld = $incomeTax + $localTax;
+    $gap = (int) round($contractAmount * (int) $gapRate / 100);
     return array(
         'fee' => $fee, 'invoice' => $invoice ? 1 : 0, 'tax' => $tax, 'after_tax' => $afterTax,
-        'contract_rate' => (int) $contractRate, 'contract_amount' => $contractAmount, 'base' => $base,
-        'gap_rate' => (int) $gapRate, 'gap_amount' => $gap, 'eul_amount' => $base - $gap,
+        'contract_rate' => (int) $contractRate, 'byeong_rate' => 100 - (int) $contractRate,
+        'byeong_amount' => $byeong, 'withholding' => $withholding ? 1 : 0, 'withholding_amount' => $withheld, 'byeong_pay' => $byeong - $withheld,
+        'income_tax' => $incomeTax, 'local_tax' => $localTax,
+        'contract_amount' => $contractAmount, 'gap_rate' => (int) $gapRate, 'gap_amount' => $gap, 'eul_amount' => $contractAmount - $gap,
     );
 }
 
@@ -105,16 +138,24 @@ function month_settlements($month)
     foreach ($contracts as $cid => $c) {
         if (isset($saved[$cid])) {
             $s = $saved[$cid];
-            $calc = contract_calc($s['fee'], (int) $s['invoice'], $s['contract_rate'], $s['gap_rate']);
+            $calc = contract_calc($s['fee'], (int) $s['invoice'], $s['contract_rate'], $s['gap_rate'], (int) $s['withholding']);
             $calc['status'] = $s['status'];
             $calc['memo'] = (string) $s['memo'];
             $calc['settled_at'] = $s['settled_at'];
+            $calc['settled_by'] = (string) $s['settled_by'];
+            foreach (array_keys(SETTLEMENT_STEPS) as $k) {
+                $calc['step_' . $k] = $s['step_' . $k];
+            }
             $calc['saved'] = true;
         } else {
-            $calc = contract_calc($c['monthly_fee'], (int) $c['invoice'], $c['contract_rate'], $c['gap_rate']);
+            $calc = contract_calc($c['monthly_fee'], (int) $c['invoice'], $c['contract_rate'], $c['gap_rate'], (int) $c['withholding']);
             $calc['status'] = 'preview';
             $calc['memo'] = '';
             $calc['settled_at'] = null;
+            $calc['settled_by'] = '';
+            foreach (array_keys(SETTLEMENT_STEPS) as $k) {
+                $calc['step_' . $k] = null;
+            }
             $calc['saved'] = false;
         }
         $calc['contract'] = $c;
@@ -128,9 +169,9 @@ function month_settlements($month)
 
 function settlement_sum($rows)
 {
-    $t = array('count' => count($rows), 'done' => 0, 'fee' => 0, 'tax' => 0, 'contract_amount' => 0, 'base' => 0, 'gap_amount' => 0, 'eul_amount' => 0);
+    $t = array('count' => count($rows), 'done' => 0, 'fee' => 0, 'tax' => 0, 'byeong_amount' => 0, 'withholding_amount' => 0, 'byeong_pay' => 0, 'contract_amount' => 0, 'gap_amount' => 0, 'eul_amount' => 0);
     foreach ($rows as $r) {
-        foreach (array('fee', 'tax', 'contract_amount', 'base', 'gap_amount', 'eul_amount') as $k) {
+        foreach (array('fee', 'tax', 'byeong_amount', 'withholding_amount', 'byeong_pay', 'contract_amount', 'gap_amount', 'eul_amount') as $k) {
             $t[$k] += $r[$k];
         }
         if ($r['status'] === 'done') {
@@ -146,16 +187,21 @@ function save_month_settlement($contract, $month, $changes)
     $row = q_one('SELECT * FROM contract_settlements WHERE contract_id = ? AND month = ?', array((int) $contract['id'], $month));
     $base = $row ?: array(
         'fee' => (int) $contract['monthly_fee'], 'invoice' => (int) $contract['invoice'],
-        'contract_rate' => (int) $contract['contract_rate'], 'gap_rate' => (int) $contract['gap_rate'],
-        'status' => 'pending', 'memo' => '', 'settled_at' => null,
+        'contract_rate' => (int) $contract['contract_rate'], 'gap_rate' => (int) $contract['gap_rate'], 'withholding' => (int) $contract['withholding'],
+        'status' => 'pending', 'memo' => '', 'settled_at' => null, 'settled_by' => '',
+        'step_received' => null, 'step_invoiced' => null, 'step_paid_byeong' => null, 'step_paid_eul' => null,
     );
-    $v = array_merge(array_intersect_key($base, array_flip(array('fee', 'invoice', 'contract_rate', 'gap_rate', 'status', 'memo', 'settled_at'))), $changes);
-    $calc = contract_calc($v['fee'], (int) $v['invoice'], $v['contract_rate'], $v['gap_rate']);
+    $keys = array('fee', 'invoice', 'contract_rate', 'gap_rate', 'withholding', 'status', 'memo', 'settled_at', 'settled_by', 'step_received', 'step_invoiced', 'step_paid_byeong', 'step_paid_eul');
+    $v = array_merge(array_intersect_key($base, array_flip($keys)), $changes);
+    $calc = contract_calc($v['fee'], (int) $v['invoice'], $v['contract_rate'], $v['gap_rate'], (int) $v['withholding']);
     $data = array(
         'fee' => $calc['fee'], 'invoice' => $calc['invoice'], 'tax' => $calc['tax'],
         'contract_rate' => $calc['contract_rate'], 'contract_amount' => $calc['contract_amount'],
+        'byeong_amount' => $calc['byeong_amount'], 'withholding' => $calc['withholding'], 'withholding_amount' => $calc['withholding_amount'], 'byeong_pay' => $calc['byeong_pay'],
         'gap_rate' => $calc['gap_rate'], 'gap_amount' => $calc['gap_amount'], 'eul_amount' => $calc['eul_amount'],
-        'status' => $v['status'], 'memo' => (string) $v['memo'], 'settled_at' => $v['settled_at'], 'updated_at' => now(),
+        'status' => $v['status'], 'memo' => (string) $v['memo'], 'settled_at' => $v['settled_at'], 'settled_by' => (string) $v['settled_by'],
+        'step_received' => $v['step_received'], 'step_invoiced' => $v['step_invoiced'], 'step_paid_byeong' => $v['step_paid_byeong'], 'step_paid_eul' => $v['step_paid_eul'],
+        'updated_at' => now(),
     );
     if ($row) {
         q_update('contract_settlements', (int) $row['id'], $data);

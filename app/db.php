@@ -179,6 +179,31 @@ function migrate(PDO $pdo)
         $pdo->exec('CREATE INDEX idx_settlement_by_month ON contract_settlements (month)');
         $pdo->prepare("UPDATE settings SET v = '8' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 9) {
+        // 9: 그린청소 블로그
+        $pdo->exec("CREATE TABLE IF NOT EXISTS blog_posts (
+            id $id, title VARCHAR(200) NOT NULL, slug VARCHAR(120) NOT NULL DEFAULT '', summary VARCHAR(300) NOT NULL DEFAULT '',
+            body $long, cover VARCHAR(255) NOT NULL DEFAULT '', seo_title VARCHAR(200) NOT NULL DEFAULT '', keywords VARCHAR(300) NOT NULL DEFAULT '',
+            status VARCHAR(12) NOT NULL DEFAULT 'draft', published_at VARCHAR(19) NULL, views INT NOT NULL DEFAULT 0,
+            created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NOT NULL)" . $tail);
+        $pdo->exec('CREATE INDEX idx_blog_public ON blog_posts (status, published_at)');
+        $pdo->prepare("UPDATE settings SET v = '9' WHERE k = 'schema_version'")->execute();
+    }
+    if ($version < 10) {
+        // 10: 도급 정산을 갑·을·병으로(병 = 청소담당자, 원천징수 3.3%)
+        $pdo->exec("ALTER TABLE contracts ADD COLUMN byeong_name VARCHAR(60) NOT NULL DEFAULT ''");
+        $pdo->exec('ALTER TABLE contracts ADD COLUMN withholding INT NOT NULL DEFAULT 1');
+        $pdo->exec('ALTER TABLE contract_settlements ADD COLUMN withholding INT NOT NULL DEFAULT 1');
+        $pdo->exec('ALTER TABLE contract_settlements ADD COLUMN byeong_amount INT NOT NULL DEFAULT 0');
+        $pdo->exec('ALTER TABLE contract_settlements ADD COLUMN withholding_amount INT NOT NULL DEFAULT 0');
+        $pdo->exec('ALTER TABLE contract_settlements ADD COLUMN byeong_pay INT NOT NULL DEFAULT 0');
+        // 대표파트너의 정산 단계(입금 확인 · 세금계산서 · 청소 담당 지급 · 운영 지급)와 정산한 사람
+        foreach (array('step_received', 'step_invoiced', 'step_paid_byeong', 'step_paid_eul') as $col) {
+            $pdo->exec("ALTER TABLE contract_settlements ADD COLUMN $col VARCHAR(19) NULL");
+        }
+        $pdo->exec("ALTER TABLE contract_settlements ADD COLUMN settled_by VARCHAR(60) NOT NULL DEFAULT ''");
+        $pdo->prepare("UPDATE settings SET v = '10' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

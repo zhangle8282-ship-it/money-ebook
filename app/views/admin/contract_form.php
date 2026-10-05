@@ -15,7 +15,7 @@ $fee = $form['monthly_fee'] !== '' ? number_format((int) $form['monthly_fee']) :
 <div class="page-head">
   <div class="page-head-text">
     <h1><?= $contract ? '청소 고치기' : '새 청소' ?></h1>
-    <p class="muted">조건을 넣으면 오른쪽에서 한 달 정산이 바로 계산돼요. 계산 순서: 청소비용 → 세금 <?= CONTRACT_TAX_RATE ?>% → 도급비용 → 갑 · 을.</p>
+    <p class="muted">조건을 넣으면 오른쪽에서 한 달 정산이 바로 계산돼요. 세금 <?= CONTRACT_TAX_RATE ?>%를 뺀 금액을 청소 담당 파트너와 도급(대표 · 운영 파트너)이 나눠요.</p>
   </div>
   <button type="submit" form="contract-form" class="btn btn-primary"><?= $contract ? '저장하기' : '추가하기' ?></button>
 </div>
@@ -45,30 +45,39 @@ $fee = $form['monthly_fee'] !== '' ? number_format((int) $form['monthly_fee']) :
         </fieldset>
       </div>
       <div class="field">
-        <span class="field-label-strong">도급비용</span>
+        <span class="field-label-strong">도급 비율 (대표 · 운영 파트너 몫)</span>
         <fieldset class="segmented">
-          <legend class="sr-only">도급비용 비율</legend>
+          <legend class="sr-only">도급 비율</legend>
 <?php foreach (CONTRACT_RATES as $r): ?>
           <input type="radio" id="cf-rate-<?= $r ?>" name="contract_rate" value="<?= $r ?>" class="sr-only" data-calc-input="rate"<?= (int) $form['contract_rate'] === $r ? ' checked' : '' ?>><label for="cf-rate-<?= $r ?>"><?= $r ?>%</label>
 <?php endforeach; ?>
         </fieldset>
-        <p class="field-help">세금을 뺀 금액에서 이 비율만큼 도급비용으로 빠져요.</p>
+        <p class="field-help">세금을 뺀 금액에서 이 비율은 대표 · 운영 파트너가 나누고, 나머지 <strong data-calc="byeong_rate"><?= 100 - (int) $form['contract_rate'] ?></strong>%는 청소 담당 파트너가 받아요.</p>
       </div>
     </section>
 
     <section class="card stack-lg" aria-labelledby="cf-split">
-      <h2 id="cf-split">갑 · 을 나누기</h2>
+      <h2 id="cf-split">파트너 3명</h2>
       <div class="grid-2">
         <div class="field">
-          <label for="cf-gap">갑 비율</label>
+          <label for="cf-gap">대표파트너 비율 (도급 몫 안에서)</label>
           <div class="input-suffix"><input id="cf-gap" name="gap_rate" type="number" min="0" max="100" step="1" value="<?= e((string) ($form['gap_rate'] >= 0 ? $form['gap_rate'] : CONTRACT_GAP_DEFAULT)) ?>" data-calc-input="gap"><span>%</span></div>
-          <p class="field-help">을은 나머지 <strong data-calc="eul_rate"><?= 100 - max(0, (int) $form['gap_rate']) ?></strong>%를 받아요. (기본 갑 60 : 을 40)</p>
+          <p class="field-help">운영파트너는 나머지 <strong data-calc="eul_rate"><?= 100 - max(0, (int) $form['gap_rate']) ?></strong>%를 받아요. (기본 대표 60 : 운영 40)</p>
         </div>
         <div class="field"><span class="field-label-strong">빠르게 고르기</span>
           <div class="quick-rates"><button type="button" class="btn btn-outline btn-sm" data-gap="60">60 : 40</button><button type="button" class="btn btn-outline btn-sm" data-gap="50">50 : 50</button><button type="button" class="btn btn-outline btn-sm" data-gap="70">70 : 30</button></div>
         </div>
-        <div class="field"><label for="cf-gapname">갑 이름 (선택)</label><input id="cf-gapname" name="gap_name" type="text" maxlength="60" value="<?= e($form['gap_name']) ?>" placeholder="예: 그린청소"></div>
-        <div class="field"><label for="cf-eulname">을 이름 (선택)</label><input id="cf-eulname" name="eul_name" type="text" maxlength="60" value="<?= e($form['eul_name']) ?>" placeholder="예: 김○○ 팀장"></div>
+        <div class="field"><label for="cf-gapname">대표파트너 이름 (선택)</label><input id="cf-gapname" name="gap_name" type="text" maxlength="60" value="<?= e($form['gap_name']) ?>" placeholder="예: 그린청소"></div>
+        <div class="field"><label for="cf-eulname">운영파트너 이름 (선택)</label><input id="cf-eulname" name="eul_name" type="text" maxlength="60" value="<?= e($form['eul_name']) ?>" placeholder="예: 홍보 담당 ○○"></div>
+        <div class="field"><label for="cf-byeongname">청소 담당 파트너 이름 (선택)</label><input id="cf-byeongname" name="byeong_name" type="text" maxlength="60" value="<?= e($form['byeong_name']) ?>" placeholder="예: 김○○"></div>
+        <div class="field">
+          <span class="field-label-strong">청소 담당 파트너 원천징수</span>
+          <fieldset class="segmented">
+            <legend class="sr-only">청소 담당 파트너 원천징수</legend>
+            <input type="radio" id="cf-wh-1" name="withholding" value="1" class="sr-only" data-calc-input="withholding"<?= (int) $form['withholding'] ? ' checked' : '' ?>><label for="cf-wh-1"><?= CONTRACT_WITHHOLDING ?>% 떼고 주기</label>
+            <input type="radio" id="cf-wh-0" name="withholding" value="0" class="sr-only" data-calc-input="withholding"<?= (int) $form['withholding'] ? '' : ' checked' ?>><label for="cf-wh-0">떼지 않음</label>
+          </fieldset>
+        </div>
       </div>
     </section>
 
@@ -93,10 +102,11 @@ $fee = $form['monthly_fee'] !== '' ? number_format((int) $form['monthly_fee']) :
       <dl class="calc">
         <div><dt>청소비용</dt><dd data-calc="fee">0원</dd></div>
         <div class="minus"><dt>세금 <?= CONTRACT_TAX_RATE ?>% (세금계산서)</dt><dd data-calc="tax">− 0원</dd></div>
-        <div class="minus"><dt>도급비용 <span data-calc="rate">10</span>%<small>세금 뺀 금액 <span data-calc="after_tax">0원</span> 기준</small></dt><dd data-calc="contract">− 0원</dd></div>
-        <div class="total"><dt>나눌 금액</dt><dd data-calc="base">0원</dd></div>
-        <div class="split gap-row"><dt>갑 <span data-calc="gap_rate">60</span>%</dt><dd data-calc="gap">0원</dd></div>
-        <div class="split eul-row"><dt>을 <span data-calc="eul_rate2">40</span>%</dt><dd data-calc="eul">0원</dd></div>
+        <div class="total"><dt>세금 뺀 금액</dt><dd data-calc="after_tax">0원</dd></div>
+        <div class="split byeong-row"><dt>청소 담당 파트너 <span data-calc="byeong_rate2">80</span>%<small>몫 <span data-calc="byeong">0원</span> − 원천징수 <?= CONTRACT_WITHHOLDING ?>% <span data-calc="withholding">0원</span><br>(소득세 3% <span data-calc="income_tax">0</span> + 지방세 0.3% <span data-calc="local_tax">0</span>)</small></dt><dd data-calc="byeong_pay">0원</dd></div>
+        <div class="split"><dt>도급 몫 (대표 · 운영) <span data-calc="rate">20</span>%</dt><dd data-calc="contract">0원</dd></div>
+        <div class="split gap-row sub-row"><dt>└ 대표파트너 <span data-calc="gap_rate">60</span>%</dt><dd data-calc="gap">0원</dd></div>
+        <div class="split eul-row sub-row"><dt>└ 운영파트너 <span data-calc="eul_rate2">40</span>%</dt><dd data-calc="eul">0원</dd></div>
       </dl>
     </section>
   </aside>

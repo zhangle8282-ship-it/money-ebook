@@ -15,6 +15,7 @@ require APP_DIR . '/pages/admin.php';
 require APP_DIR . '/pages/admin_books.php';
 require APP_DIR . '/pages/cleaning.php';
 require APP_DIR . '/pages/contracts.php';
+require APP_DIR . '/pages/blog.php';
 
 function routes()
 {

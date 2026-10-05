@@ -35,6 +35,18 @@ $text = function ($key, $label, $opts = array()) use ($v) {
     </div>
   </section>
 
+  <section class="card stack-lg" id="seo" aria-labelledby="s-seo">
+    <div class="card-intro"><h2 id="s-seo">검색 노출 (SEO)</h2><p class="muted">네이버 · 구글 검색 결과에 보이는 첫 화면 제목과 설명이에요. 사람들이 검색할 말을 앞쪽에 넣으세요.</p></div>
+    <?= $text('gc_seo_title', '검색 제목', array('help' => '예: 충북음성청소업체 | 그린청소 (30자 안팎이 좋아요)')) ?>
+    <div class="field"><label for="f-gc_seo_desc">검색 설명</label><textarea id="f-gc_seo_desc" name="gc_seo_desc" rows="3" maxlength="200"><?= $v('gc_seo_desc') ?></textarea><p class="field-help">검색 결과 제목 아래에 보이는 글이에요. 80~160자가 좋아요.</p></div>
+    <?= $text('gc_seo_keywords', '키워드 (쉼표로)', array('help' => '예: 충북음성청소업체, 금왕사무실정기청소, 음성공장청소')) ?>
+    <div class="grid-2">
+      <?= $text('gc_naver_verify', '네이버 사이트 확인 코드', array('placeholder' => '네이버 서치어드바이저에서 받은 HTML 태그', 'help' => '네이버 서치어드바이저 › 사이트 등록 › <b>HTML 태그</b>를 통째로 붙여 넣어도 돼요.')) ?>
+      <?= $text('gc_google_verify', '구글 사이트 확인 코드', array('placeholder' => '구글 서치 콘솔의 HTML 태그', 'help' => '구글 서치 콘솔 › 속성 추가 › <b>HTML 태그</b> 방식의 태그를 붙여 넣어요.')) ?>
+    </div>
+    <p class="field-help">검색 사이트에 알려 줄 주소: 사이트맵 <b><?= e(base_url()) ?>/sitemap.xml</b> · RSS <b><?= e(base_url()) ?>/rss.xml</b></p>
+  </section>
+
   <section class="card stack-lg" aria-labelledby="s-biz">
     <div class="card-intro"><h2 id="s-biz">사업자 정보</h2><p class="muted">홈페이지 바닥글에 보여요. 빈칸은 빠져요.</p></div>
     <div class="grid-2">

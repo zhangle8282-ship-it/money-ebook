@@ -12,6 +12,9 @@ function cleaning_routes()
         array('GET', '~^/privacy$~', 'page_cleaning_privacy'),
         array('GET', '~^/robots\.txt$~', 'cleaning_robots'),
         array('GET', '~^/sitemap\.xml$~', 'cleaning_sitemap'),
+        array('GET', '~^/rss\.xml$~', 'blog_rss'),
+        array('GET', '~^/blog$~', 'page_blog_list'),
+        array('GET', '~^/blog/(\d+)(?:-([^/]*))?$~', 'page_blog_post'),
         // 관리자
         array('GET|POST', '~^/admin/login$~', 'admin_login'),
         array('POST', '~^/admin/logout$~', 'admin_logout'),
@@ -21,6 +24,12 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/site$~', 'admin_cleaning_site'),
         array('GET|POST', '~^/admin/photos$~', 'admin_cleaning_photos'),
         array('GET|POST', '~^/admin/reviews$~', 'admin_cleaning_reviews'),
+        // 블로그
+        array('GET', '~^/admin/blog$~', 'admin_blog_list'),
+        array('GET|POST', '~^/admin/blog/new$~', 'admin_blog_form'),
+        array('GET|POST', '~^/admin/blog/(\d+)/edit$~', 'admin_blog_form'),
+        array('POST', '~^/admin/blog/(\d+)/delete$~', 'admin_blog_delete'),
+        array('POST', '~^/admin/blog/upload$~', 'admin_blog_upload'),
         // 도급 정산
         array('GET', '~^/admin/contracts$~', 'admin_contracts_month'),
         array('POST', '~^/admin/contracts/settle$~', 'admin_contracts_settle'),
@@ -92,7 +101,7 @@ function page_cleaning_privacy()
 function cleaning_robots()
 {
     header('Content-Type: text/plain; charset=utf-8');
-    echo "User-agent: *\nDisallow: /admin\nSitemap: " . base_url() . "/sitemap.xml\n";
+    echo "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /inquiry\nSitemap: " . base_url() . "/sitemap.xml\n";
     exit;
 }
 
@@ -100,8 +109,16 @@ function cleaning_sitemap()
 {
     header('Content-Type: application/xml; charset=utf-8');
     echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-    foreach (array('/', '/privacy') as $path) {
-        echo '<url><loc>' . e(base_url() . $path) . '</loc></url>';
+    $latest = blog_latest(1);
+    $urls = array(array('/', null), array('/privacy', null));
+    if ($latest) {
+        $urls[] = array('/blog', $latest[0]['updated_at']);
+    }
+    foreach ($urls as $u) {
+        echo '<url><loc>' . e(base_url() . $u[0]) . '</loc>' . ($u[1] ? '<lastmod>' . e(date('c', strtotime($u[1]))) . '</lastmod>' : '') . '</url>';
+    }
+    foreach (blog_latest(1000) as $p) {
+        echo '<url><loc>' . e(blog_url($p, true)) . '</loc><lastmod>' . e(date('c', strtotime($p['updated_at']))) . '</lastmod></url>';
     }
     echo '</urlset>';
     exit;
@@ -153,6 +170,7 @@ function admin_inquiry_action($id)
 
 const CLEANING_SITE_FIELDS = array(
     'gc_name', 'gc_phone', 'gc_kakao_url', 'gc_channeltalk_key', 'gc_tagline', 'gc_area',
+    'gc_seo_title', 'gc_seo_desc', 'gc_seo_keywords', 'gc_naver_verify', 'gc_google_verify',
     'gc_owner', 'gc_biz_number', 'gc_biz_type', 'gc_biz_item', 'gc_address', 'gc_email', 'gc_notify_email',
 );
 
@@ -186,7 +204,14 @@ function admin_cleaning_site()
     if (is_post()) {
         require_csrf('/admin/site');
         foreach (CLEANING_SITE_FIELDS as $key) {
-            $values[$key] = str_cut(trim(input($key)), 200, '');
+            $values[$key] = str_cut(trim(preg_replace('/\s+/u', ' ', input($key))), $key === 'gc_seo_desc' || $key === 'gc_seo_keywords' ? 300 : 200, '');
+        }
+        // 사이트 확인 코드: 태그를 통째로 붙여 넣어도 값만 저장
+        foreach (array('gc_naver_verify', 'gc_google_verify') as $key) {
+            $values[$key] = verify_code($values[$key]);
+        }
+        if ($values['gc_seo_title'] === '') {
+            $errors[] = '검색 제목을 적어 주세요.';
         }
         if ($values['gc_name'] === '') {
             $errors[] = '업체 이름을 적어 주세요.';

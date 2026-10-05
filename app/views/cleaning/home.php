@@ -12,21 +12,7 @@ $sitePhotos = array_values(array_filter($photos['site']));
 $pairs = array_values(array_filter($photos['ba'], function ($p) {
     return $p['before'] !== '' && $p['after'] !== '';
 }));
-$pageTitle = $name . ' | 음성·진천·충북혁신도시 사무실·상가·화장실 정기청소';
-$pageDesc = '요일과 시간만 정해주시면 전담 인력이 매번 같은 기준으로 관리합니다. 음성·진천·충북혁신도시 사무실, 건물·상가, 화장실 정기청소. 현장 방문 견적 무료.';
-$asset = function ($file) {
-    return '/assets/' . $file . '?v=' . @filemtime(PUBLIC_DIR . '/assets/' . $file);
-};
-$logo = function ($light = false) use ($name) {
-    $leaf = $light ? '#A8D5BA' : '#2A2D33';
-    $stroke = $light ? '#fff' : '#2F7D5C';
-    $text = mb_substr($name, 0, 2) === '그린'
-        ? '<span class="g-logo-green">그린</span>' . e(mb_substr($name, 2))
-        : e($name);
-    return '<svg class="g-logo-mark" viewBox="0 0 66 64" aria-hidden="true"><path d="M47.6 16.4A22 22 0 1 0 54 32H36" fill="none" stroke="' . $stroke . '" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M50 14C50 7 55 3 62 3C62 10 57 14 50 14Z" fill="' . $leaf . '"/></svg><span class="g-logo-text">' . $text . '</span>';
-};
-$kakaoIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7l-1 3.6c-.1.3.3.6.6.4l4.2-2.8c.5.1 1 .1 1.5.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>';
-$phoneIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>';
+$kakaoIcon = cleaning_kakao_icon();
 $icon = function ($path, $size = 24) {
     return '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' . e($path) . '"/></svg>';
 };
@@ -35,63 +21,50 @@ if ($pairs) {
     $nav['before-after'] = '청소 전후';
 }
 $nav += array('regions' => '서비스 지역', 'faq' => 'FAQ');
-$ld = array(
-    '@context' => 'https://schema.org', '@type' => 'LocalBusiness', 'name' => $name, 'telephone' => $phone,
-    'url' => base_url() . '/', 'description' => $pageDesc, 'image' => base_url() . '/assets/green-og.jpg',
-    'areaServed' => array('충청북도 음성군', '충청북도 진천군', '충북혁신도시'),
+// 검색 노출: 제목·설명은 관리자 › 홈페이지 관리 › 검색 노출에서 바꿀 수 있어요.
+$url = base_url() . '/';
+$faq = cleaning_faq();
+$meta = array(
+    'title' => gc('seo_title') !== '' ? gc('seo_title') : $name,
+    'desc' => gc('seo_desc'),
+    'canonical' => $url,
+    'keywords' => true,
+    'ld' => array(
+        array(
+            '@context' => 'https://schema.org', '@type' => 'LocalBusiness', '@id' => $url . '#business',
+            'name' => $name, 'url' => $url, 'telephone' => $phone, 'image' => base_url() . '/assets/green-og.jpg',
+            'description' => gc('seo_desc'), 'priceRange' => '견적 문의',
+            'areaServed' => array_map(function ($a) {
+                return array('@type' => 'AdministrativeArea', 'name' => $a);
+            }, array('충청북도 음성군', '음성군 금왕읍', '음성군 대소면', '충청북도 진천군', '충북혁신도시')),
+            'keywords' => gc('seo_keywords'),
+            'hasOfferCatalog' => array('@type' => 'OfferCatalog', 'name' => '정기청소 서비스', 'itemListElement' => array_map(function ($l) {
+                return array('@type' => 'Offer', 'itemOffered' => array('@type' => 'Service', 'name' => $l[0], 'description' => $l[1]));
+            }, cleaning_local_services())),
+        ),
+        array('@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => array_map(function ($f) {
+            return array('@type' => 'Question', 'name' => $f[0], 'acceptedAnswer' => array('@type' => 'Answer', 'text' => $f[1]));
+        }, $faq)),
+    ),
 );
-?><!doctype html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= e($pageTitle) ?></title>
-<meta name="description" content="<?= e($pageDesc) ?>">
-<link rel="canonical" href="<?= e(base_url()) ?>/">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="<?= e($name) ?>">
-<meta property="og:title" content="<?= e($name) ?> · 사무실·상가·화장실 정기청소">
-<meta property="og:description" content="<?= e($pageDesc) ?>">
-<meta property="og:url" content="<?= e(base_url()) ?>/">
-<meta property="og:image" content="<?= e(base_url()) ?>/assets/green-og.jpg">
-<meta name="theme-color" content="#2F7D5C">
-<?= icon_links() ?>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="<?= e($asset('green.css')) ?>">
-<script>document.documentElement.classList.add('js');</script>
-<script type="application/ld+json"><?= str_replace('</', '<\/', json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?></script>
-</head>
-<body class="g-body<?= $kakao !== '' ? ' has-kakao' : '' ?><?= $channelKey !== '' ? ' has-channeltalk' : ' has-mobile-bar' ?>"<?= $channelKey !== '' ? ' data-channeltalk="' . e($channelKey) . '"' : '' ?>>
-<a class="g-skip" href="#main">본문 바로가기</a>
-
-<header class="g-header" data-header>
-  <div class="g-wrap g-header-inner">
-    <a class="g-logo" href="/" aria-label="<?= e($name) ?> 처음으로"><?= $logo() ?></a>
-    <nav class="g-nav" id="g-nav" aria-label="주요 메뉴">
-<?php foreach ($nav as $id => $label): ?>
-      <a href="#<?= $id ?>"><?= e($label) ?></a>
-<?php endforeach; ?>
-      <a class="g-nav-quote" href="#quote">무료 견적 문의</a>
-    </nav>
-    <div class="g-header-cta">
-<?php if ($kakao !== ''): ?>      <a class="g-btn-kakao g-btn-sm" href="<?= e($kakao) ?>" target="_blank" rel="noopener"><?= $kakaoIcon ?>카톡 상담</a>
-<?php endif; ?>
-      <a class="g-header-phone" href="<?= e($tel) ?>"><?= e($phone) ?></a>
-    </div>
-    <button type="button" class="g-menu-btn" aria-controls="g-nav" aria-expanded="false" data-menu-btn>
-      <span class="g-sr">메뉴 열기</span>
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-    </button>
-  </div>
-</header>
+$latestPosts = blog_latest(3);
+// 첫 화면 제목(h1)에 대표 검색어를 넣습니다(이미 들어 있으면 그대로).
+$h1 = trim(gc('tagline'));
+if ($h1 === '') {
+    $h1 = '충북음성청소업체 ' . $name;
+} elseif (mb_strpos(str_replace(' ', '', $h1), '충북음성청소업체') === false) {
+    $h1 = '충북음성청소업체 · ' . $h1;
+}
+?>
+<?= view('cleaning/_head', array('meta' => $meta)) ?>
+<?= view('cleaning/_header', array('nav' => $nav, 'onHome' => true)) ?>
 
 <main id="main">
 <section class="g-hero" aria-labelledby="hero-title">
   <div class="g-wrap g-hero-grid">
     <div class="g-hero-text">
-      <p class="g-eyebrow"><span aria-hidden="true"></span><?= e(gc('tagline')) ?></p>
-      <h1 id="hero-title">사무실·상가 청소,<br><span class="g-accent">이제 신경 끄세요.</span></h1>
+      <h1 class="g-eyebrow" id="hero-title"><span aria-hidden="true"></span><?= e($h1) ?></h1>
+      <p class="g-hero-title">사무실·상가 청소,<br><span class="g-accent">이제 신경 끄세요.</span></p>
       <p class="g-lead">요일과 시간만 정해주시면, <?= e($name) ?> 전담 인력이 매번 같은 기준으로 관리합니다.</p>
       <ul class="g-hero-services">
 <?php foreach ($services as $key => $s): ?>
@@ -166,6 +139,21 @@ $ld = array(
         <h3><?= e($s[0]) ?></h3>
         <p><?= e($s[3]) ?></p>
         <a class="g-more" href="/?kind=<?= $key ?>#quote" data-pick-kind="<?= $key ?>">견적 받기 →</a>
+      </li>
+<?php endforeach; ?>
+    </ul>
+  </div>
+</section>
+
+<section class="g-section g-soft" id="areas" aria-labelledby="areas-title">
+  <div class="g-wrap">
+    <div class="g-head"><span class="g-kicker">— 지역 · 업종별 청소 —</span><h2 id="areas-title">음성 · 진천 · 혁신도시, 공간에 맞춰 관리합니다</h2></div>
+    <ul class="g-area-grid">
+<?php foreach (cleaning_local_services() as $l): ?>
+      <li class="g-area">
+        <h3><?= e($l[0]) ?></h3>
+        <p><?= e($l[1]) ?></p>
+        <a class="g-more" href="/?kind=<?= e($l[2]) ?>#quote" data-pick-kind="<?= e($l[2]) ?>">견적 받기 →</a>
       </li>
 <?php endforeach; ?>
     </ul>
@@ -272,11 +260,21 @@ $ld = array(
   </div>
 </section>
 
+<?php if ($latestPosts): ?>
+<section class="g-section" id="blog" aria-labelledby="blog-title">
+  <div class="g-wrap">
+    <div class="g-head"><span class="g-kicker">— 청소 이야기 —</span><h2 id="blog-title">현장에서 전하는 청소 팁</h2></div>
+    <?= view('cleaning/_post_cards', array('posts' => $latestPosts)) ?>
+    <p class="g-center"><a class="g-btn-outline" href="/blog">블로그 글 모두 보기 →</a></p>
+  </div>
+</section>
+<?php endif; ?>
+
 <section class="g-section" id="faq" aria-labelledby="faq-title">
   <div class="g-wrap g-faq-wrap">
     <h2 id="faq-title" class="g-faq-title">자주 묻는 질문</h2>
     <div class="g-faq">
-<?php foreach (cleaning_faq() as $i => $f): ?>
+<?php foreach ($faq as $i => $f): ?>
       <details<?= $i === 0 ? ' open' : '' ?>><summary><span><?= e($f[0]) ?></span><span class="g-faq-sign" aria-hidden="true"></span></summary><p><?= e($f[1]) ?></p></details>
 <?php endforeach; ?>
     </div>
@@ -297,31 +295,4 @@ $ld = array(
 </section>
 </main>
 
-<footer class="g-footer">
-  <div class="g-wrap">
-    <div class="g-footer-top"><span class="g-logo g-logo-light"><?= $logo(true) ?></span><a class="g-footer-phone" href="<?= e($tel) ?>"><?= e($phone) ?></a></div>
-    <div class="g-footer-info">
-      <p><span>상호 <?= e($name) ?></span><?php if (gc('owner') !== ''): ?><span>대표 <?= e(gc('owner')) ?></span><?php endif; ?><?php if (gc('biz_number') !== ''): ?><span>사업자등록번호 <?= e(gc('biz_number')) ?></span><?php endif; ?><?php if (gc('biz_type') !== '' || gc('biz_item') !== ''): ?><span>업태 <?= e(gc('biz_type')) ?> · 종목 <?= e(gc('biz_item')) ?></span><?php endif; ?></p>
-      <p><?php if (gc('address') !== ''): ?><span>주소 <?= e(gc('address')) ?></span><?php endif; ?><?php if (gc('email') !== ''): ?><span>이메일 <a href="mailto:<?= e(gc('email')) ?>"><?= e(gc('email')) ?></a></span><?php endif; ?><?php if (gc('area') !== ''): ?><span>서비스 지역 <?= e(gc('area')) ?></span><?php endif; ?></p>
-    </div>
-    <p class="g-copy">© <?= e($name) ?>. All rights reserved. <a href="/privacy">개인정보처리방침</a></p>
-  </div>
-</footer>
-
-<?php if ($channelKey !== ''): ?>
-<a class="g-chat-float" href="#" data-open-chat aria-label="채팅 상담"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg><span>채팅 상담</span></a>
-<?php endif; ?>
-<?php if ($kakao !== ''): ?>
-<a class="g-kakao-float" href="<?= e($kakao) ?>" target="_blank" rel="noopener" aria-label="카카오톡 상담"><?= $kakaoIcon ?></a>
-<?php endif; ?>
-<?php if ($channelKey === ''): /* 모바일 아래 빠른 문의 막대는 채널톡을 쓰지 않을 때만 */ ?>
-<nav class="g-mobile-bar<?= $kakao !== '' ? '' : ' no-kakao' ?>" aria-label="빠른 문의">
-  <a class="g-mb-call" href="<?= e($tel) ?>"><?= $phoneIcon ?>전화</a>
-<?php if ($kakao !== ''): ?>  <a class="g-mb-kakao" href="<?= e($kakao) ?>" target="_blank" rel="noopener"><?= $kakaoIcon ?>카톡</a>
-<?php endif; ?>
-  <a class="g-mb-quote" href="#quote" data-go-quote>무료 견적</a>
-</nav>
-<?php endif; ?>
-<script src="<?= e($asset('green.js')) ?>" defer></script>
-</body>
-</html>
+<?= view('cleaning/_footer') ?>
