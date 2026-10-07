@@ -99,10 +99,12 @@ function admin_worker_delete($id)
         not_found();
     }
     // 끝나지 않은 정기청소의 청소 담당에서도 빼고, 정산 기록이 없으면 청소 담당 파트너 정보도 지움
-    $freed = worker_release($worker);
+    $freed = worker_release($worker, $freedOnce);
     q('DELETE FROM workers WHERE id = ?', array((int) $worker['id']));
     flash('‘' . $worker['name'] . '’ 님 정보를 지웠어요.'
-        . ($freed ? ' 맡고 있던 정기청소(' . implode(', ', $freed) . ')의 청소 담당도 비웠어요. 새 청소 담당을 배치해 주세요.' : ''));
+        . ($freed ? ' 맡고 있던 정기청소(' . implode(', ', $freed) . ')의 청소 담당도 비웠어요.' : '')
+        . ($freedOnce ? ' 정산 전인 일회성 일(' . implode(', ', $freedOnce) . ')의 청소 담당도 비웠어요.' : '')
+        . ($freed || $freedOnce ? ' 새 청소 담당을 배치해 주세요.' : ''));
     redirect('/admin/workers');
 }
 

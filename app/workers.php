@@ -175,14 +175,15 @@ function worker_assignments()
 }
 
 /**
- * 청소에 청소 담당 배치(정기청소 정산 › 청소 목록, 인력 배치 목록에서 바로).
+ * 청소 담당 배치(정기청소 정산 › 청소 담당 배치 · 청소 목록, 인력 배치 목록, 일회성 정산에서 바로).
+ * $row: 청소(contracts) 또는 일회성 일(onetime_jobs, $table 로 알림)
  * $pick: 청소 담당 파트너 번호 | 'w:인력 배치 번호'(처음이면 청소 담당 파트너로 등록) | ''(비우기). 반환: [성공했는지, 안내 글]
  */
-function assign_cleaner($contract, $pick)
+function assign_cleaner($contract, $pick, $table = 'contracts')
 {
     $pick = trim((string) $pick);
     if ($pick === '') {
-        q_update('contracts', (int) $contract['id'], array('byeong_partner_id' => null, 'updated_at' => now()));
+        q_update($table, (int) $contract['id'], array('byeong_partner_id' => null, 'updated_at' => now()));
         return array(true, '‘' . $contract['name'] . '’의 청소 담당을 비웠어요.');
     }
     $created = false;
@@ -199,20 +200,21 @@ function assign_cleaner($contract, $pick)
             return array(false, '청소 담당 파트너를 다시 골라 주세요.');
         }
     }
-    q_update('contracts', (int) $contract['id'], array('byeong_partner_id' => $pid, 'updated_at' => now()));
+    q_update($table, (int) $contract['id'], array('byeong_partner_id' => $pid, 'updated_at' => now()));
     $name = (string) q_value('SELECT name FROM partners WHERE id = ?', array($pid));
     return array(true, '‘' . $contract['name'] . '’에 ‘' . $name . '’ 님을 청소 담당으로 배치했어요.'
         . ($created ? ' 처음 배치라 청소 담당 파트너로도 등록했어요. 지급 계좌는 정기청소 정산 › 파트너 · 계좌에서 넣어 주세요.' : ''));
 }
 
 /**
- * 인력 배치에서 사람을 지울 때: 끝나지 않은 정기청소의 청소 담당에서 빼고,
- * 끝난 청소 · 일회성 정산 기록에 남아 있지 않으면 청소 담당 파트너 정보도 지웁니다(기록이 있으면 연결만 끊고 남김).
- * 반환: 청소 담당을 비운 청소 이름 목록
+ * 인력 배치에서 사람을 지울 때: 끝나지 않은 정기청소 · 정산 전인 일회성 일의 청소 담당에서 빼고,
+ * 끝난 청소 · 정산 완료한 일회성 기록에 남아 있지 않으면 청소 담당 파트너 정보도 지웁니다(기록이 있으면 연결만 끊고 남김).
+ * 반환: 청소 담당을 비운 정기청소 이름 목록($onetime 에는 일회성 일 이름)
  */
-function worker_release($worker)
+function worker_release($worker, &$onetime = null)
 {
     $freed = array();
+    $onetime = array();
     foreach (q_all("SELECT id FROM partners WHERE role = 'byeong' AND worker_id = ?", array((int) $worker['id'])) as $p) {
         $pid = (int) $p['id'];
         $open = q_all("SELECT id, name, byeong_name FROM contracts WHERE byeong_partner_id = ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?) ORDER BY name, id", array($pid, date('Y-m')));
@@ -220,6 +222,10 @@ function worker_release($worker)
             // 직접 적어 둔 이름이 지운 사람이면 그 이름도 비워서 ‘배치된 것처럼’ 보이지 않게
             q_update('contracts', (int) $c['id'], array('byeong_partner_id' => null, 'byeong_name' => $c['byeong_name'] === $worker['name'] ? '' : $c['byeong_name'], 'updated_at' => now()));
             $freed[] = $c['name'];
+        }
+        foreach (q_all("SELECT id, name FROM onetime_jobs WHERE byeong_partner_id = ? AND status <> 'done' ORDER BY work_date, id", array($pid)) as $j) {
+            q_update('onetime_jobs', (int) $j['id'], array('byeong_partner_id' => null, 'updated_at' => now()));
+            $onetime[] = $j['name'];
         }
         $used = (int) q_value('SELECT COUNT(*) FROM contracts WHERE byeong_partner_id = ?', array($pid))
             + (int) q_value('SELECT COUNT(*) FROM onetime_jobs WHERE byeong_partner_id = ?', array($pid));
@@ -253,13 +259,24 @@ function cleaner_choices()
         }
     }
     $jobs = worker_assignments();
+    $once = array();
+    foreach (q_all("SELECT p.worker_id, COUNT(*) AS n FROM onetime_jobs j JOIN partners p ON p.id = j.byeong_partner_id
+        WHERE p.worker_id IS NOT NULL AND j.status <> 'done' GROUP BY p.worker_id") as $o) {
+        $once[(int) $o['worker_id']] = (int) $o['n'];
+    }
     $out = array('workers' => array(), 'others' => $others);
     foreach (q_all('SELECT * FROM workers ORDER BY name, id') as $w) {
         $wid = (int) $w['id'];
         $team = worker_team_label($w);
-        $n = count($jobs[$wid] ?? array());
+        $load = array();
+        if ($n = count($jobs[$wid] ?? array())) {
+            $load[] = '정기청소 ' . $n . '곳';
+        }
+        if (!empty($once[$wid])) {
+            $load[] = '일회성 ' . $once[$wid] . '건';
+        }
         $out['workers'][] = array(isset($linked[$wid]) ? (string) $linked[$wid] : 'w:' . $wid,
-            $w['name'] . ($team !== '' ? ' (' . $team . ')' : '') . ' · ' . str_cut($w['regions'], 18) . ($n ? ' · 맡은 청소 ' . $n . '곳' : ''));
+            $w['name'] . ($team !== '' ? ' (' . $team . ')' : '') . ' · ' . str_cut($w['regions'], 18) . ($load ? ' · 맡은 일 ' . implode(', ', $load) : ''));
     }
     return $out;
 }

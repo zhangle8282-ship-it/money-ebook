@@ -1,4 +1,5 @@
-<?php /** 청소 담당: 지금 누가 배치됐는지 + 바로 바꾸기. 변수: $c(청소), $back(배치한 뒤 돌아올 주소) */
+<?php /** 청소 담당: 지금 누가 배치됐는지 + 바로 바꾸기. 변수: $c(청소 또는 일회성 일), $back(배치한 뒤 돌아올 주소), $action(보낼 주소, 없으면 정기청소) */
+$action = $action ?? '/admin/contracts/' . (int) $c['id'] . '/assign';
 $who = contract_partner($c, 'byeong');
 $choices = cleaner_choices();
 $current = $c['byeong_partner_id'] ? (string) (int) $c['byeong_partner_id'] : '';
@@ -9,7 +10,7 @@ $current = $c['byeong_partner_id'] ? (string) (int) $c['byeong_partner_id'] : ''
 <?php else: ?>  <span class="who-empty">아직 배치 안 됨</span>
 <?php endif; ?>
 </div>
-<form method="post" action="/admin/contracts/<?= (int) $c['id'] ?>/assign" class="assign-form">
+<form method="post" action="<?= e($action) ?>" class="assign-form">
   <?= csrf_field() ?><input type="hidden" name="back" value="<?= e($back) ?>">
   <select name="byeong" aria-label="‘<?= e($c['name']) ?>’ 청소 담당">
     <option value=""><?= $current !== '' ? '— 청소 담당 비우기 —' : '— 사람 고르기 —' ?></option>

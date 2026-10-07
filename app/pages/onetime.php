@@ -194,6 +194,27 @@ function admin_onetime_delete($id)
     redirect($back !== '' && strpos($back, '/admin/onetime/' . (int) $job['id'] . '/') !== 0 ? $back : '/admin/onetime?month=' . substr($job['work_date'], 0, 7));
 }
 
+/** 일회성 일에 청소 담당 바로 배치(정산 탭 · 청소 목록). 정산 완료한 일 · 인수 방식은 못 바꿈 */
+function admin_onetime_assign($id)
+{
+    require_admin();
+    $back = safe_back(input('back'), '/admin/onetime');
+    require_csrf($back);
+    $job = find_onetime($id);
+    if (!$job) {
+        not_found();
+    }
+    if ($job['status'] === 'done') {
+        flash('정산 완료한 일은 청소 담당을 바꿀 수 없어요. 먼저 ‘되돌리기’를 눌러 주세요.', 'error');
+    } elseif (($job['method'] ?? 'commission') === 'takeover') {
+        flash('인수 방식은 청소 담당 몫이 없어서 배치하지 않아요.', 'error');
+    } else {
+        list($ok, $message) = assign_cleaner($job, input('byeong'), 'onetime_jobs');
+        flash($message, $ok ? 'ok' : 'error');
+    }
+    redirect($back);
+}
+
 /** 일회성 정산 › 파트너 역할(정기청소 정산과 따로) */
 function admin_onetime_roles()
 {

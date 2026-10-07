@@ -55,6 +55,7 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/onetime/(\d+)/edit$~', 'admin_onetime_form'),
         array('POST', '~^/admin/onetime/(\d+)/settle$~', 'admin_onetime_settle'),
         array('POST', '~^/admin/onetime/(\d+)/delete$~', 'admin_onetime_delete'),
+        array('POST', '~^/admin/onetime/(\d+)/assign$~', 'admin_onetime_assign'),
         array('GET|POST', '~^/admin/onetime/roles$~', 'admin_onetime_roles'),
         // 인력 배치 정보
         array('GET', '~^/admin/workers$~', 'admin_workers'),

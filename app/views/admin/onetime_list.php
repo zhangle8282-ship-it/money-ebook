@@ -38,6 +38,26 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
 <?php endif; ?>
 </div>
 
+<?php $pick = array_values(array_filter($rows, function ($r) { return $r['status'] !== 'done' && ($r['method'] ?? 'commission') !== 'takeover'; }));
+if ($pick): $unassigned = count(array_filter($pick, function ($r) { return !$r['byeong_partner_id']; })); ?>
+<section class="card assign-board" id="assign" aria-labelledby="assign-title">
+  <div class="assign-board-head">
+    <h2 id="assign-title">청소 담당 배치</h2>
+    <span class="sub"><?= $pendingOnly ? '정산 전인 일' : e(month_label($month)) . ' 정산 전인 일' ?> <?= count($pick) ?>건<?= $unassigned ? ' · <b class="warn-text">배치 안 됨 ' . $unassigned . '건</b>' : ' · 모두 배치됨' ?></span>
+    <a class="assign-board-link" href="/admin/workers">인력 배치 보기 ›</a>
+  </div>
+  <p class="sub">수수료 방식인 일에 청소 담당을 바로 배치해요. 인수 방식과 정산 완료한 일은 여기 나오지 않아요.</p>
+  <ul class="assign-rows">
+<?php foreach ($pick as $r): ?>
+    <li class="assign-row<?= $r['byeong_partner_id'] ? '' : ' is-empty' ?>">
+      <div class="assign-what"><a class="strong" href="/admin/onetime/<?= (int) $r['id'] ?>/edit"><?= e($r['name']) ?></a><span class="sub"><?= e(date('Y.m.d', strtotime($r['work_date']))) ?> 작업 · 청소 담당 실지급 <?= won($r['byeong_pay']) ?></span></div>
+      <?= view('admin/_cleaner_assign', array('c' => $r, 'back' => $back, 'action' => '/admin/onetime/' . (int) $r['id'] . '/assign')) ?>
+    </li>
+<?php endforeach; ?>
+  </ul>
+</section>
+<?php endif; ?>
+
 <div class="settle-cards">
   <div class="card settle-card"><span>청소비용</span><strong><?= won($sum['fee']) ?></strong><small><?= $sum['count'] ?>건</small></div>
   <div class="card settle-card"><span>세금 <?= CONTRACT_TAX_RATE ?>% (세금계산서)</span><strong class="minus">− <?= won($sum['tax']) ?></strong></div>

@@ -41,7 +41,7 @@ $feeSum = array_sum(array_map(function ($r) { return (int) $r['fee']; }, $rows))
         <td data-label="작업일" class="nowrap"><a href="/admin/onetime?month=<?= e(substr($r['work_date'], 0, 7)) ?>"><?= e(str_replace('-', '.', $r['work_date'])) ?></a></td>
         <td data-label="방식"><?= e(onetime_method_label($r)) ?><?php if ($r['invoice']): ?><div class="sub">세금계산서 발행</div><?php endif; ?></td>
         <td data-label="청소비용" class="num"><?= won($r['fee']) ?></td>
-        <td data-label="청소 담당"><?php if ($takeover): ?><span class="sub">인수 방식(청소 담당 몫 없음)</span><?php elseif ($cleaner !== ''): ?><span class="who-chip"><?= e($cleaner) ?></span><div class="sub">실지급 <?= won($r['byeong_pay']) ?></div><?php else: ?><span class="who-empty">아직 없음</span><?php endif; ?></td>
+        <td data-label="청소 담당" class="assign-cell"><?php if ($takeover): ?><span class="sub">인수 방식(청소 담당 몫 없음)</span><?php elseif (!$done): ?><?= view('admin/_cleaner_assign', array('c' => $r, 'back' => $back, 'action' => '/admin/onetime/' . (int) $r['id'] . '/assign')) ?><?php elseif ($cleaner !== ''): ?><span class="who-chip"><?= e($cleaner) ?></span><div class="sub">실지급 <?= won($r['byeong_pay']) ?></div><?php else: ?><span class="sub">청소 담당 없음</span><?php endif; ?></td>
         <td data-label="상태"><span class="status <?= $done ? 'status-paid' : 'status-pending' ?>"><?= $done ? '정산 완료' : '정산 전' ?></span></td>
         <td class="nowrap">
           <form method="post" action="/admin/onetime/<?= (int) $r['id'] ?>/delete" data-confirm="‘<?= e($r['name']) ?>’을(를) 지울까요?<?= $done ? ' 정산 완료한 일이라 정산 기록도 함께 지워져요.' : '' ?> 되돌릴 수 없어요.">
