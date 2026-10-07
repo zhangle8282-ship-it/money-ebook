@@ -42,6 +42,8 @@ a.strong:hover { color: var(--accent); }
 .sidebar {
   width: 240px; flex-shrink: 0; padding: 28px 16px; background: #fff; border-right: 1px solid var(--line);
   display: flex; flex-direction: column; gap: 32px; position: sticky; top: 0; height: 100vh;
+  /* 메뉴가 화면보다 길면 왼쪽 메뉴 안에서 따로 스크롤 */
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
 }
 .sidebar-brand { display: flex; align-items: center; gap: 8px; padding: 0 12px; }
 .brand-name { font-family: var(--serif); font-size: 19px; font-weight: 700; }
@@ -250,7 +252,7 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 }
 @media (max-width: 860px) {
   .admin-shell { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: static; padding: 12px; gap: 8px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .sidebar { width: 100%; height: auto; position: static; padding: 12px; gap: 8px; border-right: 0; border-bottom: 1px solid var(--line); overflow: visible; }
   .sidebar-nav { flex-direction: row; overflow-x: auto; scrollbar-width: none; }
   .sidebar-nav a { flex-shrink: 0; height: 40px; }
   .sidebar-foot { flex-direction: row; justify-content: space-between; margin-top: 0; }

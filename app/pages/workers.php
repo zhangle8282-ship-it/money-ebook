@@ -98,11 +98,11 @@ function admin_worker_delete($id)
     if (!$worker) {
         not_found();
     }
-    $linked = (int) q_value('SELECT COUNT(*) FROM partners WHERE worker_id = ?', array((int) $worker['id']));
+    // 끝나지 않은 정기청소의 청소 담당에서도 빼고, 정산 기록이 없으면 청소 담당 파트너 정보도 지움
+    $freed = worker_release($worker);
     q('DELETE FROM workers WHERE id = ?', array((int) $worker['id']));
-    // 정기청소 정산의 청소 담당 파트너(계좌 · 정산 기록)는 그대로 두고 연결만 끊음
-    q('UPDATE partners SET worker_id = NULL WHERE worker_id = ?', array((int) $worker['id']));
-    flash('‘' . $worker['name'] . '’ 님 정보를 지웠어요.' . ($linked ? ' 정기청소 정산의 청소 담당 파트너 정보는 그대로 남아 있어요.' : ''));
+    flash('‘' . $worker['name'] . '’ 님 정보를 지웠어요.'
+        . ($freed ? ' 맡고 있던 정기청소(' . implode(', ', $freed) . ')의 청소 담당도 비웠어요. 새 청소 담당을 배치해 주세요.' : ''));
     redirect('/admin/workers');
 }
 

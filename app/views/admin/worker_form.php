@@ -63,5 +63,5 @@ $action = $worker ? '/admin/workers/' . (int) $worker['id'] . '/edit' : '/admin/
   </div>
 </form>
 <?php if ($worker): ?>
-<form method="post" action="/admin/workers/<?= (int) $worker['id'] ?>/delete" id="worker-delete" data-confirm="‘<?= e($worker['name']) ?>’ 님 정보를 지울까요? 되돌릴 수 없어요."><?= csrf_field() ?></form>
+<form method="post" action="/admin/workers/<?= (int) $worker['id'] ?>/delete" id="worker-delete" data-confirm="‘<?= e($worker['name']) ?>’ 님 정보를 지울까요?<?php $jobs = worker_assignments()[(int) $worker['id']] ?? array(); if ($jobs): ?> 맡고 있는 정기청소(<?= e(implode(', ', array_column($jobs, 1))) ?>)의 청소 담당에서도 빠져요.<?php endif; ?> 되돌릴 수 없어요."><?= csrf_field() ?></form>
 <?php endif; ?>

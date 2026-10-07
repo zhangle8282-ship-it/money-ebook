@@ -334,6 +334,23 @@ function migrate(PDO $pdo)
         $pdo->prepare("UPDATE settings SET v = ? WHERE k = 'gc_area' AND v = ?")->execute(array('충북 음성 · 진천 · 혁신도시 · 청주 오창 · 경기 안성', '충북 음성 · 진천 · 혁신도시'));
         $pdo->prepare("UPDATE settings SET v = '24' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 25) {
+        // 25: 인력 배치에서 이미 지운 사람(인력 배치에서 등록한 청소 담당 파트너인데 연결이 끊긴 사람)을
+        //     끝나지 않은 정기청소의 청소 담당에서 빼고, 끝난 청소 · 일회성 정산 기록이 없으면 파트너 정보도 지움
+        $orphans = $pdo->query("SELECT id, name FROM partners WHERE role = 'byeong' AND worker_id IS NULL AND memo = '인력 배치에서 등록'")->fetchAll(PDO::FETCH_ASSOC);
+        $free = $pdo->prepare("UPDATE contracts SET byeong_partner_id = NULL, byeong_name = CASE WHEN byeong_name = ? THEN '' ELSE byeong_name END, updated_at = ?
+            WHERE byeong_partner_id = ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?)");
+        $used = $pdo->prepare('SELECT (SELECT COUNT(*) FROM contracts WHERE byeong_partner_id = ?) + (SELECT COUNT(*) FROM onetime_jobs WHERE byeong_partner_id = ?)');
+        $del = $pdo->prepare('DELETE FROM partners WHERE id = ?');
+        foreach ($orphans as $p) {
+            $free->execute(array($p['name'], date('Y-m-d H:i:s'), (int) $p['id'], date('Y-m')));
+            $used->execute(array((int) $p['id'], (int) $p['id']));
+            if (!(int) $used->fetchColumn()) {
+                $del->execute(array((int) $p['id']));
+            }
+        }
+        $pdo->prepare("UPDATE settings SET v = '25' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

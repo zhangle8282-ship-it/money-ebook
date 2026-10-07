@@ -205,6 +205,33 @@ function assign_cleaner($contract, $pick)
         . ($created ? ' 처음 배치라 청소 담당 파트너로도 등록했어요. 지급 계좌는 정기청소 정산 › 파트너 · 계좌에서 넣어 주세요.' : ''));
 }
 
+/**
+ * 인력 배치에서 사람을 지울 때: 끝나지 않은 정기청소의 청소 담당에서 빼고,
+ * 끝난 청소 · 일회성 정산 기록에 남아 있지 않으면 청소 담당 파트너 정보도 지웁니다(기록이 있으면 연결만 끊고 남김).
+ * 반환: 청소 담당을 비운 청소 이름 목록
+ */
+function worker_release($worker)
+{
+    $freed = array();
+    foreach (q_all("SELECT id FROM partners WHERE role = 'byeong' AND worker_id = ?", array((int) $worker['id'])) as $p) {
+        $pid = (int) $p['id'];
+        $open = q_all("SELECT id, name, byeong_name FROM contracts WHERE byeong_partner_id = ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?) ORDER BY name, id", array($pid, date('Y-m')));
+        foreach ($open as $c) {
+            // 직접 적어 둔 이름이 지운 사람이면 그 이름도 비워서 ‘배치된 것처럼’ 보이지 않게
+            q_update('contracts', (int) $c['id'], array('byeong_partner_id' => null, 'byeong_name' => $c['byeong_name'] === $worker['name'] ? '' : $c['byeong_name'], 'updated_at' => now()));
+            $freed[] = $c['name'];
+        }
+        $used = (int) q_value('SELECT COUNT(*) FROM contracts WHERE byeong_partner_id = ?', array($pid))
+            + (int) q_value('SELECT COUNT(*) FROM onetime_jobs WHERE byeong_partner_id = ?', array($pid));
+        if ($used) {
+            q('UPDATE partners SET worker_id = NULL, updated_at = ? WHERE id = ?', array(now(), $pid));
+        } else {
+            q('DELETE FROM partners WHERE id = ?', array($pid));
+        }
+    }
+    return $freed;
+}
+
 /** 배치할 수 있는 청소(끝나지 않은 것): 이름순 */
 function contracts_open()
 {

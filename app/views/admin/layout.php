@@ -53,7 +53,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .admin-shell{display:flex;min-height:100vh}.admin-main{flex:1;min-width:0}
 @media (max-width:860px){
 .admin-shell{flex-direction:column}
-.sidebar{width:100%;height:auto;position:static;padding:12px;gap:8px;border-right:0;border-bottom:1px solid #E3DED3}
+.sidebar{width:100%;height:auto;position:static;padding:12px;gap:8px;border-right:0;border-bottom:1px solid #E3DED3;overflow:visible}
 .sidebar-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;overflow:visible}
 .sidebar-nav a{flex-direction:column;justify-content:center;gap:3px;height:auto;min-height:56px;padding:7px 2px;font-size:12px;line-height:1.25;text-align:center;word-break:keep-all}
 .sidebar-foot{flex-direction:row;justify-content:space-between;margin-top:0}
