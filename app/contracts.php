@@ -128,12 +128,18 @@ function save_contract_roles($roles, $scope = 'contract')
 }
 
 /** 금액 계산. 반환: fee, tax, after_tax, byeong_amount, withholding_amount, byeong_pay, contract_amount, gap_amount, eul_amount (+ 비율) */
-function contract_calc($fee, $invoice, $contractRate, $gapRate, $withholding = 1)
+function contract_calc($fee, $invoice, $contractRate, $gapRate, $withholding = 1, $fixedAmount = null)
 {
     $fee = max(0, (int) $fee);
     $tax = $invoice ? (int) round($fee * CONTRACT_TAX_RATE / 100) : 0;
     $afterTax = $fee - $tax;
-    $contractAmount = (int) round($afterTax * (int) $contractRate / 100);
+    // 회사 몫을 금액으로 정한 경우(일회성 · 인수 방식): 그 금액(세금 뺀 금액까지), 비율은 보여 주기용
+    if ($fixedAmount !== null) {
+        $contractAmount = min($afterTax, max(0, (int) $fixedAmount));
+        $contractRate = $afterTax > 0 ? (int) round($contractAmount * 100 / $afterTax) : 0;
+    } else {
+        $contractAmount = (int) round($afterTax * (int) $contractRate / 100);
+    }
     $byeong = $afterTax - $contractAmount;
     // 원천징수 3.3% = 소득세 3% + 지방소득세(소득세의 10%), 각각 10원 아래는 버림
     $incomeTax = $withholding ? (int) (floor($byeong * 3 / 100 / 10) * 10) : 0;

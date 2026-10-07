@@ -6,7 +6,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
 <div class="page-head">
   <div class="page-head-text">
     <h1>일회성 정산</h1>
-    <p class="muted">입주청소 · 대청소처럼 <strong>한 번 하는 일</strong>의 수익을 나눠요. 청소비용에서 (세금계산서를 발행했으면 <strong>세금 <?= CONTRACT_TAX_RATE ?>%</strong>를 빼고) <strong>도급 비율(10 · 20%)은 대표파트너 · 운영파트너</strong>가 나누고(예: 60:40), <strong>나머지는 청소 담당</strong>이 원천징수 <?= CONTRACT_WITHHOLDING ?>%를 떼고 받아요. 달마다 하는 청소는 <a href="/admin/contracts">정기청소 정산</a>에서 해요.</p>
+    <p class="muted">입주청소 · 대청소처럼 <strong>한 번 하는 일</strong>의 수익을 나눠요. 청소비용에서 (세금계산서를 발행했으면 <strong>세금 <?= CONTRACT_TAX_RATE ?>%</strong>를 빼고) <strong>회사 몫은 대표파트너 · 운영파트너</strong>가 나누고(예: 60:40), <strong>나머지는 청소 담당</strong>이 원천징수 <?= CONTRACT_WITHHOLDING ?>%를 떼고 받아요. 회사 몫은 <strong>수수료 방식</strong>(10 · 20%)이나 <strong>인수 방식</strong>(금액 · 비율을 직접 정함)으로 정해요. 달마다 하는 청소는 <a href="/admin/contracts">정기청소 정산</a>에서 해요.</p>
   </div>
   <a class="btn btn-primary" href="/admin/onetime/new">+ 새 일회성 정산</a>
 </div>
@@ -41,7 +41,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
   <div class="card settle-card"><span>청소비용</span><strong><?= won($sum['fee']) ?></strong><small><?= $sum['count'] ?>건</small></div>
   <div class="card settle-card"><span>세금 <?= CONTRACT_TAX_RATE ?>% (세금계산서)</span><strong class="minus">− <?= won($sum['tax']) ?></strong></div>
   <div class="card settle-card is-byeong"><span>청소 담당 실지급</span><strong><?= won($sum['byeong_pay']) ?></strong><small>몫 <?= won($sum['byeong_amount']) ?> − 원천징수 <?= won($sum['withholding_amount']) ?></small></div>
-  <div class="card settle-card"><span>도급 몫 (대표 · 운영 수익)</span><strong><?= won($sum['contract_amount']) ?></strong></div>
+  <div class="card settle-card"><span>회사 몫 (대표 · 운영 수익)</span><strong><?= won($sum['contract_amount']) ?></strong></div>
   <div class="card settle-card is-gap"><span>대표파트너 받는 돈</span><strong><?= won($sum['gap_amount']) ?></strong></div>
   <div class="card settle-card is-eul"><span>운영파트너 받는 돈</span><strong><?= won($sum['eul_amount']) ?></strong><small>정산 완료 <?= $sum['done'] ?> / <?= $sum['count'] ?></small></div>
 </div>
@@ -56,7 +56,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
     <header class="settle-item-head">
       <div>
         <a class="strong settle-name" href="/admin/onetime/<?= (int) $r['id'] ?>/edit"><?= e($r['name']) ?></a>
-        <span class="sub"><?= e(date('Y.m.d', strtotime($r['work_date']))) ?> 작업<?= $r['client'] !== '' ? ' · ' . e($r['client']) : '' ?> · 청소 담당 <?= $r['byeong_rate'] ?>% · 도급 <?= (int) $r['contract_rate'] ?>% (대표:운영 <?= (int) $r['gap_rate'] ?>:<?= 100 - (int) $r['gap_rate'] ?>)<?= $r['invoice'] ? '' : ' · 세금계산서 없음' ?><?= $r['withholding'] ? '' : ' · 원천징수 없음' ?></span>
+        <span class="sub"><?= e(date('Y.m.d', strtotime($r['work_date']))) ?> 작업<?= $r['client'] !== '' ? ' · ' . e($r['client']) : '' ?> · <b><?= e(onetime_method_label($r)) ?></b> · 청소 담당 <?= $r['byeong_rate'] ?>% (대표:운영 <?= (int) $r['gap_rate'] ?>:<?= 100 - (int) $r['gap_rate'] ?>)<?= $r['invoice'] ? '' : ' · 세금계산서 없음' ?><?= $r['withholding'] ? '' : ' · 원천징수 없음' ?></span>
       </div>
 <?php if ($done): ?>
       <span class="status status-paid">정산 완료 · <?= e(fmt_date($r['settled_at'], 'm.d H:i')) ?><?= $r['settled_by'] !== '' ? ' · ' . e($r['settled_by']) : '' ?></span>
@@ -70,7 +70,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
       <div><dt>청소 담당 몫 <?= $r['byeong_rate'] ?>%</dt><dd><?= won($r['byeong_amount']) ?></dd></div>
       <div class="minus"><dt>원천징수 <?= CONTRACT_WITHHOLDING ?>%</dt><dd><?= $r['withholding_amount'] ? '− ' . won($r['withholding_amount']) : '없음' ?></dd><?php if ($r['withholding_amount']): ?><small>소득세 <?= number_format($r['income_tax']) ?> + 지방세 <?= number_format($r['local_tax']) ?></small><?php endif; ?></div>
       <div class="is-byeong"><dt>청소 담당 실지급</dt><dd><?= won($r['byeong_pay']) ?></dd><?php if (contract_partner_name($r, 'byeong') !== ''): ?><small><?= e(contract_partner_name($r, 'byeong')) ?></small><?php endif; ?></div>
-      <div><dt>도급 몫 <?= (int) $r['contract_rate'] ?>%</dt><dd><?= won($r['contract_amount']) ?></dd></div>
+      <div><dt>회사 몫 <?= ($r['method'] ?? 'commission') === 'takeover' ? '(인수)' : (int) $r['contract_rate'] . '%' ?></dt><dd><?= won($r['contract_amount']) ?></dd></div>
       <div class="is-gap"><dt>대표파트너 <?= (int) $r['gap_rate'] ?>%</dt><dd><?= won($r['gap_amount']) ?></dd><?php if (contract_partner_name($r, 'gap') !== ''): ?><small><?= e(contract_partner_name($r, 'gap')) ?></small><?php endif; ?></div>
       <div class="is-eul"><dt>운영파트너 <?= 100 - (int) $r['gap_rate'] ?>%</dt><dd><?= won($r['eul_amount']) ?></dd><?php if (contract_partner_name($r, 'eul') !== ''): ?><small><?= e(contract_partner_name($r, 'eul')) ?></small><?php endif; ?></div>
     </dl>

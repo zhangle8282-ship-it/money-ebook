@@ -420,11 +420,29 @@
     var fee = Number((feeInput.value || '').replace(/[^0-9]/g, '')) || 0;
     var invoice = (form.querySelector('input[name="invoice"]:checked') || {}).value !== '0';
     var rate = Number((form.querySelector('input[name="contract_rate"]:checked') || {}).value || 20);
+    // 일회성 정산 › 인수 방식: 대표 · 운영 비율은 정해진 값(50:50)으로 고정
+    var takeoverGap = form.getAttribute('data-takeover-gap');
+    var isTakeover = ((form.querySelector('input[name="method"]:checked') || {}).value || '') === 'takeover';
+    if (takeoverGap !== null) {
+      if (isTakeover && form.gap_rate.value !== takeoverGap) form.gap_rate.value = takeoverGap;
+      form.gap_rate.readOnly = isTakeover;
+      form.querySelectorAll('[data-gap]').forEach(function (b) { b.disabled = isTakeover; });
+    }
     var gap = Math.max(0, Math.min(100, Number(form.gap_rate.value) || 0));
     var wh = (form.querySelector('input[name="withholding"]:checked') || {}).value !== '0';
     var tax = invoice ? Math.round(fee * 0.1) : 0;
     var after = fee - tax;
-    var contract = Math.round(after * rate / 100);
+    // 일회성 정산 › 인수 방식: 회사 몫을 금액(원) 또는 비율(%)로 직접 정함
+    var method = (form.querySelector('input[name="method"]:checked') || {}).value || 'commission';
+    form.querySelectorAll('[data-method-show]').forEach(function (el) { el.hidden = el.getAttribute('data-method-show') !== method; });
+    var contract;
+    if (method === 'takeover') {
+      var tv = Number(((form.takeover_value || {}).value || '').replace(/[^0-9]/g, '')) || 0;
+      contract = (form.takeover_unit || {}).value === 'rate' ? Math.round(after * Math.min(tv, 100) / 100) : Math.min(after, tv);
+      rate = after > 0 ? Math.round(contract * 100 / after) : 0;
+    } else {
+      contract = Math.round(after * rate / 100);
+    }
     var byeong = after - contract;
     // 원천징수 3.3% = 소득세 3% + 지방소득세(소득세의 10%), 각각 10원 아래는 버림
     var incomeTax = wh ? Math.floor(byeong * 3 / 100 / 10) * 10 : 0;

@@ -825,3 +825,9 @@ select { max-width: 100%; }
 .team-picker .team-none { color: var(--sub); }
 .team-note { margin: 0; max-width: 360px; }
 .team-pill { display: inline-block; margin-left: 4px; padding: 1px 8px; border-radius: 10px; background: #FBF1DC; color: #6A4A12; font-size: 12px; font-weight: 600; vertical-align: 2px; }
+
+/* 일회성 정산 › 일하는 방식 */
+.takeover-row { display: flex; gap: 8px; align-items: center; max-width: 320px; }
+.takeover-row input { flex: 1; min-width: 0; }
+.takeover-row select { width: 72px; height: 44px; padding: 0 8px; border: 1px solid var(--field); border-radius: 10px; background: #fff; }
+[data-method-show][hidden] { display: none !important; }

@@ -290,6 +290,18 @@ function migrate(PDO $pdo)
         $pdo->exec('CREATE INDEX ' . ($sqlite ? 'IF NOT EXISTS ' : '') . 'idx_onetime_date ON onetime_jobs (work_date)');
         $pdo->prepare("UPDATE settings SET v = '19' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 20) {
+        // 20: 일회성 정산의 일하는 방식(수수료 방식 · 인수 방식)과 인수 때 회사 몫(금액 또는 비율)
+        $cols = $sqlite ? array_column($pdo->query('PRAGMA table_info(onetime_jobs)')->fetchAll(PDO::FETCH_ASSOC), 'name')
+            : $pdo->query('SHOW COLUMNS FROM onetime_jobs')->fetchAll(PDO::FETCH_COLUMN);
+        $add = array('method' => "VARCHAR(12) NOT NULL DEFAULT 'commission'", 'takeover_unit' => "VARCHAR(4) NOT NULL DEFAULT 'won'", 'takeover_value' => 'INT NOT NULL DEFAULT 0');
+        foreach ($add as $col => $type) {
+            if (!in_array($col, $cols, true)) {
+                $pdo->exec('ALTER TABLE onetime_jobs ADD COLUMN ' . $col . ' ' . $type);
+            }
+        }
+        $pdo->prepare("UPDATE settings SET v = '20' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

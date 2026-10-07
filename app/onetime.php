@@ -6,6 +6,34 @@
  */
 
 const ONETIME_FILTERS = array('month' => '월별', 'pending' => '정산 전 모두');
+// 일하는 방식: 수수료 방식(회사가 10 · 20% 수수료), 인수 방식(청소 담당이 일을 넘겨받고, 회사 몫은 관리자가 금액 또는 비율로 정함)
+const ONETIME_METHODS = array('commission' => '수수료 방식', 'takeover' => '인수 방식');
+const ONETIME_RATES = array(10, 20);
+const ONETIME_UNITS = array('won' => '원', 'rate' => '%');
+// 인수 방식이면 회사 몫을 대표파트너 · 운영파트너가 이 비율로 나눕니다(대표 50 : 운영 50).
+const ONETIME_TAKEOVER_GAP = 50;
+
+/** 일 하나의 금액 계산(방식에 따라) */
+function onetime_calc($job)
+{
+    $gap = (int) $job['gap_rate'];
+    $wh = (int) $job['withholding'];
+    if (($job['method'] ?? 'commission') === 'takeover') {
+        return ($job['takeover_unit'] ?? 'won') === 'rate'
+            ? contract_calc($job['fee'], (int) $job['invoice'], (int) $job['takeover_value'], $gap, $wh)
+            : contract_calc($job['fee'], (int) $job['invoice'], 0, $gap, $wh, (int) $job['takeover_value']);
+    }
+    return contract_calc($job['fee'], (int) $job['invoice'], (int) $job['contract_rate'], $gap, $wh);
+}
+
+/** 방식 한 줄: 수수료 20% / 인수 · 회사 몫 50,000원 / 인수 · 회사 몫 15% */
+function onetime_method_label($job)
+{
+    if (($job['method'] ?? 'commission') === 'takeover') {
+        return '인수 · 회사 몫 ' . (($job['takeover_unit'] ?? 'won') === 'rate' ? (int) $job['takeover_value'] . '%' : won($job['takeover_value']));
+    }
+    return '수수료 ' . (int) $job['contract_rate'] . '%';
+}
 
 function find_onetime($id)
 {
@@ -20,7 +48,7 @@ function valid_day($d)
 /** 저장할 나눈 금액(조건 → contract_calc) */
 function onetime_amounts($job)
 {
-    $c = contract_calc($job['fee'], (int) $job['invoice'], $job['contract_rate'], $job['gap_rate'], (int) $job['withholding']);
+    $c = onetime_calc($job);
     return array(
         'tax' => $c['tax'], 'contract_amount' => $c['contract_amount'], 'byeong_amount' => $c['byeong_amount'],
         'withholding_amount' => $c['withholding_amount'], 'byeong_pay' => $c['byeong_pay'], 'gap_amount' => $c['gap_amount'], 'eul_amount' => $c['eul_amount'],
@@ -30,8 +58,8 @@ function onetime_amounts($job)
 /** 화면에 쓸 한 줄: 저장된 일 + 계산 세부(소득세 · 지방세 · 비율) */
 function onetime_row($job)
 {
-    $c = contract_calc($job['fee'], (int) $job['invoice'], $job['contract_rate'], $job['gap_rate'], (int) $job['withholding']);
-    return array_merge($c, $job, array('byeong_rate' => 100 - (int) $job['contract_rate'], 'income_tax' => $c['income_tax'], 'local_tax' => $c['local_tax']));
+    $c = onetime_calc($job);
+    return array_merge($c, $job, array('rate_now' => $c['contract_rate'], 'byeong_rate' => $c['byeong_rate'], 'income_tax' => $c['income_tax'], 'local_tax' => $c['local_tax']));
 }
 
 /** 그 달(작업일 기준)의 일 / 정산 전인 일 전부 */

@@ -27,7 +27,8 @@ function admin_onetime_form($id = null)
     }
     $form = $job ?: array(
         // 일회성은 보통 세금계산서를 발행하지 않아요(원하면 ‘발행’을 고름).
-        'name' => '', 'client' => '', 'work_date' => date('Y-m-d'), 'fee' => '', 'invoice' => 0, 'contract_rate' => 20, 'gap_rate' => CONTRACT_GAP_DEFAULT,
+        'name' => '', 'client' => '', 'work_date' => date('Y-m-d'), 'fee' => '', 'invoice' => 0, 'contract_rate' => 20,
+        'method' => 'commission', 'takeover_unit' => 'won', 'takeover_value' => '', 'gap_rate' => CONTRACT_GAP_DEFAULT,
         'withholding' => 1, 'gap_partner_id' => null, 'eul_partner_id' => null, 'byeong_partner_id' => null,
         'gap_name' => gc('name'), 'eul_name' => '', 'byeong_name' => '', 'memo' => '', 'status' => 'pending',
     );
@@ -47,6 +48,9 @@ function admin_onetime_form($id = null)
             'fee' => input('fee') === '' ? '' : (int) preg_replace('/[^0-9]/', '', input('fee')),
             'invoice' => input('invoice') === '0' ? 0 : 1,
             'contract_rate' => input_int('contract_rate'),
+            'method' => input('method') === 'takeover' ? 'takeover' : 'commission',
+            'takeover_unit' => input('takeover_unit') === 'rate' ? 'rate' : 'won',
+            'takeover_value' => input('takeover_value') === '' ? '' : (int) preg_replace('/[^0-9]/', '', input('takeover_value')),
             'gap_rate' => input('gap_rate') === '' ? -1 : input_int('gap_rate', -1),
             'withholding' => input('withholding') === '0' ? 0 : 1,
             'gap_name' => str_cut(trim(input('gap_name')), 60, ''),
@@ -63,8 +67,21 @@ function admin_onetime_form($id = null)
         if ($form['fee'] === '' || (int) $form['fee'] <= 0) {
             $errors[] = '청소비용을 적어 주세요.';
         }
-        if (!in_array($form['contract_rate'], CONTRACT_RATES, true)) {
-            $errors[] = '도급 비율을 ' . implode('% · ', CONTRACT_RATES) . '% 중에서 골라 주세요.';
+        if ($form['method'] === 'commission' && !in_array($form['contract_rate'], ONETIME_RATES, true)) {
+            $errors[] = '수수료를 ' . implode('% · ', ONETIME_RATES) . '% 중에서 골라 주세요.';
+        }
+        if ($form['method'] === 'takeover') {
+            $v = (int) $form['takeover_value'];
+            if ($form['takeover_value'] === '' || $v <= 0) {
+                $errors[] = '인수 방식은 회사 몫(대표 · 운영)을 ' . ($form['takeover_unit'] === 'rate' ? '비율(%)' : '금액(원)') . '로 적어 주세요.';
+            } elseif ($form['takeover_unit'] === 'rate' && $v >= 100) {
+                $errors[] = '회사 몫 비율은 1~99% 사이로 적어 주세요.';
+            } elseif ($form['takeover_unit'] === 'won' && $form['fee'] !== '' && $v > (int) $form['fee']) {
+                $errors[] = '회사 몫 금액이 청소비용보다 커요.';
+            }
+        }
+        if ($form['method'] === 'takeover') {
+            $form['gap_rate'] = ONETIME_TAKEOVER_GAP;
         }
         if ($form['gap_rate'] < 0 || $form['gap_rate'] > 100) {
             $errors[] = '대표파트너 비율은 0~100% 사이로 정해 주세요.';
@@ -76,8 +93,17 @@ function admin_onetime_form($id = null)
                 $note = $created ? ' 인력 배치의 사람을 청소 담당 파트너로 등록했어요. 지급 계좌는 정기청소 정산 › 파트너 · 계좌에서 넣어 주세요.' : '';
             }
             $data = array_intersect_key($form, array_flip(array('name', 'client', 'work_date', 'fee', 'invoice', 'contract_rate', 'gap_rate', 'withholding',
+                'method', 'takeover_unit', 'takeover_value',
                 'gap_partner_id', 'eul_partner_id', 'byeong_partner_id', 'gap_name', 'eul_name', 'byeong_name', 'memo')));
             $data['fee'] = (int) $data['fee'];
+            $data['takeover_value'] = $data['method'] === 'takeover' ? (int) $data['takeover_value'] : 0;
+            if ($data['method'] === 'takeover') {
+                $data['gap_rate'] = ONETIME_TAKEOVER_GAP; // 인수 방식: 대표 · 운영 50:50
+            }
+            // 인수 방식은 회사 몫 비율을 계산해 contract_rate 에도 남겨 둡니다(목록 · 합계에서 씀).
+            if ($data['method'] === 'takeover') {
+                $data['contract_rate'] = onetime_calc($data)['contract_rate'];
+            }
             $data += onetime_amounts($data);
             if (!$data['invoice']) {
                 $data['step_invoiced'] = null;
