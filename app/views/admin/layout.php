@@ -44,7 +44,22 @@ $menu = $cleaning ? array(
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@700&display=swap">
-<link rel="stylesheet" href="/assets/admin.css?v=<?= @filemtime(PUBLIC_DIR . '/assets/admin.css') ?>">
+<link rel="stylesheet" href="/assets/admin.css?v=<?= @filemtime(PUBLIC_DIR . '/assets/admin.css') ?>-<?= @filesize(PUBLIC_DIR . '/assets/admin.css') ?>">
+<?php /* 안전장치: 배포 중(파일이 반쯤 올라간 순간)이나 예전 파일이 남아 있어도 휴대폰에서 기본 틀은 유지되게 핵심 틀만 CSS 파일 뒤에 직접 넣어 둡니다(뒤에 있어야 반쯤 올라간 파일이 덮어쓰지 못함). 자세한 모양은 admin.css */ ?>
+<style>
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.admin-shell{display:flex;min-height:100vh}.admin-main{flex:1;min-width:0}
+@media (max-width:860px){
+.admin-shell{flex-direction:column}
+.sidebar{width:100%;height:auto;position:static;padding:12px;gap:8px;border-right:0;border-bottom:1px solid #E3DED3}
+.sidebar-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;overflow:visible}
+.sidebar-nav a{flex-direction:column;justify-content:center;gap:3px;height:auto;min-height:56px;padding:7px 2px;font-size:12px;line-height:1.25;text-align:center;word-break:keep-all}
+.sidebar-foot{flex-direction:row;justify-content:space-between;margin-top:0}
+.admin-main{padding:24px 16px 48px;gap:20px}
+.grid-2,.grid-3{grid-template-columns:1fr}
+select,input,textarea{max-width:100%}
+}
+</style>
 </head>
 <body class="admin">
 <a class="skip-link" href="#main">본문 바로가기</a>
