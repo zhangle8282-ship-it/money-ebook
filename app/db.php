@@ -351,6 +351,20 @@ function migrate(PDO $pdo)
         }
         $pdo->prepare("UPDATE settings SET v = '25' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 26) {
+        // 26: 관리자 권한(all: 업무 + 홈페이지 관리, work: 업무만). 그린청소의 ‘admin’은 업무만
+        //     (다른 전체 권한 관리자, 예: admin82 가 있을 때만 — 아무도 홈페이지 관리를 못 하게 되지 않도록)
+        $cols = $sqlite ? array_column($pdo->query('PRAGMA table_info(admins)')->fetchAll(PDO::FETCH_ASSOC), 'name')
+            : $pdo->query('SHOW COLUMNS FROM admins')->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('access', $cols, true)) {
+            $pdo->exec("ALTER TABLE admins ADD COLUMN access VARCHAR(12) NOT NULL DEFAULT 'all'");
+        }
+        if (defined('SITE_MODE') && SITE_MODE === 'cleaning'
+            && (int) $pdo->query("SELECT COUNT(*) FROM admins WHERE LOWER(username) <> 'admin' AND access = 'all'")->fetchColumn() > 0) {
+            $pdo->exec("UPDATE admins SET access = 'work' WHERE LOWER(username) = 'admin'");
+        }
+        $pdo->prepare("UPDATE settings SET v = '26' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

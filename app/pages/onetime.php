@@ -18,6 +18,31 @@ function admin_onetime_list()
     ));
 }
 
+/** 청소 목록: 등록한 일회성 청소 전부(찾기 · 상태로 거르기, 바로 지우기) */
+function admin_onetime_jobs()
+{
+    require_admin();
+    $q = str_cut(trim(input('q')), 40, '');
+    $status = in_array(input('status'), array('pending', 'done'), true) ? input('status') : '';
+    $where = array();
+    $params = array();
+    if ($q !== '') {
+        $like = worker_like($q);
+        $where[] = "(j.name LIKE ? ESCAPE '!' OR j.client LIKE ? ESCAPE '!' OR j.byeong_name LIKE ? ESCAPE '!' OR p.name LIKE ? ESCAPE '!')";
+        array_push($params, $like, $like, $like, $like);
+    }
+    if ($status !== '') {
+        $where[] = $status === 'done' ? "j.status = 'done'" : "j.status <> 'done'";
+    }
+    $rows = q_all('SELECT j.* FROM onetime_jobs j LEFT JOIN partners p ON p.id = j.byeong_partner_id'
+        . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY j.work_date DESC, j.id DESC', $params);
+    render_admin('onetime_jobs', array(
+        'title' => '일회성 정산 · 청소 목록', 'nav' => 'onetime',
+        'rows' => array_map('onetime_row', $rows), 'q' => $q, 'status' => $status,
+        'total' => (int) q_value('SELECT COUNT(*) FROM onetime_jobs'),
+    ));
+}
+
 function admin_onetime_form($id = null)
 {
     require_admin();
@@ -150,21 +175,23 @@ function admin_onetime_settle($id)
     redirect($back);
 }
 
+/** 일 지우기(청소 목록 · 고치기 화면). 정산 완료한 일은 청소 목록의 확인 창에서 알린 뒤에만(with_done=1) 지움 */
 function admin_onetime_delete($id)
 {
     require_admin();
-    require_csrf('/admin/onetime');
+    $back = safe_back(input('back'), '');
+    require_csrf($back !== '' ? $back : '/admin/onetime');
     $job = find_onetime($id);
     if (!$job) {
         not_found();
     }
-    if ($job['status'] === 'done') {
+    if ($job['status'] === 'done' && input('with_done') !== '1') {
         flash('정산 완료한 일은 지울 수 없어요. 먼저 ‘되돌리기’를 눌러 주세요.', 'error');
         redirect('/admin/onetime/' . (int) $job['id'] . '/edit');
     }
     q('DELETE FROM onetime_jobs WHERE id = ?', array((int) $job['id']));
-    flash('‘' . $job['name'] . '’을(를) 지웠어요.');
-    redirect('/admin/onetime?month=' . substr($job['work_date'], 0, 7));
+    flash('‘' . $job['name'] . '’을(를) 지웠어요.' . ($job['status'] === 'done' ? ' 정산 완료 기록도 함께 지웠어요.' : ''));
+    redirect($back !== '' && strpos($back, '/admin/onetime/' . (int) $job['id'] . '/') !== 0 ? $back : '/admin/onetime?month=' . substr($job['work_date'], 0, 7));
 }
 
 /** 일회성 정산 › 파트너 역할(정기청소 정산과 따로) */

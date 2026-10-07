@@ -22,6 +22,26 @@ $pending = $sum['count'] - $sum['done'];
   <a class="role-strip-edit" href="/admin/contracts/roles">역할 고치기 ›</a>
 </section>
 
+<?php if ($rows): $back = '/admin/contracts' . ($month !== date('Y-m') ? '?month=' . $month : '');
+    $unassigned = count(array_filter($rows, function ($r) { return !$r['contract']['byeong_partner_id']; })); ?>
+<section class="card assign-board" id="assign" aria-labelledby="assign-title">
+  <div class="assign-board-head">
+    <h2 id="assign-title">청소 담당 배치</h2>
+    <span class="sub"><?= e(month_label($month)) ?> 청소 <?= count($rows) ?>곳<?= $unassigned ? ' · <b class="warn-text">배치 안 됨 ' . $unassigned . '곳</b>' : ' · 모두 배치됨' ?></span>
+    <a class="assign-board-link" href="/admin/workers">인력 배치 보기 ›</a>
+  </div>
+  <p class="sub">사람을 고르고 <b>배치</b>를 누르면 바로 바뀌어요. 청소 담당은 청소마다 정해지고, 다음 달 정산에도 그대로 이어져요.</p>
+  <ul class="assign-rows">
+<?php foreach ($rows as $r): $c = $r['contract']; ?>
+    <li class="assign-row<?= $c['byeong_partner_id'] ? '' : ' is-empty' ?>">
+      <div class="assign-what"><a class="strong" href="/admin/contracts/<?= (int) $c['id'] ?>/edit"><?= e($c['name']) ?></a><span class="sub"><?= $c['client'] !== '' ? e($c['client']) . ' · ' : '' ?>청소 담당 실지급 <?= won($r['byeong_pay']) ?></span></div>
+      <?= view('admin/_cleaner_assign', array('c' => $c, 'back' => $back)) ?>
+    </li>
+<?php endforeach; ?>
+  </ul>
+</section>
+<?php endif; ?>
+
 <div class="toolbar month-bar">
   <div class="month-nav">
     <a class="btn btn-outline btn-sm" href="/admin/contracts?month=<?= e($prev) ?>" aria-label="이전 달">‹ <?= (int) substr($prev, 5, 2) ?>월</a>

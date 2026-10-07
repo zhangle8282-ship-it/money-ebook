@@ -598,7 +598,7 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .account-grid > section:first-child { grid-column: 1 / -1; }
 .account-grid .account-form { max-width: none; }
 .admin-list { list-style: none; margin: 0; padding: 0 24px 16px; }
-.admin-list li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.admin-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
 .admin-list li:first-child { border-top: 0; }
 .admin-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-dark); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
 .admin-who { flex: 1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
@@ -783,7 +783,26 @@ select { max-width: 100%; }
   .year-table.table-stack tr.is-empty { display: none; } /* 청소가 없는 달은 휴대폰에서 숨김 */
 }
 .contract-name-cell { min-width: 110px; word-break: keep-all; }
-.assign-cell { min-width: 200px; }
+.assign-cell { min-width: 220px; }
+.assign-cell .who { margin-bottom: 2px; }
+/* 청소 담당: 지금 누가 배치됐는지 */
+.who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.who-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px; border-radius: 14px; background: var(--work-soft); color: var(--work); font-size: 14px; font-weight: 700; white-space: nowrap; }
+.who-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.who-chip.is-typed { background: var(--seg); color: var(--body); }
+.who-empty { display: inline-flex; padding: 3px 11px; border-radius: 14px; background: var(--site-soft); color: var(--site); font-size: 14px; font-weight: 700; white-space: nowrap; }
+/* 정기청소 정산 › 청소 담당 배치 판 */
+.assign-board { display: flex; flex-direction: column; gap: 10px; }
+.assign-board-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.assign-board-head h2 { margin: 0; font-size: 18px; }
+.assign-board-link { margin-left: auto; font-size: 14px; font-weight: 600; }
+.assign-rows { list-style: none; margin: 0; padding: 0; }
+.assign-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr); gap: 8px 16px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+.assign-row .assign-what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.assign-row .assign-form { margin-top: 0; }
+.row-delete { display: block; margin-top: 6px; }
+.danger-link { color: var(--danger); }
+@media (max-width: 860px) { .assign-row { grid-template-columns: 1fr; } .assign-board-link { margin-left: 0; } }
 .assign-form { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
 .assign-form select { height: 34px; padding: 0 8px; border: 1px solid var(--field); border-radius: 8px; background: #fff; font-size: 13px; min-width: 0; flex: 1 1 140px; }
 .assign-form .btn-sm { height: 34px; }
@@ -808,6 +827,14 @@ select { max-width: 100%; }
   .sidebar-nav a.nav-work { border: 1px solid var(--work-line); }
   .sidebar-nav a.nav-site { border: 1px solid var(--site-line); }
 }
+
+/* 계정: 권한(전체 / 업무만) */
+.access-badge { display: inline-block; margin-left: 4px; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.access-all { background: var(--site-soft); color: var(--site); }
+.access-work { background: var(--work-soft); color: var(--work); }
+.admin-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-left: auto; }
+.access-form { display: flex; gap: 6px; align-items: center; }
+.access-form select { height: 34px; padding: 0 8px; border: 1px solid var(--field); border-radius: 8px; background: #fff; font-size: 13px; }
 
 /* 홈페이지 관리 › 텔레그램 알림 */
 .tg-info { margin: 0; display: grid; gap: 8px; }

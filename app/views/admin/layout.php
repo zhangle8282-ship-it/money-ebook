@@ -75,6 +75,11 @@ select,input,textarea{max-width:100%}
 <?php
 // 그린청소: 매일 쓰는 업무(견적 문의 · 정기청소 정산 · 일회성 정산 · 인력 배치, 녹색)와 홈페이지를 고치는 관리 메뉴(주황색)를 색과 제목으로 나눕니다.
 $workKeys = $cleaning ? array('inquiries', 'contracts', 'onetime', 'workers') : array();
+// ‘업무만’ 아이디는 업무 메뉴만 보여 줍니다(다른 메뉴는 주소로 열어도 막힘).
+$workOnly = $cleaning && ($admin['access'] ?? 'all') === 'work';
+if ($workOnly) {
+    $menu = array_intersect_key($menu, array_flip($workKeys));
+}
 $group = '';
 foreach ($menu as $key => $m):
     $isWork = in_array($key, $workKeys, true);
@@ -96,6 +101,8 @@ foreach ($menu as $key => $m):
     <div class="sidebar-foot">
       <a href="/" class="sidebar-back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg><?= $cleaning ? '홈페이지 보기' : '스토어로 돌아가기' ?></a>
+<?php if ($workOnly): ?>      <a href="/admin/account" class="sidebar-back"<?= ($nav ?? '') === 'account' ? ' aria-current="page"' : '' ?>>내 비밀번호 바꾸기</a>
+<?php endif; ?>
       <form method="post" action="/admin/logout"><?= csrf_field() ?><button type="submit" class="sidebar-logout"><?= e($admin['username']) ?> · 로그아웃</button></form>
       <span class="sidebar-version">버전 <?= e(app_version()) ?></span>
     </div>

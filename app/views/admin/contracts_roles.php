@@ -14,8 +14,7 @@ $descs = $onetime
 <?php if ($onetime): ?>  <a class="btn btn-outline" href="/admin/onetime">일회성 정산으로</a>
 <?php endif; ?>
 </div>
-<?php if (!$onetime): ?><?= view('admin/_contracts_tabs', array('tab' => 'roles')) ?>
-<?php endif; ?>
+<?= $onetime ? view('admin/_onetime_tabs', array('tab' => 'roles')) : view('admin/_contracts_tabs', array('tab' => 'roles')) ?>
 <div class="role-board">
 <?php foreach (CONTRACT_ROLE_SIDES as $side => $label): $list = $roles[$side]; ?>
   <section class="card role-card role-<?= $side ?>" aria-labelledby="role-<?= $side ?>">

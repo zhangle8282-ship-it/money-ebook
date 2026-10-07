@@ -50,6 +50,7 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/search$~', 'admin_search_submit'),
         // 일회성 정산
         array('GET', '~^/admin/onetime$~', 'admin_onetime_list'),
+        array('GET', '~^/admin/onetime/jobs$~', 'admin_onetime_jobs'),
         array('GET|POST', '~^/admin/onetime/new$~', 'admin_onetime_form'),
         array('GET|POST', '~^/admin/onetime/(\d+)/edit$~', 'admin_onetime_form'),
         array('POST', '~^/admin/onetime/(\d+)/settle$~', 'admin_onetime_settle'),
@@ -400,22 +401,38 @@ function admin_custom_code()
     render_admin('custom_code', array('title' => '헤드 코드', 'nav' => 'code', 'values' => $values, 'errors' => $errors));
 }
 
-/** 관리자 계정: 내 비밀번호 바꾸기 · 관리자 추가 · 다른 관리자 지우기 */
+/** 관리자 계정: 내 비밀번호 바꾸기 · 관리자 추가 · 다른 관리자 지우기 · 권한(전체 / 업무만). ‘업무만’ 관리자는 내 비밀번호만 */
 function admin_account()
 {
     $admin = require_admin();
+    $full = $admin['access'] !== 'work';
     $errors = array();
-    $created = array('username' => '');
+    $created = array('username' => '', 'access' => 'work');
     $form = input('form');
     if (is_post()) {
         $me = q_one('SELECT * FROM admins WHERE id = ?', array($admin['id']));
         if (!csrf_valid()) {
             $errors[] = '보안 확인이 만료되었어요. 다시 시도해 주세요.';
+        } elseif (!$full && in_array($form, array('create', 'delete', 'access'), true)) {
+            $errors[] = '관리자 추가 · 지우기 · 권한 바꾸기는 전체 권한 관리자만 할 수 있어요.';
+        } elseif ($form === 'access') {
+            $target = q_one('SELECT * FROM admins WHERE id = ?', array(input_int('admin_id')));
+            $access = input('access') === 'work' ? 'work' : 'all';
+            if (!$target) {
+                $errors[] = '관리자를 찾을 수 없어요.';
+            } elseif ((int) $target['id'] === (int) $admin['id']) {
+                $errors[] = '내 계정의 권한은 바꿀 수 없어요. 다른 전체 권한 관리자에게 부탁해 주세요.';
+            } else {
+                q('UPDATE admins SET access = ? WHERE id = ?', array($access, (int) $target['id']));
+                flash('‘' . $target['username'] . '’의 권한을 ‘' . ADMIN_ACCESS[$access] . '’(으)로 바꿨어요.');
+                redirect('/admin/account');
+            }
         } elseif ($form === 'create') {
             // 새 관리자 추가: 내 비밀번호를 한 번 더 확인합니다.
             $username = trim(input('new_username'));
             $password = input_raw('new_admin_password');
             $created['username'] = $username;
+            $created['access'] = input('access') === 'all' ? 'all' : 'work';
             if (!password_verify(input_raw('my_password'), $me['password_hash'])) {
                 $errors[] = '지금 내 비밀번호가 맞지 않아요.';
             } elseif (!preg_match('/^[A-Za-z0-9_.-]{3,30}$/', $username)) {
@@ -427,8 +444,8 @@ function admin_account()
             } elseif ($password !== input_raw('new_admin_password2')) {
                 $errors[] = '새 관리자 비밀번호 확인이 일치하지 않아요.';
             } else {
-                q_insert('admins', array('username' => $username, 'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'created_at' => now()));
-                flash('관리자 ‘' . $username . '’을(를) 만들었어요. 이 아이디와 비밀번호로 /admin 에 로그인할 수 있어요.');
+                q_insert('admins', array('username' => $username, 'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'access' => $created['access'], 'created_at' => now()));
+                flash('관리자 ‘' . $username . '’(' . ADMIN_ACCESS[$created['access']] . ')을(를) 만들었어요. 이 아이디와 비밀번호로 /admin 에 로그인할 수 있어요.');
                 redirect('/admin/account');
             }
         } elseif ($form === 'delete') {
@@ -462,7 +479,7 @@ function admin_account()
     }
     render_admin('cleaning_account', array(
         'title' => '계정', 'nav' => 'account', 'errors' => $errors, 'form' => $form, 'created' => $created,
-        'admins' => q_all('SELECT id, username, created_at FROM admins ORDER BY id'),
+        'admins' => q_all('SELECT id, username, access, created_at FROM admins ORDER BY id'), 'full' => $full,
     ));
 }
 

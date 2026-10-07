@@ -69,7 +69,7 @@ $fee = $form['monthly_fee'] !== '' ? number_format((int) $form['monthly_fee']) :
       <div class="field"><label for="cf-memo">메모 (선택)</label><textarea id="cf-memo" name="memo" rows="3" maxlength="1000" placeholder="예: 주 3회(월·수·금) 오전 7시"><?= e($form['memo']) ?></textarea></div>
     </section>
 <?php if ($contract): ?>
-    <p class="danger-zone"><button type="submit" form="contract-delete" class="btn btn-danger btn-sm">이 청소 지우기</button> <span class="sub">정산 완료한 달이 있으면 지울 수 없어요. 그때는 ‘끝난 월’을 정해 주세요.</span></p>
+    <p class="danger-zone"><button type="submit" form="contract-delete" class="btn btn-danger btn-sm">이 청소 지우기</button> <span class="sub">정산 완료한 달이 있으면 그 기록도 함께 지워져요. 기록을 남기려면 ‘끝난 월’을 정해 주세요.</span></p>
 <?php endif; ?>
   </div>
 
@@ -89,5 +89,6 @@ $fee = $form['monthly_fee'] !== '' ? number_format((int) $form['monthly_fee']) :
   </aside>
 </form>
 <?php if ($contract): ?>
-<form method="post" action="/admin/contracts/<?= (int) $contract['id'] ?>/delete" id="contract-delete" data-confirm="‘<?= e($contract['name']) ?>’ 청소를 지울까요? 정산 전 기록도 함께 지워져요."><?= csrf_field() ?></form>
+<?php $doneMonths = (int) q_value("SELECT COUNT(*) FROM contract_settlements WHERE contract_id = ? AND status = 'done'", array((int) $contract['id'])); ?>
+<form method="post" action="/admin/contracts/<?= (int) $contract['id'] ?>/delete" id="contract-delete" data-confirm="‘<?= e($contract['name']) ?>’ 청소를 지울까요?<?= $doneMonths ? ' 정산 완료한 ' . $doneMonths . '달 기록도 함께 지워져서 연간 합계에서도 빠져요. 기록을 남기려면 지우지 말고 ‘끝난 월’을 정해 주세요.' : ' 정산 전 기록도 함께 지워져요.' ?> 되돌릴 수 없어요."><?= csrf_field() ?><?php if ($doneMonths): ?><input type="hidden" name="with_done" value="1"><?php endif; ?></form>
 <?php endif; ?>

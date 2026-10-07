@@ -388,22 +388,25 @@ function admin_partner_delete($id)
     redirect('/admin/contracts/partners');
 }
 
+/** 청소 지우기(청소 목록 · 고치기 화면). 정산 완료한 달이 있으면 확인 창에서 그 기록도 지운다고 알린 뒤에만(with_done=1) 지움 */
 function admin_contract_delete($id)
 {
     require_admin();
-    require_csrf('/admin/contracts/list');
+    $back = safe_back(input('back'), '/admin/contracts/list');
+    require_csrf($back);
     $contract = find_contract($id);
     if (!$contract) {
         not_found();
     }
-    if ((int) q_value("SELECT COUNT(*) FROM contract_settlements WHERE contract_id = ? AND status = 'done'", array((int) $contract['id']))) {
-        flash('정산 완료한 달이 있는 청소는 지울 수 없어요. 대신 ‘끝난 월’을 정해 주세요.', 'error');
+    $done = (int) q_value("SELECT COUNT(*) FROM contract_settlements WHERE contract_id = ? AND status = 'done'", array((int) $contract['id']));
+    if ($done && input('with_done') !== '1') {
+        flash('정산 완료한 달이 있는 청소예요. 기록을 남기려면 ‘끝난 월’을 정하고, 그래도 지우려면 청소 목록에서 ‘지우기’를 눌러 주세요.', 'error');
         redirect('/admin/contracts/' . (int) $contract['id'] . '/edit');
     }
     q('DELETE FROM contract_settlements WHERE contract_id = ?', array((int) $contract['id']));
     q('DELETE FROM contracts WHERE id = ?', array((int) $contract['id']));
-    flash('‘' . $contract['name'] . '’ 청소를 지웠어요.');
-    redirect('/admin/contracts/list');
+    flash('‘' . $contract['name'] . '’ 청소를 지웠어요.' . ($done ? ' 정산 완료한 ' . $done . '달 기록도 함께 지웠어요.' : ''));
+    redirect(strpos($back, '/admin/contracts/' . (int) $contract['id'] . '/') === 0 ? '/admin/contracts/list' : $back);
 }
 
 /** 청소 목록에서 바로 청소 담당 배치(파트너 또는 인력 배치 사람, 비우기) */

@@ -232,6 +232,38 @@ function worker_release($worker)
     return $freed;
 }
 
+/**
+ * 청소 담당 고르기 목록(정기청소 정산 › 청소 담당 배치 · 청소 목록).
+ * 인력 배치 사람은 한 줄씩(이미 청소 담당 파트너로 이어졌으면 그 파트너 번호, 아니면 'w:번호'),
+ * 인력 배치에 없는 청소 담당 파트너는 따로. 반환: ['workers' => [[값, 글자]…], 'others' => [[값, 글자]…]]
+ */
+function cleaner_choices()
+{
+    static $out = null;
+    if ($out !== null) {
+        return $out;
+    }
+    $linked = array();
+    $others = array();
+    foreach (partners_by_role()['byeong'] as $p) {
+        if (!empty($p['worker_id'])) {
+            $linked[(int) $p['worker_id']] = (int) $p['id'];
+        } else {
+            $others[] = array((string) (int) $p['id'], $p['name'] . (partner_account($p) === '' ? ' · 계좌 없음' : ''));
+        }
+    }
+    $jobs = worker_assignments();
+    $out = array('workers' => array(), 'others' => $others);
+    foreach (q_all('SELECT * FROM workers ORDER BY name, id') as $w) {
+        $wid = (int) $w['id'];
+        $team = worker_team_label($w);
+        $n = count($jobs[$wid] ?? array());
+        $out['workers'][] = array(isset($linked[$wid]) ? (string) $linked[$wid] : 'w:' . $wid,
+            $w['name'] . ($team !== '' ? ' (' . $team . ')' : '') . ' · ' . str_cut($w['regions'], 18) . ($n ? ' · 맡은 청소 ' . $n . '곳' : ''));
+    }
+    return $out;
+}
+
 /** 배치할 수 있는 청소(끝나지 않은 것): 이름순 */
 function contracts_open()
 {

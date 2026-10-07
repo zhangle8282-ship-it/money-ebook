@@ -10,6 +10,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
   </div>
   <a class="btn btn-primary" href="/admin/onetime/new">+ 새 일회성 정산</a>
 </div>
+<?= view('admin/_onetime_tabs', array('tab' => 'settle')) ?>
 
 <section class="role-strip" aria-label="파트너가 하는 일">
 <?php foreach (CONTRACT_ROLE_SIDES as $side => $label): ?>

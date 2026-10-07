@@ -125,6 +125,18 @@ function require_user($next = null)
 
 /* ───────── 관리자 ───────── */
 
+// 그린청소 관리자 권한: all(업무 + 홈페이지 관리) | work(업무만: 견적 문의 · 정기청소 정산 · 일회성 정산 · 인력 배치)
+const ADMIN_ACCESS = array('all' => '전체 (업무 + 홈페이지 관리)', 'work' => '업무만');
+
+/** 이 관리자가 이 주소를 열 수 있는지(‘업무만’은 업무 메뉴 · 내 비밀번호 · 로그아웃만) */
+function admin_can_open($admin, $path)
+{
+    if (!$admin || ($admin['access'] ?? 'all') !== 'work' || !defined('SITE_MODE') || SITE_MODE !== 'cleaning') {
+        return true;
+    }
+    return (bool) preg_match('~^/admin(?:/(?:inquiries|contracts|onetime|workers)(?:/.*)?|/account|/logout)?$~', $path);
+}
+
 function current_admin()
 {
     static $admin = false;
@@ -133,10 +145,10 @@ function current_admin()
     }
     $admin = null;
     if (has_session() && !empty($_SESSION['admin'])) {
-        $row = q_one('SELECT id, username, password_hash FROM admins WHERE id = ?', array((int) $_SESSION['admin']['id']));
+        $row = q_one('SELECT id, username, password_hash, access FROM admins WHERE id = ?', array((int) $_SESSION['admin']['id']));
         // 비밀번호가 바뀌면 기존 관리자 세션은 모두 풀립니다.
         if ($row && hash_equals(admin_fingerprint($row), (string) $_SESSION['admin']['fp'])) {
-            $admin = array('id' => (int) $row['id'], 'username' => $row['username']);
+            $admin = array('id' => (int) $row['id'], 'username' => $row['username'], 'access' => $row['access'] === 'work' ? 'work' : 'all');
         } else {
             unset($_SESSION['admin']);
         }
@@ -168,6 +180,10 @@ function require_admin()
     $admin = current_admin();
     if (!$admin) {
         redirect('/admin/login?next=' . rawurlencode($_SERVER['REQUEST_URI'] ?? '/admin'));
+    }
+    if (!admin_can_open($admin, (string) parse_url($_SERVER['REQUEST_URI'] ?? '/admin', PHP_URL_PATH))) {
+        flash('이 아이디는 업무 메뉴(견적 문의 · 정기청소 정산 · 일회성 정산 · 인력 배치)만 쓸 수 있어요. 홈페이지 관리는 전체 권한 관리자에게 부탁해 주세요.', 'error');
+        redirect('/admin/inquiries');
     }
     return $admin;
 }
