@@ -23,12 +23,12 @@ function worker_method_value($keys)
     $keys = array_values(array_intersect(array_keys(WORKER_METHODS), (array) $keys));
     return count($keys) === count(WORKER_METHODS) ? WORKER_BOTH : ($keys[0] ?? '');
 }
-// 고를 수 있는 지역(음성군 9개 읍 · 면, 진천군 7개 읍 · 면, 충북혁신도시, 인근 충주 · 괴산). 이 밖의 지역은 ‘기타 지역’ 칸에 적습니다.
+// 고를 수 있는 지역(음성군 9개 읍 · 면, 진천군 7개 읍 · 면, 충북혁신도시, 인근 충주 · 괴산 · 청주 오창 · 경기 안성). 이 밖의 지역은 ‘기타 지역’ 칸에 적습니다.
 const WORKER_REGIONS = array(
     '음성군' => array('음성읍', '금왕읍', '대소면', '삼성면', '맹동면', '원남면', '생극면', '감곡면', '소이면'),
     '진천군' => array('진천읍', '덕산읍', '이월면', '광혜원면', '문백면', '백곡면', '초평면'),
     '혁신도시' => array('충북혁신도시'),
-    '인근 시 · 군' => array('충주', '괴산'),
+    '인근 시 · 군' => array('충주', '괴산', '청주 오창', '경기 안성'),
 );
 const WORKER_REGIONS_MAX = 40;
 // 구성(혼자인지, 누구와 함께 일하는지). 기타는 관계를 직접 적습니다.
