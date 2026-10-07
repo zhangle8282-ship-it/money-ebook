@@ -69,6 +69,7 @@ function telegram_call($token, $method, $params = array())
         'result' => is_array($data) ? ($data['result'] ?? null) : null,
         'code' => $code,
         'description' => is_array($data) ? (string) ($data['description'] ?? '') : '',
+        'parameters' => is_array($data) && isset($data['parameters']) && is_array($data['parameters']) ? $data['parameters'] : array(),
         'net' => $net,
     );
 }
@@ -109,51 +110,148 @@ function telegram_error_text($r)
     return '텔레그램이 요청을 받지 않았어요(' . $r['code'] . ($r['description'] !== '' ? ' · ' . str_cut($r['description'], 80) : '') . ').';
 }
 
+/** 대화방 이름(개인: 이름, 단체방: 방 이름) */
+function telegram_chat_title($chat)
+{
+    $title = $chat['title'] ?? trim(($chat['first_name'] ?? '') . ' ' . ($chat['last_name'] ?? ''));
+    if ($title === '' && isset($chat['username'])) {
+        $title = '@' . $chat['username'];
+    }
+    return $title !== '' ? $title : '대화방';
+}
+
 /**
- * 봇이 받은 메시지에서 가장 최근 대화방 찾기(개인 대화 · 단체방). 반환: [대화방 번호, 이름] 또는 null
+ * 봇에게 말을 걸었거나 봇을 초대한 대화방들(최근 순). 봇을 차단 · 내보낸 곳은 뺍니다.
+ * 반환: [[['id', 'title', 'type']…], 텔레그램 결과]
  */
-function telegram_find_chat($token)
+function telegram_updates_chats($token)
 {
     $r = telegram_call($token, 'getUpdates', array('limit' => 100, 'allowed_updates' => array('message', 'my_chat_member', 'channel_post')));
     if (!$r['ok']) {
-        return array(null, $r);
+        return array(array(), $r);
     }
-    $found = null;
+    $found = array();
     foreach ((array) $r['result'] as $u) {
         foreach (array('message', 'my_chat_member', 'channel_post', 'edited_message') as $k) {
-            if (isset($u[$k]['chat']['id'])) {
-                $found = $u[$k]['chat'];
+            if (!isset($u[$k]['chat']['id'])) {
+                continue;
+            }
+            $chat = $u[$k]['chat'];
+            $id = (string) $chat['id'];
+            unset($found[$id]); // 다시 넣어 최근 순서로
+            $status = $k === 'my_chat_member' ? (string) ($u[$k]['new_chat_member']['status'] ?? '') : '';
+            if (!in_array($status, array('left', 'kicked'), true)) {
+                $found[$id] = array('id' => $id, 'title' => str_cut(telegram_chat_title($chat), 60, ''), 'type' => (string) ($chat['type'] ?? 'private'));
             }
         }
     }
-    if (!$found) {
-        return array(null, $r);
-    }
-    $title = $found['title'] ?? trim(($found['first_name'] ?? '') . ' ' . ($found['last_name'] ?? ''));
-    if ($title === '' && isset($found['username'])) {
-        $title = '@' . $found['username'];
-    }
-    return array(array((string) $found['id'], $title !== '' ? $title : '대화방'), $r);
+    return array(array_reverse(array_values($found)), $r);
 }
 
+/** 가장 최근 대화방 하나(처음 연결할 때). 반환: [[번호, 이름] 또는 null, 결과] */
+function telegram_find_chat($token)
+{
+    list($chats, $r) = telegram_updates_chats($token);
+    return array($chats ? array($chats[0]['id'], $chats[0]['title']) : null, $r);
+}
+
+/** 받는 대화방 목록(여러 곳). 예전에 한 곳만 저장하던 값(gc_tg_chat)도 읽어 옵니다. */
+function telegram_chats()
+{
+    $list = json_decode(gc('tg_chats'), true);
+    if (!is_array($list)) {
+        $list = gc('tg_chat') !== '' ? array(array('id' => gc('tg_chat'), 'title' => gc('tg_chat_title') !== '' ? gc('tg_chat_title') : '대화방', 'type' => 'private')) : array();
+    }
+    return array_values(array_filter($list, function ($c) {
+        return is_array($c) && isset($c['id']) && (string) $c['id'] !== '';
+    }));
+}
+
+function telegram_save_chats($list)
+{
+    $list = array_values($list);
+    save_settings(array(
+        'gc_tg_chats' => json_encode($list, JSON_UNESCAPED_UNICODE),
+        'gc_tg_chat' => $list ? (string) $list[0]['id'] : '',
+        'gc_tg_chat_title' => $list ? (string) $list[0]['title'] : '',
+    ));
+}
+
+/** 한 곳에 보내기. 단체방이 큰 단체방으로 바뀌어 번호가 달라졌으면 새 번호로 한 번 더 보냄. 반환: 결과(+ migrated: 새 번호) */
+function telegram_send_one($token, $chatId, $text)
+{
+    $r = telegram_call($token, 'sendMessage', array('chat_id' => $chatId, 'text' => $text, 'disable_web_page_preview' => true));
+    if (!$r['ok'] && !empty($r['parameters']['migrate_to_chat_id'])) {
+        $newId = (string) $r['parameters']['migrate_to_chat_id'];
+        $r = telegram_call($token, 'sendMessage', array('chat_id' => $newId, 'text' => $text, 'disable_web_page_preview' => true));
+        $r['migrated'] = $newId;
+    }
+    return $r;
+}
+
+/**
+ * 보내기. $chat 을 주면 그곳만, 안 주면 받는 대화방 모두에.
+ * 모두에 보낼 때 반환: ['ok' => 모두 성공, 'sent' => 보낸 수, 'total' => 전체, 'failed' => [이름 => 이유], (첫 실패의 code · description)]
+ */
 function telegram_send($text, $token = null, $chat = null)
 {
     $token = $token ?? gc('tg_token');
-    $chat = $chat ?? gc('tg_chat');
-    return telegram_call($token, 'sendMessage', array('chat_id' => $chat, 'text' => $text, 'disable_web_page_preview' => true));
+    if ($chat !== null) {
+        return telegram_send_one($token, $chat, $text);
+    }
+    $list = telegram_chats();
+    $out = array('ok' => (bool) $list, 'sent' => 0, 'total' => count($list), 'failed' => array(), 'code' => 200, 'description' => '', 'net' => '');
+    $changed = false;
+    foreach ($list as $i => $c) {
+        $r = telegram_send_one($token, $c['id'], $text);
+        if (!empty($r['migrated'])) {
+            $list[$i]['id'] = $r['migrated'];
+            $changed = true;
+        }
+        if ($r['ok']) {
+            $out['sent']++;
+        } else {
+            $out['ok'] = false;
+            $out['failed'][$c['title']] = telegram_error_text($r);
+            if ($out['code'] === 200) {
+                $out['code'] = $r['code'];
+                $out['description'] = $r['description'];
+                $out['net'] = $r['net'];
+            }
+        }
+    }
+    if ($changed) {
+        telegram_save_chats($list);
+    }
+    return $out;
 }
 
 function telegram_ready()
 {
-    return gc('tg_on') === '1' && telegram_token_ok(gc('tg_token')) && gc('tg_chat') !== '';
+    return gc('tg_on') === '1' && telegram_token_ok(gc('tg_token')) && telegram_chats();
+}
+
+/** 찾아 둔 ‘받는 사람 후보’(봇에게 말을 걸었지만 아직 추가하지 않은 곳) */
+function telegram_candidates()
+{
+    $c = json_decode(gc('tg_candidates'), true);
+    return is_array($c) && isset($c['list']) && is_array($c['list']) ? $c : array('at' => null, 'list' => array());
 }
 
 /** 마지막으로 보낸 결과를 남겨 관리자 화면에 보여 줌 */
 function telegram_remember($r, $what)
 {
-    save_settings(array('gc_tg_last' => json_encode(array(
-        'at' => now(), 'what' => $what, 'ok' => $r['ok'], 'error' => $r['ok'] ? '' : telegram_error_text($r),
-    ), JSON_UNESCAPED_UNICODE)));
+    if (isset($r['total'])) {
+        // 여러 곳에 보냈을 때: 못 보낸 곳만 이름과 이유
+        $error = '';
+        foreach ($r['failed'] as $title => $why) {
+            $error .= ($error !== '' ? ' / ' : '') . $title . ': ' . $why;
+        }
+        $what .= ' (' . $r['sent'] . '/' . $r['total'] . '곳)';
+    } else {
+        $error = $r['ok'] ? '' : telegram_error_text($r);
+    }
+    save_settings(array('gc_tg_last' => json_encode(array('at' => now(), 'what' => $what, 'ok' => $r['ok'], 'error' => $error), JSON_UNESCAPED_UNICODE)));
 }
 
 function telegram_last()

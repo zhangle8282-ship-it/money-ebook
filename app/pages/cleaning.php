@@ -549,20 +549,95 @@ function admin_telegram_action($action)
         if (!$chat) {
             $fail($r['ok'] ? '봇(@' . $bot . ')은 확인했어요. 이제 텔레그램에서 이 봇에게 아무 말이나 한 번 보내고(단체방이면 봇을 초대한 뒤 한마디) 다시 ‘연결 확인’을 눌러 주세요.' : telegram_error_text($r));
         }
-        save_settings(array('gc_tg_chat' => $chat[0], 'gc_tg_chat_title' => str_cut($chat[1], 60, ''), 'gc_tg_on' => '1'));
+        // 받는 대화방 목록에 더함(이미 있으면 그대로) — 다른 사람 · 단체방은 ‘받는 사람 찾기’로 더 추가
+        $list = telegram_chats();
+        if (!in_array($chat[0], array_column($list, 'id'), true)) {
+            $list[] = array('id' => $chat[0], 'title' => str_cut($chat[1], 60, ''), 'type' => 'private');
+            telegram_save_chats($list);
+        }
+        save_settings(array('gc_tg_on' => '1'));
         $sent = telegram_send('✅ ' . gc('name') . ' 홈페이지와 연결됐어요. 새 견적 문의가 들어오면 여기로 바로 알려 드릴게요.', $token, $chat[0]);
         telegram_remember($sent, '연결 확인');
         flash($sent['ok'] ? '텔레그램 ‘' . $chat[1] . '’ 대화방과 연결했어요. 시험 메시지가 도착했는지 확인해 보세요.' : telegram_error_text($sent), $sent['ok'] ? 'ok' : 'error');
         redirect($back);
     }
     if ($action === 'tg_test') {
-        if (!telegram_token_ok(gc('tg_token')) || gc('tg_chat') === '') {
+        if (!telegram_token_ok(gc('tg_token')) || !telegram_chats()) {
             flash('먼저 텔레그램을 연결해 주세요.', 'error');
             redirect($back);
         }
         $sent = telegram_send('🔔 알림 시험이에요. 새 견적 문의가 들어오면 이렇게 알려 드려요.' . "\n" . site_base_url() . '/admin/inquiries');
         telegram_remember($sent, '시험 메시지');
-        flash($sent['ok'] ? '시험 메시지를 보냈어요. 텔레그램을 확인해 보세요.' : telegram_error_text($sent), $sent['ok'] ? 'ok' : 'error');
+        if ($sent['ok']) {
+            flash('받는 대화방 ' . $sent['total'] . '곳에 시험 메시지를 보냈어요. 텔레그램을 확인해 보세요.');
+        } else {
+            $why = array();
+            foreach ($sent['failed'] as $title => $reason) {
+                $why[] = $title . ': ' . $reason;
+            }
+            flash($sent['sent'] . '/' . $sent['total'] . '곳에 보냈어요. 못 보낸 곳 — ' . implode(' / ', $why), 'error');
+        }
+        redirect($back);
+    }
+    if ($action === 'tg_find') {
+        // 봇에게 말을 걸었거나 봇을 초대한 대화방 중 아직 받는 곳으로 추가하지 않은 곳 찾기
+        if (!telegram_token_ok(gc('tg_token'))) {
+            flash('먼저 봇 토큰을 넣고 연결해 주세요.', 'error');
+            redirect($back);
+        }
+        list($chats, $r) = telegram_updates_chats(gc('tg_token'));
+        if (!$r['ok']) {
+            flash(telegram_error_text($r), 'error');
+            redirect($back);
+        }
+        $have = array_column(telegram_chats(), 'id');
+        $new = array_values(array_filter($chats, function ($c) use ($have) {
+            return !in_array($c['id'], $have, true);
+        }));
+        save_settings(array('gc_tg_candidates' => json_encode(array('at' => now(), 'list' => $new), JSON_UNESCAPED_UNICODE)));
+        flash($new ? count($new) . '곳을 찾았어요. 텔레그램 알림 칸에서 ‘추가’를 눌러 주세요.' : '새로 찾은 곳이 없어요. 받을 분이 텔레그램에서 봇(@' . gc('tg_bot') . ')을 찾아 ‘시작’을 누른 뒤 다시 찾아 주세요. 단체방은 봇을 초대하고 /start 를 보내 주세요.', $new ? 'ok' : 'error');
+        redirect($back);
+    }
+    if ($action === 'tg_add') {
+        $id = input('chat_id');
+        $cand = telegram_candidates();
+        $pick = null;
+        foreach ($cand['list'] as $c) {
+            if ((string) $c['id'] === $id) {
+                $pick = $c;
+            }
+        }
+        if (!$pick) {
+            flash('그 대화방을 찾지 못했어요. ‘받는 사람 찾기’를 다시 눌러 주세요.', 'error');
+            redirect($back);
+        }
+        $list = telegram_chats();
+        $list[] = $pick;
+        telegram_save_chats($list);
+        save_settings(array('gc_tg_candidates' => json_encode(array('at' => $cand['at'], 'list' => array_values(array_filter($cand['list'], function ($c) use ($id) {
+            return (string) $c['id'] !== $id;
+        }))), JSON_UNESCAPED_UNICODE)));
+        $sent = telegram_send('✅ ' . gc('name') . ' 견적 문의 알림을 이 대화방에서도 받아요.', gc('tg_token'), $pick['id']);
+        if (!empty($sent['migrated'])) {
+            // 단체방이 큰 단체방으로 바뀌어 번호가 달라진 경우 새 번호로 저장
+            foreach ($list as $i => $c) {
+                if ((string) $c['id'] === (string) $pick['id']) {
+                    $list[$i]['id'] = $sent['migrated'];
+                }
+            }
+            telegram_save_chats($list);
+        }
+        flash('‘' . $pick['title'] . '’을(를) 받는 곳에 추가했어요.' . ($sent['ok'] ? ' 안내 메시지를 보냈어요.' : ' 다만 메시지를 보내지 못했어요: ' . telegram_error_text($sent)), $sent['ok'] ? 'ok' : 'error');
+        redirect($back);
+    }
+    if ($action === 'tg_remove') {
+        $id = input('chat_id');
+        $list = telegram_chats();
+        $left = array_values(array_filter($list, function ($c) use ($id) {
+            return (string) $c['id'] !== $id;
+        }));
+        telegram_save_chats($left);
+        flash(count($left) < count($list) ? '받는 곳에서 뺐어요.' . (!$left ? ' 받는 곳이 없어서 알림이 가지 않아요.' : '') : '이미 빠져 있어요.');
         redirect($back);
     }
     if ($action === 'tg_toggle') {
@@ -572,7 +647,7 @@ function admin_telegram_action($action)
         redirect($back);
     }
     if ($action === 'tg_clear') {
-        save_settings(array('gc_tg_token' => '', 'gc_tg_bot' => '', 'gc_tg_chat' => '', 'gc_tg_chat_title' => '', 'gc_tg_last' => ''));
+        save_settings(array('gc_tg_token' => '', 'gc_tg_bot' => '', 'gc_tg_chat' => '', 'gc_tg_chat_title' => '', 'gc_tg_chats' => '', 'gc_tg_candidates' => '', 'gc_tg_last' => ''));
         flash('텔레그램 연결을 끊고 토큰을 지웠어요.');
         redirect($back);
     }

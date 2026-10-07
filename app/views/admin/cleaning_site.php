@@ -63,7 +63,7 @@ $text = function ($key, $label, $opts = array()) use ($v) {
 </form>
 <form method="post" action="/admin/site" id="test-mail"><?= csrf_field() ?><input type="hidden" name="action" value="test_mail"></form>
 
-<?php $tgLast = telegram_last(); $tgConnected = telegram_token_ok(gc('tg_token')) && gc('tg_chat') !== ''; ?>
+<?php $tgLast = telegram_last(); $tgChats = telegram_chats(); $tgConnected = telegram_token_ok(gc('tg_token')) && $tgChats; $tgCand = telegram_candidates(); $tgBotLink = gc('tg_bot') !== '' ? 'https://t.me/' . gc('tg_bot') : ''; ?>
 <section class="card stack-lg" id="telegram" aria-labelledby="s-tg">
   <div class="card-head submit-head">
     <div class="card-intro"><h2 id="s-tg">텔레그램 알림</h2><p class="muted">새 견적 문의가 들어오면 텔레그램으로도 바로 알려 드려요. 메일 알림은 그대로 함께 가요.</p></div>
@@ -72,21 +72,50 @@ $text = function ($key, $label, $opts = array()) use ($v) {
 <?php endif; ?>
   </div>
 <?php if ($tgConnected): ?>
+  <div class="tg-block">
+    <h3 class="tg-sub">받는 곳 <span class="sub"><?= count($tgChats) ?>곳 — 새 견적 문의가 오면 모두에게 알려요</span></h3>
+    <ul class="tg-chats">
+<?php foreach ($tgChats as $c): ?>
+      <li>
+        <span class="tg-chat-name"><?= e($c['title']) ?></span>
+        <span class="sub"><?= ($c['type'] ?? 'private') === 'private' ? '개인' : '단체방' ?></span>
+        <form method="post" action="/admin/site" data-confirm="‘<?= e($c['title']) ?>’은(는) 이제 알림을 받지 않아요. 뺄까요?"><?= csrf_field() ?><input type="hidden" name="action" value="tg_remove"><input type="hidden" name="chat_id" value="<?= e($c['id']) ?>"><button type="submit" class="btn btn-ghost btn-sm">빼기</button></form>
+      </li>
+<?php endforeach; ?>
+    </ul>
+  </div>
+  <div class="tg-block">
+    <h3 class="tg-sub">다른 사람도 받게 하기</h3>
+    <ol class="engine-steps">
+      <li>받을 분에게 봇 주소를 보내 주세요. 그분이 열어서 <b>시작</b>을 누르면 돼요. <?php if ($tgBotLink !== ''): ?><span class="mono"><?= e($tgBotLink) ?></span> <button type="button" class="btn btn-outline btn-sm" data-copy-text="<?= e($tgBotLink) ?>">봇 주소 복사</button><?php endif; ?></li>
+      <li>여럿이 한 방에서 받으려면 단체방에 봇(@<?= e(gc('tg_bot')) ?>)을 초대하고 단체방에 <code>/start</code>를 보내세요.</li>
+      <li>아래 <b>받는 사람 찾기</b>를 누르고, 나온 이름 옆 <b>추가</b>를 눌러요.</li>
+    </ol>
+    <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_find"><button type="submit" class="btn btn-outline btn-sm">받는 사람 찾기</button></form>
+<?php if ($tgCand['list']): ?>
+    <ul class="tg-chats tg-candidates">
+<?php foreach ($tgCand['list'] as $c): ?>
+      <li>
+        <span class="tg-chat-name"><?= e($c['title']) ?></span>
+        <span class="sub"><?= ($c['type'] ?? 'private') === 'private' ? '개인' : '단체방' ?> · 봇에게 말을 건 곳</span>
+        <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_add"><input type="hidden" name="chat_id" value="<?= e($c['id']) ?>"><button type="submit" class="btn btn-primary btn-sm">추가</button></form>
+      </li>
+<?php endforeach; ?>
+    </ul>
+<?php elseif ($tgCand['at']): ?>
+    <p class="sub"><?= e(fmt_date($tgCand['at'], 'm.d H:i')) ?>에 찾아봤는데 새로 말을 건 곳이 없었어요.</p>
+<?php endif; ?>
+  </div>
   <dl class="tg-info">
-    <div><dt>받는 대화방</dt><dd><?= e(gc('tg_chat_title')) ?></dd></div>
     <div><dt>보내는 봇</dt><dd><?= gc('tg_bot') !== '' ? '@' . e(gc('tg_bot')) : '-' ?> <span class="sub">토큰 <?= e(telegram_token_masked(gc('tg_token'))) ?></span></dd></div>
 <?php if ($tgLast): ?>    <div><dt>마지막 알림</dt><dd><?= e(fmt_date($tgLast['at'], 'm.d H:i')) ?> · <?= e($tgLast['what']) ?> · <?= $tgLast['ok'] ? '<span class="status status-paid">보냄</span>' : '<span class="status status-pending">못 보냄</span> <span class="sub">' . e($tgLast['error']) . '</span>' ?></dd></div>
 <?php endif; ?>
   </dl>
   <div class="tg-actions">
-    <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_test"><button type="submit" class="btn btn-outline btn-sm">시험 메시지 보내기</button></form>
+    <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_test"><button type="submit" class="btn btn-outline btn-sm">시험 메시지 보내기 (모두)</button></form>
     <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_toggle"><button type="submit" class="btn btn-outline btn-sm"><?= gc('tg_on') === '1' ? '알림 끄기' : '알림 켜기' ?></button></form>
-    <form method="post" action="/admin/site" data-confirm="텔레그램 연결을 끊고 토큰을 지울까요?"><?= csrf_field() ?><input type="hidden" name="action" value="tg_clear"><button type="submit" class="btn btn-ghost btn-sm">연결 끊기</button></form>
+    <form method="post" action="/admin/site" data-confirm="텔레그램 연결을 끊고 토큰과 받는 곳을 모두 지울까요?"><?= csrf_field() ?><input type="hidden" name="action" value="tg_clear"><button type="submit" class="btn btn-ghost btn-sm">연결 끊기</button></form>
   </div>
-  <details class="tg-help"><summary>다른 대화방(단체방)으로 바꾸기</summary>
-    <p>단체방을 만들고 봇(@<?= e(gc('tg_bot')) ?>)을 초대한 뒤 단체방에 아무 말이나 한 번 보내고, 아래 ‘연결 확인’을 다시 누르세요. 가장 최근에 말을 건 대화방으로 바뀌어요.</p>
-    <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_connect"><button type="submit" class="btn btn-outline btn-sm">연결 확인</button></form>
-  </details>
 <?php else: ?>
 <?php if ($tgLast && !$tgLast['ok']): ?>  <div class="alert tg-alert" role="alert"><p><b><?= e(fmt_date($tgLast['at'], 'm.d H:i')) ?> <?= e($tgLast['what']) ?> 실패</b> · <?= e($tgLast['error']) ?></p></div>
 <?php endif; ?>

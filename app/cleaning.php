@@ -61,6 +61,9 @@ function cleaning_defaults()
         'gc_tg_bot' => '',
         'gc_tg_chat' => '',
         'gc_tg_chat_title' => '',
+        // 받는 대화방 여러 곳 [{id, title, type}], 받는 사람 찾기 결과
+        'gc_tg_chats' => '',
+        'gc_tg_candidates' => '',
         'gc_tg_on' => '1',
         'gc_tg_last' => '',
         'gc_tg_check' => '',
