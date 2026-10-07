@@ -114,3 +114,37 @@ function worker_counts()
     }
     return $counts;
 }
+
+/* ───────── 도급 정산과 잇기: 인력 배치 사람을 청소 담당 파트너로 ───────── */
+
+/** 청소 담당으로 고를 수 있는 인력 배치 사람(아직 청소 담당 파트너로 이어지지 않은 사람만. 이어진 사람은 파트너 목록에 나옴) */
+function workers_for_pick()
+{
+    return q_all("SELECT * FROM workers WHERE id NOT IN (SELECT worker_id FROM partners WHERE role = 'byeong' AND worker_id IS NOT NULL) ORDER BY name, id");
+}
+
+/** 인력 배치 사람 → 청소 담당 파트너(이미 있으면 그 파트너, 없으면 이름 · 연락처로 새로 만듦). 반환: [파트너 id, 새로 만들었는지] */
+function partner_from_worker($worker)
+{
+    $id = (int) q_value("SELECT id FROM partners WHERE role = 'byeong' AND worker_id = ?", array((int) $worker['id']));
+    if ($id) {
+        return array($id, false);
+    }
+    $id = q_insert('partners', array(
+        'role' => 'byeong', 'name' => $worker['name'], 'phone' => $worker['phone'], 'bank_name' => '', 'bank_account' => '', 'bank_holder' => '',
+        'memo' => '인력 배치에서 등록', 'worker_id' => (int) $worker['id'], 'created_at' => now(), 'updated_at' => now(),
+    ));
+    return array((int) $id, true);
+}
+
+/** 사람마다 지금 맡고 있는 청소(끝나지 않은 것): worker_id => [[id, 청소 이름]…] */
+function worker_assignments()
+{
+    $out = array();
+    $rows = q_all("SELECT p.worker_id, c.id, c.name FROM contracts c JOIN partners p ON p.id = c.byeong_partner_id
+        WHERE p.worker_id IS NOT NULL AND (c.end_month IS NULL OR c.end_month = '' OR c.end_month >= ?) ORDER BY c.name, c.id", array(date('Y-m')));
+    foreach ($rows as $r) {
+        $out[(int) $r['worker_id']][] = array((int) $r['id'], $r['name']);
+    }
+    return $out;
+}

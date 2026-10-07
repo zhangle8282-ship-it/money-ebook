@@ -158,6 +158,8 @@ function admin_contract_form($id = null)
             'gap_partner_id' => input_int('gap_partner_id') ?: null,
             'eul_partner_id' => input_int('eul_partner_id') ?: null,
             'byeong_partner_id' => input_int('byeong_partner_id') ?: null,
+            // 청소 담당은 인력 배치 사람도 고를 수 있음(값 w:번호). 저장할 때 청소 담당 파트너로 이어 줍니다.
+            'byeong_worker_id' => preg_match('/^w:(\d+)$/', input('byeong_partner_id'), $wm) ? (int) $wm[1] : null,
             'withholding' => input('withholding') === '0' ? 0 : 1,
             'start_month' => input('start_month'),
             'end_month' => input('end_month'),
@@ -189,18 +191,28 @@ function admin_contract_form($id = null)
         if ($form['end_month'] !== '' && (!valid_month($form['end_month']) || $form['end_month'] < $form['start_month'])) {
             $errors[] = '끝난 월은 시작 월과 같거나 그 뒤로 골라 주세요.';
         }
+        $worker = $form['byeong_worker_id'] ? find_worker($form['byeong_worker_id']) : null;
+        if ($form['byeong_worker_id'] && !$worker) {
+            $form['byeong_worker_id'] = null;
+        }
         if (!$errors) {
+            $workerNote = '';
+            if ($worker) {
+                list($form['byeong_partner_id'], $created) = partner_from_worker($worker);
+                $workerNote = $created ? ' 인력 배치의 ‘' . $worker['name'] . '’ 님을 청소 담당 파트너로 등록했어요. 지급 계좌는 도급 정산 › 파트너 · 계좌에서 넣어 주세요.' : '';
+            }
             $data = $form;
+            unset($data['byeong_worker_id']);
             $data['monthly_fee'] = (int) $data['monthly_fee'];
             $data['end_month'] = $data['end_month'] !== '' ? $data['end_month'] : null;
             $data['updated_at'] = now();
             if ($contract) {
                 q_update('contracts', (int) $contract['id'], $data);
-                flash('‘' . $form['name'] . '’ 청소를 저장했어요. 이미 정산 완료한 달은 그대로이고, 정산 전인 달부터 새 조건으로 계산돼요.');
+                flash('‘' . $form['name'] . '’ 청소를 저장했어요. 이미 정산 완료한 달은 그대로이고, 정산 전인 달부터 새 조건으로 계산돼요.' . $workerNote);
             } else {
                 $data['created_at'] = now();
                 q_insert('contracts', $data);
-                flash('‘' . $form['name'] . '’ 청소를 추가했어요. ' . month_label($form['start_month']) . '부터 월별 정산에 나와요.');
+                flash('‘' . $form['name'] . '’ 청소를 추가했어요. ' . month_label($form['start_month']) . '부터 월별 정산에 나와요.' . $workerNote);
             }
             redirect('/admin/contracts/list');
         }

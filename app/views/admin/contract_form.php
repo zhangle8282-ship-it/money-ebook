@@ -71,13 +71,26 @@ $fee = $form['monthly_fee'] !== '' ? number_format((int) $form['monthly_fee']) :
         <div class="field partner-pick">
           <label for="cf-<?= $role ?>-partner"><?= e($label) ?></label>
           <select id="cf-<?= $role ?>-partner" name="<?= $role ?>_partner_id">
-            <option value="">등록한 파트너에서 고르기</option>
+            <option value=""><?= $role === 'byeong' ? '파트너 · 인력 배치에서 고르기' : '등록한 파트너에서 고르기' ?></option>
+<?php if ($role === 'byeong' && $groups[$role]): ?>            <optgroup label="청소 담당 파트너">
+<?php endif; ?>
 <?php foreach ($groups[$role] as $p): ?>
-            <option value="<?= (int) $p['id'] ?>"<?= $sel === (int) $p['id'] ? ' selected' : '' ?>><?= e($p['name']) ?><?= $p['bank_account'] !== '' ? ' · ' . e($p['bank_name']) : ' · 계좌 없음' ?></option>
+            <option value="<?= (int) $p['id'] ?>"<?= $sel === (int) $p['id'] ? ' selected' : '' ?>><?= e($p['name']) ?><?= $p['bank_account'] !== '' ? ' · ' . e($p['bank_name']) : ' · 계좌 없음' ?><?= !empty($p['worker_id']) ? ' · 인력 배치' : '' ?></option>
 <?php endforeach; ?>
+<?php if ($role === 'byeong'): $pickWorkers = workers_for_pick(); $selWorker = (int) ($form['byeong_worker_id'] ?? 0); ?>
+<?php if ($groups[$role]): ?>            </optgroup>
+<?php endif; ?>
+<?php if ($pickWorkers): ?>            <optgroup label="인력 배치에서 고르기">
+<?php foreach ($pickWorkers as $w): ?>
+              <option value="w:<?= (int) $w['id'] ?>"<?= $selWorker === (int) $w['id'] ? ' selected' : '' ?>><?= e($w['name']) ?> · <?= e(str_cut($w['regions'], 24)) ?> · <?= e(implode('/', array_map(function ($k) { return WORKER_METHODS[$k][0]; }, worker_methods($w['method'])))) ?></option>
+<?php endforeach; ?>
+            </optgroup>
+<?php endif; ?>
+<?php endif; ?>
           </select>
           <input name="<?= $role ?>_name" type="text" maxlength="60" value="<?= e($form[$role . '_name']) ?>" placeholder="또는 이름만 적기" aria-label="<?= e($label) ?> 이름 직접 적기">
 <?php if ($selP && $selP['bank_account'] !== ''): ?>          <p class="field-help">지급 계좌: <?= e(partner_account($selP)) ?></p>
+<?php elseif ($role === 'byeong'): ?>          <p class="field-help">인력 배치에 등록한 사람을 고르면 청소 담당 파트너로 함께 등록돼요. <a href="/admin/workers/new">인력 배치에 사람 추가 ›</a></p>
 <?php elseif (!$groups[$role]): ?>          <p class="field-help"><a href="/admin/contracts/partners?role=<?= $role ?>#partner-add"><?= e(CONTRACT_ROLE_SHORT[$role]) ?> 파트너와 계좌 등록하기 ›</a></p>
 <?php endif; ?>
         </div>

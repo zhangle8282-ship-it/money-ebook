@@ -14,6 +14,7 @@ function admin_workers()
         'rows' => workers_search($q, $method, $region),
         'q' => $q, 'method' => $method, 'region' => $region,
         'counts' => worker_counts(),
+        'assigned' => worker_assignments(),
         'total' => (int) q_value('SELECT COUNT(*) FROM workers'),
     ));
 }
@@ -58,6 +59,8 @@ function admin_worker_form($id = null)
             $data['updated_at'] = now();
             if ($worker) {
                 q_update('workers', (int) $worker['id'], $data);
+                // 도급 정산의 청소 담당 파트너로 이어져 있으면 이름 · 연락처도 같이 바꿈
+                q('UPDATE partners SET name = ?, phone = ?, updated_at = ? WHERE worker_id = ?', array($form['name'], $form['phone'], now(), (int) $worker['id']));
                 flash('‘' . $form['name'] . '’ 정보를 저장했어요.');
             } else {
                 $data['created_at'] = now();
@@ -88,7 +91,10 @@ function admin_worker_delete($id)
     if (!$worker) {
         not_found();
     }
+    $linked = (int) q_value('SELECT COUNT(*) FROM partners WHERE worker_id = ?', array((int) $worker['id']));
     q('DELETE FROM workers WHERE id = ?', array((int) $worker['id']));
-    flash('‘' . $worker['name'] . '’ 님 정보를 지웠어요.');
+    // 도급 정산의 청소 담당 파트너(계좌 · 정산 기록)는 그대로 두고 연결만 끊음
+    q('UPDATE partners SET worker_id = NULL WHERE worker_id = ?', array((int) $worker['id']));
+    flash('‘' . $worker['name'] . '’ 님 정보를 지웠어요.' . ($linked ? ' 도급 정산의 청소 담당 파트너 정보는 그대로 남아 있어요.' : ''));
     redirect('/admin/workers');
 }

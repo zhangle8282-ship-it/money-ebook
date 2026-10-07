@@ -254,6 +254,15 @@ function migrate(PDO $pdo)
             method VARCHAR(12) NOT NULL DEFAULT 'commission', memo TEXT, created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NOT NULL)" . $tail);
         $pdo->prepare("UPDATE settings SET v = '16' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 17) {
+        // 17: 인력 배치에서 고른 청소 담당 파트너가 어느 사람인지(partners.worker_id)
+        $cols = $sqlite ? array_column($pdo->query('PRAGMA table_info(partners)')->fetchAll(PDO::FETCH_ASSOC), 'name')
+            : $pdo->query('SHOW COLUMNS FROM partners')->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('worker_id', $cols, true)) {
+            $pdo->exec('ALTER TABLE partners ADD COLUMN worker_id INT NULL');
+        }
+        $pdo->prepare("UPDATE settings SET v = '17' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

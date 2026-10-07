@@ -1,4 +1,4 @@
-<?php /** 그린청소 관리자 › 인력 배치 목록 · 찾기. 변수: $rows, $q, $method, $region, $counts, $total */
+<?php /** 그린청소 관리자 › 인력 배치 목록 · 찾기. 변수: $rows, $q, $method, $region, $counts, $total, $assigned(맡은 청소) */
 $link = function ($m) use ($q, $region) {
     $params = array_filter(array('q' => $q, 'method' => $m, 'region' => $region), 'strlen');
     return '/admin/workers' . ($params ? '?' . http_build_query($params) : '');
@@ -54,13 +54,14 @@ $searching = $q !== '' || $region !== '';
 <section class="card flush">
   <div class="table-wrap">
   <table class="table worker-table">
-    <thead><tr><th scope="col">이름</th><th scope="col">커버 가능 지역</th><th scope="col">원하는 방식</th><th scope="col">메모</th><th scope="col"><span class="sr-only">고치기</span></th></tr></thead>
+    <thead><tr><th scope="col">이름</th><th scope="col">커버 가능 지역</th><th scope="col">원하는 방식</th><th scope="col">맡은 청소</th><th scope="col">메모</th><th scope="col"><span class="sr-only">고치기</span></th></tr></thead>
     <tbody>
 <?php foreach ($rows as $w): ?>
       <tr>
         <td class="nowrap"><a class="strong" href="/admin/workers/<?= (int) $w['id'] ?>/edit"><?= e($w['name']) ?></a><?php if ($w['phone'] !== ''): ?><div class="sub"><a href="<?= e(tel_href($w['phone'])) ?>"><?= e($w['phone']) ?></a></div><?php endif; ?></td>
         <td><div class="region-chips"><?php foreach (worker_regions($w['regions']) as $r): ?><span class="region-chip<?= $r === $region ? ' is-hit' : '' ?>"><?= e($r) ?></span><?php endforeach; ?></div></td>
         <td><div class="method-pills"><?php foreach (worker_methods($w['method']) as $key): ?><span class="status worker-<?= e($key) ?>"><?= e(WORKER_METHODS[$key][0]) ?></span><?php endforeach; ?></div></td>
+        <td class="worker-jobs"><?php if (!empty($assigned[(int) $w['id']])): foreach ($assigned[(int) $w['id']] as $job): ?><a class="job-chip" href="/admin/contracts/<?= (int) $job[0] ?>/edit"><?= e($job[1]) ?></a><?php endforeach; else: ?><span class="sub">-</span><?php endif; ?></td>
         <td class="worker-memo"><?= $w['memo'] !== '' ? nl2br(e($w['memo']), false) : '<span class="sub">-</span>' ?></td>
         <td class="actions"><a class="btn btn-outline btn-sm" href="/admin/workers/<?= (int) $w['id'] ?>/edit">고치기</a></td>
       </tr>

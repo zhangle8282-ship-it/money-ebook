@@ -873,3 +873,20 @@ document.querySelectorAll('input[data-verify]').forEach(function (input) {
   });
   sync();
 })();
+
+// 좁은 화면에서 표를 카드처럼 보여 주려고 각 칸에 머리글 이름(data-label)을 붙여 둡니다.
+document.querySelectorAll('table.table').forEach(function (table) {
+  var heads = [];
+  table.querySelectorAll('thead th').forEach(function (th) {
+    for (var i = 0; i < (th.colSpan || 1); i++) heads.push(th.textContent.replace(/\s+/g, ' ').trim());
+  });
+  if (!heads.length) return;
+  table.classList.add('table-stack');
+  table.querySelectorAll('tbody tr, tfoot tr').forEach(function (tr) {
+    var col = 0;
+    Array.prototype.forEach.call(tr.children, function (cell) {
+      if (!cell.hasAttribute('data-label') && heads[col]) cell.setAttribute('data-label', heads[col]);
+      col += cell.colSpan || 1;
+    });
+  });
+});
