@@ -1,4 +1,8 @@
-<?php /** 관리자 › 도급 정산 › 청소 목록. 변수: $contracts */ ?>
+<?php /** 관리자 › 도급 정산 › 청소 목록. 변수: $contracts */
+$cleaners = partners_by_role()['byeong'];
+$pickWorkers = workers_for_pick();
+$back = $_SERVER['REQUEST_URI'] ?? '/admin/contracts/list';
+?>
 <div class="page-head">
   <div class="page-head-text">
     <h1>도급 정산</h1>
@@ -7,15 +11,37 @@
   <a class="btn btn-primary" href="/admin/contracts/new">+ 새 청소</a>
 </div>
 <?= view('admin/_contracts_tabs', array('tab' => 'list')) ?>
+<?php if ($contracts): ?>
+<p class="muted small">‘청소 담당’ 칸에서 <a href="/admin/workers">인력 배치</a>에 등록한 사람이나 청소 담당 파트너를 골라 <b>배치</b>를 누르면 바로 배치돼요.</p>
+<?php endif; ?>
 <section class="card flush">
 <?php if ($contracts): ?>
   <div class="table-wrap">
   <table class="table">
-    <thead><tr><th scope="col">청소</th><th scope="col" class="num">월 청소비용</th><th scope="col">조건</th><th scope="col" class="num">청소 담당 실지급</th><th scope="col" class="num">대표파트너</th><th scope="col" class="num">운영파트너</th><th scope="col">기간</th><th scope="col"><span class="sr-only">상태</span></th></tr></thead>
+    <thead><tr><th scope="col">청소</th><th scope="col">청소 담당</th><th scope="col" class="num">월 청소비용</th><th scope="col">조건</th><th scope="col" class="num">청소 담당 실지급</th><th scope="col" class="num">대표파트너</th><th scope="col" class="num">운영파트너</th><th scope="col">기간</th><th scope="col"><span class="sr-only">상태</span></th></tr></thead>
     <tbody>
 <?php foreach ($contracts as $c): ?>
       <tr>
-        <td><a class="strong" href="/admin/contracts/<?= (int) $c['id'] ?>/edit"><?= e($c['name']) ?></a><?php if ($c['client'] !== ''): ?><div class="sub"><?= e($c['client']) ?></div><?php endif; ?></td>
+        <td class="contract-name-cell"><a class="strong" href="/admin/contracts/<?= (int) $c['id'] ?>/edit"><?= e($c['name']) ?></a><?php if ($c['client'] !== ''): ?><div class="sub"><?= e($c['client']) ?></div><?php endif; ?></td>
+        <td class="assign-cell">
+          <form method="post" action="/admin/contracts/<?= (int) $c['id'] ?>/assign" class="assign-form">
+            <?= csrf_field() ?><input type="hidden" name="back" value="<?= e($back) ?>">
+            <select name="byeong" aria-label="‘<?= e($c['name']) ?>’ 청소 담당">
+              <option value=""><?= $c['byeong_partner_id'] ? '— 청소 담당 비우기 —' : '— 아직 없음 —' ?></option>
+<?php if ($cleaners): ?>              <optgroup label="청소 담당 파트너">
+<?php foreach ($cleaners as $p): ?>                <option value="<?= (int) $p['id'] ?>"<?= (int) $c['byeong_partner_id'] === (int) $p['id'] ? ' selected' : '' ?>><?= e($p['name']) ?><?= !empty($p['worker_id']) ? ' · 인력 배치' : '' ?></option>
+<?php endforeach; ?>              </optgroup>
+<?php endif; ?>
+<?php if ($pickWorkers): ?>              <optgroup label="인력 배치에서 고르기">
+<?php foreach ($pickWorkers as $w): ?>                <option value="w:<?= (int) $w['id'] ?>"><?= e($w['name']) ?> · <?= e(str_cut($w['regions'], 18)) ?></option>
+<?php endforeach; ?>              </optgroup>
+<?php endif; ?>
+            </select>
+            <button type="submit" class="btn btn-outline btn-sm">배치</button>
+          </form>
+<?php if (!$c['byeong_partner_id'] && $c['byeong_name'] !== ''): ?>          <div class="sub">적어 둔 이름: <?= e($c['byeong_name']) ?></div>
+<?php endif; ?>
+        </td>
         <td class="num"><?= won($c['monthly_fee']) ?></td>
         <td class="nowrap">세금 <?= $c['invoice'] ? CONTRACT_TAX_RATE . '%' : '없음' ?> · 청소 담당 <?= 100 - (int) $c['contract_rate'] ?>% · 도급 <?= (int) $c['contract_rate'] ?>%<div class="sub">대표:운영 <?= (int) $c['gap_rate'] ?>:<?= 100 - (int) $c['gap_rate'] ?> · 원천징수 <?= (int) $c['withholding'] ? CONTRACT_WITHHOLDING . '%' : '없음' ?></div></td>
         <td class="num"><?= won($c['calc']['byeong_pay']) ?><?php if (contract_partner_name($c, 'byeong') !== ''): ?><div class="sub"><?= e(contract_partner_name($c, 'byeong')) ?></div><?php endif; ?></td>

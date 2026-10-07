@@ -44,6 +44,7 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/contracts/new$~', 'admin_contract_form'),
         array('GET|POST', '~^/admin/contracts/(\d+)/edit$~', 'admin_contract_form'),
         array('POST', '~^/admin/contracts/(\d+)/delete$~', 'admin_contract_delete'),
+        array('POST', '~^/admin/contracts/(\d+)/assign$~', 'admin_contract_assign'),
         array('GET|POST', '~^/admin/account$~', 'admin_account'),
         array('GET|POST', '~^/admin/code$~', 'admin_custom_code'),
         array('GET|POST', '~^/admin/search$~', 'admin_search_submit'),
@@ -52,6 +53,7 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/workers/new$~', 'admin_worker_form'),
         array('GET|POST', '~^/admin/workers/(\d+)/edit$~', 'admin_worker_form'),
         array('POST', '~^/admin/workers/(\d+)/delete$~', 'admin_worker_delete'),
+        array('POST', '~^/admin/workers/(\d+)/assign$~', 'admin_worker_assign'),
         // 검색어 페이지
         array('GET', '~^/admin/pages$~', 'admin_landing_list'),
         array('GET|POST', '~^/admin/pages/new$~', 'admin_landing_form'),

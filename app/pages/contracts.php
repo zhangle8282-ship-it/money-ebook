@@ -403,3 +403,18 @@ function admin_contract_delete($id)
     flash('‘' . $contract['name'] . '’ 청소를 지웠어요.');
     redirect('/admin/contracts/list');
 }
+
+/** 청소 목록에서 바로 청소 담당 배치(파트너 또는 인력 배치 사람, 비우기) */
+function admin_contract_assign($id)
+{
+    require_admin();
+    $back = safe_back(input('back'), '/admin/contracts/list');
+    require_csrf($back);
+    $contract = find_contract($id);
+    if (!$contract) {
+        not_found();
+    }
+    list($ok, $message) = assign_cleaner($contract, input('byeong'));
+    flash($message, $ok ? 'ok' : 'error');
+    redirect($back);
+}

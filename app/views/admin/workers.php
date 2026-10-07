@@ -1,4 +1,5 @@
-<?php /** 그린청소 관리자 › 인력 배치 목록 · 찾기. 변수: $rows, $q, $method, $region, $counts, $total, $assigned(맡은 청소) */
+<?php /** 그린청소 관리자 › 인력 배치 목록 · 찾기. 변수: $rows, $q, $method, $region, $counts, $total, $assigned(맡은 청소), $openContracts(배치할 수 있는 청소) */
+$back = $_SERVER['REQUEST_URI'] ?? '/admin/workers';
 $link = function ($m) use ($q, $region) {
     $params = array_filter(array('q' => $q, 'method' => $m, 'region' => $region), 'strlen');
     return '/admin/workers' . ($params ? '?' . http_build_query($params) : '');
@@ -61,7 +62,20 @@ $searching = $q !== '' || $region !== '';
         <td class="nowrap"><a class="strong" href="/admin/workers/<?= (int) $w['id'] ?>/edit"><?= e($w['name']) ?></a><?php if ($w['phone'] !== ''): ?><div class="sub"><a href="<?= e(tel_href($w['phone'])) ?>"><?= e($w['phone']) ?></a></div><?php endif; ?></td>
         <td><div class="region-chips"><?php foreach (worker_regions($w['regions']) as $r): ?><span class="region-chip<?= $r === $region ? ' is-hit' : '' ?>"><?= e($r) ?></span><?php endforeach; ?></div></td>
         <td><div class="method-pills"><?php foreach (worker_methods($w['method']) as $key): ?><span class="status worker-<?= e($key) ?>"><?= e(WORKER_METHODS[$key][0]) ?></span><?php endforeach; ?></div></td>
-        <td class="worker-jobs"><?php if (!empty($assigned[(int) $w['id']])): foreach ($assigned[(int) $w['id']] as $job): ?><a class="job-chip" href="/admin/contracts/<?= (int) $job[0] ?>/edit"><?= e($job[1]) ?></a><?php endforeach; else: ?><span class="sub">-</span><?php endif; ?></td>
+        <td class="worker-jobs"><?php $mine = array_column($assigned[(int) $w['id']] ?? array(), 0); if ($mine): foreach ($assigned[(int) $w['id']] as $job): ?><a class="job-chip" href="/admin/contracts/<?= (int) $job[0] ?>/edit"><?= e($job[1]) ?></a><?php endforeach; endif; ?>
+<?php $canTake = array_filter($openContracts, function ($c) use ($mine) { return !in_array((int) $c['id'], $mine, true); }); if ($canTake): ?>
+          <form method="post" action="/admin/workers/<?= (int) $w['id'] ?>/assign" class="assign-form">
+            <?= csrf_field() ?><input type="hidden" name="back" value="<?= e($back) ?>">
+            <select name="contract_id" aria-label="‘<?= e($w['name']) ?>’ 님을 배치할 청소">
+              <option value="">청소 고르기</option>
+<?php foreach ($canTake as $c): $now = contract_partner_name($c, 'byeong'); ?>              <option value="<?= (int) $c['id'] ?>"><?= e($c['name']) ?><?= $now !== '' ? ' (지금 ' . e($now) . ')' : ' (담당 없음)' ?></option>
+<?php endforeach; ?>
+            </select>
+            <button type="submit" class="btn btn-outline btn-sm">배치</button>
+          </form>
+<?php elseif (!$mine): ?><span class="sub"><a href="/admin/contracts/new">청소를 먼저 등록하세요</a></span>
+<?php endif; ?>
+        </td>
         <td class="worker-memo"><?= $w['memo'] !== '' ? nl2br(e($w['memo']), false) : '<span class="sub">-</span>' ?></td>
         <td class="actions"><a class="btn btn-outline btn-sm" href="/admin/workers/<?= (int) $w['id'] ?>/edit">고치기</a></td>
       </tr>

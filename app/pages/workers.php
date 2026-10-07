@@ -15,6 +15,7 @@ function admin_workers()
         'q' => $q, 'method' => $method, 'region' => $region,
         'counts' => worker_counts(),
         'assigned' => worker_assignments(),
+        'openContracts' => contracts_open(),
         'total' => (int) q_value('SELECT COUNT(*) FROM workers'),
     ));
 }
@@ -97,4 +98,24 @@ function admin_worker_delete($id)
     q('UPDATE partners SET worker_id = NULL WHERE worker_id = ?', array((int) $worker['id']));
     flash('‘' . $worker['name'] . '’ 님 정보를 지웠어요.' . ($linked ? ' 도급 정산의 청소 담당 파트너 정보는 그대로 남아 있어요.' : ''));
     redirect('/admin/workers');
+}
+
+/** 인력 배치 목록에서 바로 청소에 배치 */
+function admin_worker_assign($id)
+{
+    require_admin();
+    $back = safe_back(input('back'), '/admin/workers');
+    require_csrf($back);
+    $worker = find_worker($id);
+    if (!$worker) {
+        not_found();
+    }
+    $contract = find_contract(input_int('contract_id'));
+    if (!$contract) {
+        flash('배치할 청소를 골라 주세요.', 'error');
+        redirect($back);
+    }
+    list($ok, $message) = assign_cleaner($contract, 'w:' . (int) $worker['id']);
+    flash($message, $ok ? 'ok' : 'error');
+    redirect($back);
 }

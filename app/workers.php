@@ -148,3 +148,40 @@ function worker_assignments()
     }
     return $out;
 }
+
+/**
+ * 청소에 청소 담당 배치(도급 정산 › 청소 목록, 인력 배치 목록에서 바로).
+ * $pick: 청소 담당 파트너 번호 | 'w:인력 배치 번호'(처음이면 청소 담당 파트너로 등록) | ''(비우기). 반환: [성공했는지, 안내 글]
+ */
+function assign_cleaner($contract, $pick)
+{
+    $pick = trim((string) $pick);
+    if ($pick === '') {
+        q_update('contracts', (int) $contract['id'], array('byeong_partner_id' => null, 'updated_at' => now()));
+        return array(true, '‘' . $contract['name'] . '’의 청소 담당을 비웠어요.');
+    }
+    $created = false;
+    if (preg_match('/^w:(\d+)$/', $pick, $m)) {
+        $worker = find_worker($m[1]);
+        if (!$worker) {
+            return array(false, '인력 배치에서 그 사람을 찾지 못했어요. 새로고침해 주세요.');
+        }
+        list($pid, $created) = partner_from_worker($worker);
+    } else {
+        $pid = ctype_digit($pick) ? (int) $pick : 0;
+        $partner = $pid ? q_one('SELECT * FROM partners WHERE id = ?', array($pid)) : null;
+        if (!$partner || $partner['role'] !== 'byeong') {
+            return array(false, '청소 담당 파트너를 다시 골라 주세요.');
+        }
+    }
+    q_update('contracts', (int) $contract['id'], array('byeong_partner_id' => $pid, 'updated_at' => now()));
+    $name = (string) q_value('SELECT name FROM partners WHERE id = ?', array($pid));
+    return array(true, '‘' . $contract['name'] . '’에 ‘' . $name . '’ 님을 청소 담당으로 배치했어요.'
+        . ($created ? ' 처음 배치라 청소 담당 파트너로도 등록했어요. 지급 계좌는 도급 정산 › 파트너 · 계좌에서 넣어 주세요.' : ''));
+}
+
+/** 배치할 수 있는 청소(끝나지 않은 것): 이름순 */
+function contracts_open()
+{
+    return q_all("SELECT * FROM contracts WHERE end_month IS NULL OR end_month = '' OR end_month >= ? ORDER BY name, id", array(date('Y-m')));
+}

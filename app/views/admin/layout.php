@@ -70,8 +70,17 @@ select,input,textarea{max-width:100%}
       <span class="brand-badge">관리자</span>
     </div>
     <nav class="sidebar-nav" aria-label="관리자 메뉴">
-<?php foreach ($menu as $key => $m): ?>
-      <a href="<?= $m[0] ?>"<?= ($nav ?? '') === $key ? ' aria-current="page"' : '' ?>>
+<?php
+// 그린청소: 매일 쓰는 업무(견적 문의 · 도급 정산 · 인력 배치)와 홈페이지를 고치는 관리 메뉴를 색과 제목으로 나눕니다.
+$workKeys = $cleaning ? array('inquiries', 'contracts', 'workers') : array();
+$group = '';
+foreach ($menu as $key => $m):
+    $isWork = in_array($key, $workKeys, true);
+    if ($cleaning && $group !== ($isWork ? 'work' : 'site')):
+        $group = $isWork ? 'work' : 'site'; ?>
+      <span class="nav-group nav-group-<?= $group ?>"><?= $isWork ? '업무' : '홈페이지 관리' ?></span>
+<?php endif; ?>
+      <a href="<?= $m[0] ?>"<?= $isWork ? ' class="nav-work"' : '' ?><?= ($nav ?? '') === $key ? ' aria-current="page"' : '' ?>>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $m[2] ?></svg><?= e($m[1]) ?>
 <?php if ($key === 'inquiries' && !empty($inquiryBadge)): ?>        <span class="nav-badge" aria-label="새 문의 <?= $inquiryBadge ?>건"><?= $inquiryBadge ?></span>
 <?php elseif ($key === 'orders' && $pendingBadge): ?>        <span class="nav-badge" aria-label="입금 대기 <?= $pendingBadge ?>건"><?= $pendingBadge ?></span>
