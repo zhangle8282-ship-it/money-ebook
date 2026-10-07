@@ -207,6 +207,10 @@ function admin_cleaning_site()
     require_admin();
     $errors = array();
     $values = settings();
+    if (is_post() && strncmp(input('action'), 'tg_', 3) === 0) {
+        require_csrf('/admin/site');
+        admin_telegram_action(input('action'));
+    }
     if (is_post() && input('action') === 'test_mail') {
         require_csrf('/admin/site');
         $text = "홈페이지 견적 문의 알림 메일이 잘 오는지 확인하는 시험 메일이에요.\n\n새 문의가 들어오면 이 주소로 알려 드려요.\n" . site_base_url() . "/admin/inquiries\n";
@@ -506,4 +510,56 @@ function admin_search_submit()
         'log' => array_slice(indexnow_log(), 0, INDEXNOW_LOG_MAX),
         'local' => !indexnow_public_host(),
     ));
+}
+
+/** 홈페이지 관리 › 텔레그램 알림: 연결 확인 · 시험 메시지 · 켜기/끄기 · 연결 끊기 */
+function admin_telegram_action($action)
+{
+    $back = '/admin/site#telegram';
+    if ($action === 'tg_connect') {
+        $token = input('tg_token') !== '' ? preg_replace('/\s+/', '', input('tg_token')) : gc('tg_token');
+        if (!telegram_token_ok($token)) {
+            flash('봇 토큰 모양이 아니에요. @BotFather 가 준 ‘숫자:영문’ 모양의 토큰을 그대로 붙여 넣어 주세요.', 'error');
+            redirect($back);
+        }
+        $me = telegram_call($token, 'getMe');
+        if (!$me['ok']) {
+            flash(telegram_error_text($me), 'error');
+            redirect($back);
+        }
+        $bot = (string) ($me['result']['username'] ?? '');
+        save_settings(array('gc_tg_token' => $token, 'gc_tg_bot' => $bot));
+        list($chat, $r) = telegram_find_chat($token);
+        if (!$chat) {
+            flash($r['ok'] ? '봇(@' . $bot . ')은 확인했어요. 이제 텔레그램에서 이 봇에게 아무 말이나 한 번 보내고(단체방이면 봇을 초대한 뒤 한마디) 다시 ‘연결 확인’을 눌러 주세요.' : telegram_error_text($r), 'error');
+            redirect($back);
+        }
+        save_settings(array('gc_tg_chat' => $chat[0], 'gc_tg_chat_title' => str_cut($chat[1], 60, ''), 'gc_tg_on' => '1'));
+        $sent = telegram_send('✅ ' . gc('name') . ' 홈페이지와 연결됐어요. 새 견적 문의가 들어오면 여기로 바로 알려 드릴게요.', $token, $chat[0]);
+        telegram_remember($sent, '연결 확인');
+        flash($sent['ok'] ? '텔레그램 ‘' . $chat[1] . '’ 대화방과 연결했어요. 시험 메시지가 도착했는지 확인해 보세요.' : telegram_error_text($sent), $sent['ok'] ? 'ok' : 'error');
+        redirect($back);
+    }
+    if ($action === 'tg_test') {
+        if (!telegram_token_ok(gc('tg_token')) || gc('tg_chat') === '') {
+            flash('먼저 텔레그램을 연결해 주세요.', 'error');
+            redirect($back);
+        }
+        $sent = telegram_send('🔔 알림 시험이에요. 새 견적 문의가 들어오면 이렇게 알려 드려요.' . "\n" . site_base_url() . '/admin/inquiries');
+        telegram_remember($sent, '시험 메시지');
+        flash($sent['ok'] ? '시험 메시지를 보냈어요. 텔레그램을 확인해 보세요.' : telegram_error_text($sent), $sent['ok'] ? 'ok' : 'error');
+        redirect($back);
+    }
+    if ($action === 'tg_toggle') {
+        $on = gc('tg_on') === '1' ? '0' : '1';
+        save_settings(array('gc_tg_on' => $on));
+        flash($on === '1' ? '텔레그램 알림을 켰어요.' : '텔레그램 알림을 껐어요. 연결은 그대로 남아 있어요.');
+        redirect($back);
+    }
+    if ($action === 'tg_clear') {
+        save_settings(array('gc_tg_token' => '', 'gc_tg_bot' => '', 'gc_tg_chat' => '', 'gc_tg_chat_title' => '', 'gc_tg_last' => ''));
+        flash('텔레그램 연결을 끊고 토큰을 지웠어요.');
+        redirect($back);
+    }
+    redirect($back);
 }

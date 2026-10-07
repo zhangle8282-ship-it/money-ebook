@@ -54,6 +54,13 @@ function cleaning_defaults()
         'gc_canonical_redirect' => '1',
         // 검색어 페이지 기본 5개를 넣었는지(한 번만)
         'gc_landing_seeded' => '',
+        // 텔레그램 알림: 봇 토큰(비밀), 봇 아이디, 대화방 번호 · 이름, 켜기, 마지막 결과
+        'gc_tg_token' => '',
+        'gc_tg_bot' => '',
+        'gc_tg_chat' => '',
+        'gc_tg_chat_title' => '',
+        'gc_tg_on' => '1',
+        'gc_tg_last' => '',
     );
 }
 
@@ -304,6 +311,7 @@ function save_inquiry($v)
     ));
     // 알림 메일을 보냈는지 함께 남겨 관리자 화면에서 확인할 수 있게 합니다.
     q_update('inquiries', $id, array('mailed' => notify_inquiry($v)));
+    telegram_notify_inquiry($v);
     return $id;
 }
 

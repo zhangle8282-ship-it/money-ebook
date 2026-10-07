@@ -62,3 +62,41 @@ $text = function ($key, $label, $opts = array()) use ($v) {
   </section>
 </form>
 <form method="post" action="/admin/site" id="test-mail"><?= csrf_field() ?><input type="hidden" name="action" value="test_mail"></form>
+
+<?php $tgLast = telegram_last(); $tgConnected = telegram_token_ok(gc('tg_token')) && gc('tg_chat') !== ''; ?>
+<section class="card stack-lg" id="telegram" aria-labelledby="s-tg">
+  <div class="card-head submit-head">
+    <div class="card-intro"><h2 id="s-tg">텔레그램 알림</h2><p class="muted">새 견적 문의가 들어오면 텔레그램으로도 바로 알려 드려요. 메일 알림은 그대로 함께 가요.</p></div>
+<?php if ($tgConnected): ?>    <?= gc('tg_on') === '1' ? '<span class="status status-paid">켜짐</span>' : '<span class="status status-cancelled">꺼짐</span>' ?>
+<?php else: ?>    <span class="status status-cancelled">연결 안 됨</span>
+<?php endif; ?>
+  </div>
+<?php if ($tgConnected): ?>
+  <dl class="tg-info">
+    <div><dt>받는 대화방</dt><dd><?= e(gc('tg_chat_title')) ?></dd></div>
+    <div><dt>보내는 봇</dt><dd><?= gc('tg_bot') !== '' ? '@' . e(gc('tg_bot')) : '-' ?> <span class="sub">토큰 <?= e(telegram_token_masked(gc('tg_token'))) ?></span></dd></div>
+<?php if ($tgLast): ?>    <div><dt>마지막 알림</dt><dd><?= e(fmt_date($tgLast['at'], 'm.d H:i')) ?> · <?= e($tgLast['what']) ?> · <?= $tgLast['ok'] ? '<span class="status status-paid">보냄</span>' : '<span class="status status-pending">못 보냄</span> <span class="sub">' . e($tgLast['error']) . '</span>' ?></dd></div>
+<?php endif; ?>
+  </dl>
+  <div class="tg-actions">
+    <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_test"><button type="submit" class="btn btn-outline btn-sm">시험 메시지 보내기</button></form>
+    <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_toggle"><button type="submit" class="btn btn-outline btn-sm"><?= gc('tg_on') === '1' ? '알림 끄기' : '알림 켜기' ?></button></form>
+    <form method="post" action="/admin/site" data-confirm="텔레그램 연결을 끊고 토큰을 지울까요?"><?= csrf_field() ?><input type="hidden" name="action" value="tg_clear"><button type="submit" class="btn btn-ghost btn-sm">연결 끊기</button></form>
+  </div>
+  <details class="tg-help"><summary>다른 대화방(단체방)으로 바꾸기</summary>
+    <p>단체방을 만들고 봇(@<?= e(gc('tg_bot')) ?>)을 초대한 뒤 단체방에 아무 말이나 한 번 보내고, 아래 ‘연결 확인’을 다시 누르세요. 가장 최근에 말을 건 대화방으로 바뀌어요.</p>
+    <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_connect"><button type="submit" class="btn btn-outline btn-sm">연결 확인</button></form>
+  </details>
+<?php else: ?>
+  <ol class="engine-steps">
+    <li>텔레그램에서 <b>@BotFather</b>를 찾아 <code>/newbot</code>을 보내요. 봇 이름과 아이디(끝이 <code>bot</code>, 예: greenclean_alert_bot)를 정하면 <b>봇 토큰</b>을 줘요. 토큰은 비밀번호처럼 다른 사람에게 알려 주지 마세요.</li>
+    <li>방금 만든 봇을 찾아 <b>시작</b>을 누르고 아무 말이나 한 번 보내요. 여러 사람이 함께 받으려면 단체방을 만들어 봇을 초대하고 단체방에 한마디 하세요.</li>
+    <li>아래에 토큰을 붙여 넣고 <b>연결 확인</b>을 누르면, 대화방을 찾아 시험 메시지를 보내요.</li>
+  </ol>
+  <form method="post" action="/admin/site" class="tg-connect">
+    <?= csrf_field() ?><input type="hidden" name="action" value="tg_connect">
+    <div class="field"><label for="tg-token">봇 토큰</label><input id="tg-token" name="tg_token" type="password" autocomplete="off" spellcheck="false" placeholder="<?= gc('tg_token') !== '' ? '저장된 토큰 ' . e(telegram_token_masked(gc('tg_token'))) . ' (바꿀 때만 넣기)' : '예: 123456789:AAH…' ?>"></div>
+    <div><button type="submit" class="btn btn-primary">연결 확인</button></div>
+  </form>
+<?php endif; ?>
+</section>

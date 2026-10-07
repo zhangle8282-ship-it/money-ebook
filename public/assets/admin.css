@@ -802,3 +802,15 @@ select { max-width: 100%; }
   .nav-group:first-child { margin-top: 0; }
   .sidebar-nav a.nav-work { border: 1px solid var(--work-line); }
 }
+
+/* 홈페이지 관리 › 텔레그램 알림 */
+.tg-info { margin: 0; display: grid; gap: 8px; }
+.tg-info div { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.tg-info dt { flex: 0 0 88px; font-size: 13px; color: var(--sub); }
+.tg-info dd { margin: 0; font-size: 15px; }
+.tg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tg-actions form { margin: 0; }
+.tg-help summary { cursor: pointer; font-size: 14px; color: var(--sub); }
+.tg-help p { margin: 8px 0; font-size: 14px; }
+.tg-connect { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.tg-connect .field { flex: 1 1 280px; margin: 0; }
