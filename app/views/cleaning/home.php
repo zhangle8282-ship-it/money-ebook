@@ -45,7 +45,7 @@ $meta = array(
             'description' => gc('seo_desc'), 'priceRange' => '견적 문의',
             'areaServed' => array_map(function ($a) {
                 return array('@type' => 'AdministrativeArea', 'name' => $a);
-            }, array('충청북도 음성군', '음성군 금왕읍', '음성군 대소면', '충청북도 진천군', '충북혁신도시')),
+            }, array('충청북도 음성군', '음성군 금왕읍', '음성군 대소면', '충청북도 진천군', '충북혁신도시', '충청북도 청주시 오창읍', '경기도 안성시')),
             'keywords' => gc('seo_keywords'),
             'hasOfferCatalog' => array('@type' => 'OfferCatalog', 'name' => '정기청소 서비스', 'itemListElement' => array_map(function ($l) {
                 return array('@type' => 'Offer', 'itemOffered' => array('@type' => 'Service', 'name' => $l[0], 'description' => $l[1]) + ($l[3] !== '' ? array('url' => base_url() . $l[3]) : array()));
@@ -217,7 +217,7 @@ if ($h1 === '') {
   <div class="g-wrap g-regions">
     <div class="g-regions-text">
       <span class="g-kicker">— 서비스 지역 —</span>
-      <h2 id="regions-title">충북 음성 · 진천 ·<br>혁신도시 어디든</h2>
+      <h2 id="regions-title">충북 음성 · 진천 · 혁신도시 <br>청주 오창 · 경기 안성까지</h2>
       <p>지역 기반으로 운영해 정해진 시간에 정확히 방문합니다. 인근 지역은 문의해 주세요.</p>
       <ul class="g-region-list">
 <?php foreach (cleaning_regions() as $g): ?>
@@ -227,14 +227,14 @@ if ($h1 === '') {
     </div>
     <div class="g-map">
 <?php if ($photos['map'] !== ''): ?>
-      <img src="<?= e($photos['map']) ?>" alt="서비스 지역 지도 (음성·진천·충북혁신도시)" loading="lazy">
+      <img src="<?= e($photos['map']) ?>" alt="서비스 지역 지도 (음성·진천·충북혁신도시·청주 오창·경기 안성)" loading="lazy">
 <?php else: ?>
-      <svg class="g-map-art" viewBox="0 0 480 400" role="img" aria-label="서비스 지역: 진천군, 충북혁신도시, 음성군">
+      <svg class="g-map-art" viewBox="0 0 480 400" role="img" aria-label="서비스 지역: 진천군, 충북혁신도시, 음성군, 청주 오창, 경기 안성">
         <rect width="480" height="400" rx="24" fill="#E3EEE6"/>
         <path d="M40 300 C120 250 160 330 240 280 S380 210 450 250" fill="none" stroke="#C9DCCF" stroke-width="18" stroke-linecap="round"/>
         <path d="M70 120 C150 90 210 160 290 130 S400 90 440 120" fill="none" stroke="#D3E4D8" stroke-width="12" stroke-linecap="round"/>
         <circle cx="240" cy="205" r="92" fill="#2F7D5C" opacity=".1"/>
-<?php foreach (array(array(130, 170, '진천군'), array(240, 215, '충북혁신도시'), array(350, 165, '음성군')) as $pin): ?>
+<?php foreach (array(array(200, 95, '경기 안성'), array(130, 190, '진천군'), array(240, 235, '충북혁신도시'), array(350, 185, '음성군'), array(115, 320, '청주 오창')) as $pin): ?>
         <g transform="translate(<?= $pin[0] ?> <?= $pin[1] ?>)"><path d="M0 0c-14-15-22-27-22-38a22 22 0 0 1 44 0c0 11-8 23-22 38z" fill="#2F7D5C"/><circle cy="-38" r="8" fill="#fff"/><text y="30" text-anchor="middle" font-size="17" font-weight="800" fill="#2A2D33"><?= e($pin[2]) ?></text></g>
 <?php endforeach; ?>
       </svg>

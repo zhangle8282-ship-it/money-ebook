@@ -18,7 +18,7 @@ $meta = array(
             'description' => $desc, 'url' => $url, 'image' => $imgAbs,
             'areaServed' => array_map(function ($a) {
                 return array('@type' => 'AdministrativeArea', 'name' => $a);
-            }, array('충청북도 음성군', '충청북도 진천군', '충북혁신도시')),
+            }, array('충청북도 음성군', '충청북도 진천군', '충북혁신도시', '충청북도 청주시 오창읍', '경기도 안성시')),
             'provider' => array('@type' => 'LocalBusiness', '@id' => $base . '/#business', 'name' => $name, 'url' => $base . '/', 'telephone' => $phone),
         ),
         array('@context' => 'https://schema.org', '@type' => 'BreadcrumbList', 'itemListElement' => array(

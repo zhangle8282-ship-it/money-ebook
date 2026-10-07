@@ -329,6 +329,11 @@ function migrate(PDO $pdo)
         $pdo->exec("UPDATE onetime_jobs SET withholding = 0, withholding_amount = 0, byeong_pay = byeong_amount WHERE method = 'commission' AND status <> 'done' AND withholding = 1");
         $pdo->prepare("UPDATE settings SET v = '23' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 24) {
+        // 24: 서비스 지역(바닥글)에 청주 오창 · 경기 안성. 관리자가 직접 바꾼 글은 그대로
+        $pdo->prepare("UPDATE settings SET v = ? WHERE k = 'gc_area' AND v = ?")->execute(array('충북 음성 · 진천 · 혁신도시 · 청주 오창 · 경기 안성', '충북 음성 · 진천 · 혁신도시'));
+        $pdo->prepare("UPDATE settings SET v = '24' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */
