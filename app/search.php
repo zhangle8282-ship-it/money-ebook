@@ -227,6 +227,64 @@ function indexnow_ping($paths, $why, $force = false, $endpoints = null)
     return $entry;
 }
 
+/**
+ * 검색 등록 › 구글에 잘 나오게: 홈페이지 안에서 확인할 수 있는 것만 점검(바깥 연결 없음).
+ * 반환: [[항목, 상태(ok | todo | warn | info), 설명]…]
+ */
+function google_seo_checks()
+{
+    $checks = array();
+    $verified = verify_code(gc('google_verify')) !== '';
+    $checks[] = array('구글 소유 확인', $verified ? 'ok' : 'todo', $verified
+        ? '확인 코드가 홈페이지에 들어가 있어요. 서치 콘솔에서 ‘확인’까지 눌렀다면 끝이에요.'
+        : '아직 코드가 없어요. 위 ‘구글 서치 콘솔’ 순서대로 코드를 넣어야 사이트맵을 내고 색인을 요청할 수 있어요.');
+    $checks[] = array('주소 하나로 모으기(https)', gc('canonical_redirect') !== '0' ? 'ok' : 'warn', gc('canonical_redirect') !== '0'
+        ? 'http · www 로 들어와도 한 주소로 모여서, 구글이 같은 페이지를 두 번 세지 않아요.'
+        : '꺼져 있어요. 위 ‘주소 하나로 모으기’를 켜 두는 게 좋아요.');
+    $checks[] = array('사이트맵', 'ok', '주소 ' . count(sitemap_entries()) . '개와 바뀐 날짜가 들어 있어요. 서치 콘솔 › Sitemaps 에 한 번만 내면 구글이 알아서 다시 읽어 가요.');
+    $biz = gc('phone') !== '' && gc('address') !== '';
+    $checks[] = array('업체 정보(구조화 데이터)', $biz ? 'ok' : 'warn', $biz
+        ? '상호 · 전화 · 주소 · 서비스 지역 · 서비스 목록 · 자주 묻는 질문을 구글이 읽는 형식으로 넣었어요. 검색 결과 사이트 이름은 ‘' . gc('name') . '’으로 알려요.'
+        : '홈페이지 관리에서 전화번호와 주소를 채워 주세요. 구글은 업체 정보에 주소가 있어야 제대로 읽어요.');
+    $pages = count(landing_public());
+    $checks[] = array('검색어 페이지', $pages >= 3 ? 'ok' : 'warn', '지역 · 업종 검색어마다 따로 된 페이지 ' . $pages . '개. 구글도 검색어 하나를 깊게 다룬 페이지를 위에 올려요.');
+    $posts = q_all('SELECT * FROM blog_posts WHERE ' . blog_public_sql(), array(now()));
+    $checks[] = array('블로그 글', count($posts) >= 5 ? 'ok' : 'warn', '공개 글 ' . count($posts) . '개. 구글은 새 글이 꾸준히 올라오는 사이트를 더 자주 읽어요' . (count($posts) >= 5 ? '.' : ' — 5개 이상, 주 1~2개씩 권해요.'));
+    $noImg = count(array_filter($posts, function ($p) {
+        return blog_image($p) === '';
+    }));
+    if ($posts) {
+        $checks[] = array('글 대표 사진', $noImg ? 'warn' : 'ok', $noImg
+            ? '사진 없는 글 ' . $noImg . '개. 글마다 사진을 1장 이상 넣으면 구글 검색 · 이미지 검색에 사진이 같이 나와요.'
+            : '모든 글에 사진이 있어 구글 검색 결과에 사진이 같이 나올 수 있어요.');
+    }
+    $desc = gc('seo_desc');
+    if (substr_count($desc, ',') >= 4 && !preg_match('/[다요]\.|[.!?]$/u', $desc)) {
+        $checks[] = array('검색 설명 문구', 'info', '지금 설명은 검색어를 나열한 형태예요. 네이버용으로 정한 문구라 그대로 두어도 되고, 구글은 이럴 때 본문에서 문장을 골라 보여 주기도 해요.');
+    }
+    return $checks;
+}
+
+/** 구글 서치 콘솔 › URL 검사(색인 요청)로 바로 가는 주소. 속성은 ‘URL 접두어’(홈페이지 주소)로 등록했다고 봅니다. */
+function google_inspect_url($url)
+{
+    return 'https://search.google.com/search-console/inspect?resource_id=' . rawurlencode(base_url() . '/') . '&id=' . rawurlencode($url);
+}
+
+/** 구글에 색인을 요청할 만한 주소: 첫 화면, 검색어 페이지, 최근 블로그 글 10개. 반환: [[이름, 전체 주소]…] */
+function google_index_targets()
+{
+    $base = base_url();
+    $out = array(array('첫 화면', $base . '/'));
+    foreach (landing_public() as $p) {
+        $out[] = array($p['title'], landing_url($p, true));
+    }
+    foreach (q_all('SELECT * FROM blog_posts WHERE ' . blog_public_sql() . ' ORDER BY published_at DESC, id DESC LIMIT 10', array(now())) as $p) {
+        $out[] = array($p['title'], blog_url($p, true));
+    }
+    return $out;
+}
+
 /** 알림 결과를 한 문장으로(관리자 저장 메시지 뒤에 붙임) */
 function indexnow_result_text($entry)
 {

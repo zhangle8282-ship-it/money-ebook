@@ -534,6 +534,8 @@ function admin_search_submit()
         'posts' => (int) q_value('SELECT COUNT(*) FROM blog_posts WHERE ' . blog_public_sql(), array(now())),
         'log' => array_slice(indexnow_log(), 0, INDEXNOW_LOG_MAX),
         'local' => !indexnow_public_host(),
+        'googleChecks' => google_seo_checks(),
+        'googleTargets' => google_index_targets(),
     ));
 }
 

@@ -1,5 +1,5 @@
 <?php
-/** 그린청소 관리자 › 검색 등록. 변수: $values, $errors, $base, $key, $entries, $posts, $log, $local */
+/** 그린청소 관리자 › 검색 등록. 변수: $values, $errors, $base, $key, $entries, $posts, $log, $local, $googleChecks, $googleTargets */
 $v = function ($k) use ($values) {
     return e(isset($values[$k]) && is_string($values[$k]) ? $values[$k] : '');
 };
@@ -99,6 +99,46 @@ $on = ($values['gc_indexnow_on'] ?? '1') === '1';
     <div><button type="submit" class="btn btn-primary">저장하기</button></div>
   </section>
 </form>
+
+<?php $gVerified = verify_code((string) ($values['gc_google_verify'] ?? '')) !== '';
+$gLabels = array('ok' => '됨', 'todo' => '할 일', 'warn' => '확인', 'info' => '참고');
+$gTodo = count(array_filter($googleChecks, function ($c) { return in_array($c[1], array('todo', 'warn'), true); })); ?>
+<section class="card stack" id="google" aria-labelledby="s-google">
+  <div class="card-head submit-head">
+    <div class="card-intro"><h2 id="s-google">구글에 잘 나오게</h2>
+      <p class="muted">구글은 아래 ‘바로 알리기’를 받지 않아요. 대신 <b>서치 콘솔에 사이트맵을 한 번 내고</b>, 새 페이지는 <b>URL 검사 › 색인 생성 요청</b>을 누르면 며칠 안에 검색에 나와요. 홈페이지 쪽 준비는 아래에서 자동으로 점검해요.</p>
+    </div>
+    <?= $gTodo ? '<span class="status status-pending">할 일 ' . $gTodo . '개</span>' : '<span class="status status-paid">준비 끝</span>' ?>
+  </div>
+  <ul class="g-checks-admin">
+<?php foreach ($googleChecks as $c): ?>
+    <li class="gc-<?= e($c[1]) ?>"><span class="gc-mark" aria-hidden="true"><?= $c[1] === 'ok' ? '✓' : ($c[1] === 'info' ? 'i' : '!') ?></span><div><strong><?= e($c[0]) ?></strong> <span class="gc-state"><?= e($gLabels[$c[1]]) ?></span><p class="sub"><?= e($c[2]) ?></p></div></li>
+<?php endforeach; ?>
+  </ul>
+
+  <details class="g-index">
+    <summary>구글에 페이지별로 색인 요청하기 <span class="sub">(<?= count($googleTargets) ?>개)</span></summary>
+<?php if (!$gVerified): ?>
+    <p class="notice-box">먼저 위에서 <b>구글 소유 확인</b>을 끝내야 이 단추들이 열려요. 서치 콘솔에 등록한 계정으로 로그인한 상태여야 해요.</p>
+<?php endif; ?>
+    <p class="sub">단추를 누르면 서치 콘솔의 <b>URL 검사</b>가 그 주소로 열려요. 결과가 나오면 <b>색인 생성 요청</b>을 눌러 주세요. 구글은 하루에 10개 안팎만 받으니, 새로 만든 페이지와 새 글부터 해 주세요.</p>
+    <ul class="submit-urls g-index-list">
+<?php foreach ($googleTargets as $t): ?>
+      <li>
+        <div class="submit-main"><span class="submit-kind"><?= e($t[0]) ?></span><span class="submit-url"><?= e(display_url($t[1])) ?></span></div>
+        <span class="g-index-btns"><a class="btn btn-outline btn-sm" href="<?= e(google_inspect_url($t[1])) ?>" target="_blank" rel="noopener">URL 검사 열기</a><?= $copy($t[1], '주소 복사') ?></span>
+      </li>
+<?php endforeach; ?>
+    </ul>
+  </details>
+
+  <div class="g-more-links">
+    <a class="btn btn-outline btn-sm" href="https://www.google.com/search?q=<?= e(rawurlencode('site:' . parse_url($base, PHP_URL_HOST))) ?>" target="_blank" rel="noopener">구글에 나온 내 페이지 보기</a>
+    <a class="btn btn-outline btn-sm" href="https://search.google.com/test/rich-results?url=<?= e(rawurlencode($home)) ?>" target="_blank" rel="noopener">업체 정보 읽기 시험</a>
+    <a class="btn btn-outline btn-sm" href="https://business.google.com/" target="_blank" rel="noopener">구글 비즈니스 프로필</a>
+  </div>
+  <p class="sub"><b>구글 비즈니스 프로필</b>(무료)에 업체를 등록하고 홈페이지 주소를 넣으면, ‘음성 청소업체’처럼 지역 검색과 구글 지도에서 맨 위 업체 칸에 나올 수 있어요. 네이버 스마트플레이스와 같은 역할이에요.</p>
+</section>
 
 <section class="card stack" id="indexnow" aria-labelledby="s-now">
   <div class="card-head submit-head">

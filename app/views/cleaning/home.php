@@ -43,6 +43,11 @@ $meta = array(
             '@context' => 'https://schema.org', '@type' => 'LocalBusiness', '@id' => $url . '#business',
             'name' => $name, 'url' => $url, 'telephone' => $phone, 'image' => base_url() . '/assets/green-og.jpg',
             'description' => gc('seo_desc'), 'priceRange' => '견적 문의',
+            'logo' => base_url() . '/icons/green-icon-180.png',
+        ) + (gc('address') !== '' ? array(
+            // 구글은 업체 정보(LocalBusiness)에 주소가 있어야 제대로 읽어요. 서비스 지역은 아래 areaServed 에.
+            'address' => array('@type' => 'PostalAddress', 'streetAddress' => gc('address'), 'addressCountry' => 'KR'),
+        ) : array()) + array(
             'areaServed' => array_map(function ($a) {
                 return array('@type' => 'AdministrativeArea', 'name' => $a);
             }, array('충청북도 음성군', '음성군 금왕읍', '음성군 대소면', '충청북도 진천군', '충북혁신도시', '충청북도 청주시', '충청북도 청주시 오창읍', '경기도 안성시')),
@@ -51,6 +56,10 @@ $meta = array(
                 return array('@type' => 'Offer', 'itemOffered' => array('@type' => 'Service', 'name' => $l[0], 'description' => $l[1]) + ($l[3] !== '' ? array('url' => base_url() . $l[3]) : array()));
             }, $areas)),
         ),
+        // 구글 검색 결과 맨 위에 사이트 이름(그린청소)으로 보이도록
+        array('@context' => 'https://schema.org', '@type' => 'WebSite', '@id' => $url . '#website', 'name' => $name,
+            'alternateName' => array(preg_replace('~^https?://~', '', display_url(base_url()))), 'url' => $url, 'inLanguage' => 'ko-KR',
+            'publisher' => array('@id' => $url . '#business')),
         array('@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => array_map(function ($f) {
             return array('@type' => 'Question', 'name' => $f[0], 'acceptedAnswer' => array('@type' => 'Answer', 'text' => $f[1]));
         }, $faq)),
