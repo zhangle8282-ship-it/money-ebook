@@ -516,23 +516,31 @@ function admin_search_submit()
 function admin_telegram_action($action)
 {
     $back = '/admin/site#telegram';
+    // 실패 이유는 텔레그램 칸 안에도 남겨 둡니다(위쪽 안내는 아래로 내려가면 안 보여서).
+    $fail = function ($text) use ($back) {
+        save_settings(array('gc_tg_last' => json_encode(array('at' => now(), 'what' => '연결 확인', 'ok' => false, 'error' => $text), JSON_UNESCAPED_UNICODE)));
+        flash($text, 'error');
+        redirect($back);
+    };
+    if ($action === 'tg_check') {
+        save_settings(array('gc_tg_check' => json_encode(array('at' => now(), 'lines' => telegram_server_check()), JSON_UNESCAPED_UNICODE)));
+        flash('서버 연결 점검을 마쳤어요. 텔레그램 알림 칸에서 결과를 보세요.');
+        redirect($back);
+    }
     if ($action === 'tg_connect') {
         $token = input('tg_token') !== '' ? preg_replace('/\s+/', '', input('tg_token')) : gc('tg_token');
         if (!telegram_token_ok($token)) {
-            flash('봇 토큰 모양이 아니에요. @BotFather 가 준 ‘숫자:영문’ 모양의 토큰을 그대로 붙여 넣어 주세요.', 'error');
-            redirect($back);
+            $fail('봇 토큰 모양이 아니에요. @BotFather 가 준 ‘숫자:영문’ 모양의 토큰을 그대로 붙여 넣어 주세요.');
         }
         $me = telegram_call($token, 'getMe');
         if (!$me['ok']) {
-            flash(telegram_error_text($me), 'error');
-            redirect($back);
+            $fail(telegram_error_text($me));
         }
         $bot = (string) ($me['result']['username'] ?? '');
         save_settings(array('gc_tg_token' => $token, 'gc_tg_bot' => $bot));
         list($chat, $r) = telegram_find_chat($token);
         if (!$chat) {
-            flash($r['ok'] ? '봇(@' . $bot . ')은 확인했어요. 이제 텔레그램에서 이 봇에게 아무 말이나 한 번 보내고(단체방이면 봇을 초대한 뒤 한마디) 다시 ‘연결 확인’을 눌러 주세요.' : telegram_error_text($r), 'error');
-            redirect($back);
+            $fail($r['ok'] ? '봇(@' . $bot . ')은 확인했어요. 이제 텔레그램에서 이 봇에게 아무 말이나 한 번 보내고(단체방이면 봇을 초대한 뒤 한마디) 다시 ‘연결 확인’을 눌러 주세요.' : telegram_error_text($r));
         }
         save_settings(array('gc_tg_chat' => $chat[0], 'gc_tg_chat_title' => str_cut($chat[1], 60, ''), 'gc_tg_on' => '1'));
         $sent = telegram_send('✅ ' . gc('name') . ' 홈페이지와 연결됐어요. 새 견적 문의가 들어오면 여기로 바로 알려 드릴게요.', $token, $chat[0]);

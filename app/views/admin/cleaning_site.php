@@ -88,6 +88,8 @@ $text = function ($key, $label, $opts = array()) use ($v) {
     <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_connect"><button type="submit" class="btn btn-outline btn-sm">연결 확인</button></form>
   </details>
 <?php else: ?>
+<?php if ($tgLast && !$tgLast['ok']): ?>  <div class="alert tg-alert" role="alert"><p><b><?= e(fmt_date($tgLast['at'], 'm.d H:i')) ?> <?= e($tgLast['what']) ?> 실패</b> · <?= e($tgLast['error']) ?></p></div>
+<?php endif; ?>
   <ol class="engine-steps">
     <li>텔레그램에서 <b>@BotFather</b>를 찾아 <code>/newbot</code>을 보내요. 봇 이름과 아이디(끝이 <code>bot</code>, 예: greenclean_alert_bot)를 정하면 <b>봇 토큰</b>을 줘요. 토큰은 비밀번호처럼 다른 사람에게 알려 주지 마세요.</li>
     <li>방금 만든 봇을 찾아 <b>시작</b>을 누르고 아무 말이나 한 번 보내요. 여러 사람이 함께 받으려면 단체방을 만들어 봇을 초대하고 단체방에 한마디 하세요.</li>
@@ -99,4 +101,13 @@ $text = function ($key, $label, $opts = array()) use ($v) {
     <div><button type="submit" class="btn btn-primary">연결 확인</button></div>
   </form>
 <?php endif; ?>
+<?php $tgCheck = json_decode(gc('tg_check'), true); ?>
+  <div class="tg-check">
+    <form method="post" action="/admin/site"><?= csrf_field() ?><input type="hidden" name="action" value="tg_check"><button type="submit" class="btn btn-ghost btn-sm">서버 연결 점검</button></form>
+<?php if (is_array($tgCheck) && !empty($tgCheck['lines'])): ?>
+    <p class="sub"><?= e(fmt_date($tgCheck['at'], 'm.d H:i')) ?> 점검: <?= e(implode(' · ', $tgCheck['lines'])) ?></p>
+<?php else: ?>
+    <p class="sub">연결이 안 될 때 눌러 보세요. 이 서버에서 텔레그램까지 연결되는지 확인해요.</p>
+<?php endif; ?>
+  </div>
 </section>

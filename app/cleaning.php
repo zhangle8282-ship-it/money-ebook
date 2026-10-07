@@ -61,6 +61,7 @@ function cleaning_defaults()
         'gc_tg_chat_title' => '',
         'gc_tg_on' => '1',
         'gc_tg_last' => '',
+        'gc_tg_check' => '',
     );
 }
 

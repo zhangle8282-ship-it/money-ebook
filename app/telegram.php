@@ -37,6 +37,7 @@ function telegram_call($token, $method, $params = array())
     $body = json_encode($params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $raw = '';
     $code = 0;
+    $net = '';
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt_array($ch, array(
@@ -49,14 +50,17 @@ function telegram_call($token, $method, $params = array())
         ));
         $raw = (string) curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $net = $code === 0 ? telegram_net_reason(curl_errno($ch)) : '';
     } else {
         $ctx = stream_context_create(array('http' => array(
             'method' => 'POST', 'header' => "Content-Type: application/json\r\n", 'content' => $body, 'timeout' => 8, 'ignore_errors' => true,
         )));
         $raw = (string) @file_get_contents($url, false, $ctx);
-        if ($raw !== '' && function_exists('http_get_last_response_headers')) {
-            $head = http_get_last_response_headers();
+        if ($raw !== '') {
+            $head = function_exists('http_get_last_response_headers') ? http_get_last_response_headers() : null;
             $code = $head && preg_match('~^HTTP/\S+\s+(\d{3})~', $head[0], $m) ? (int) $m[1] : 200;
+        } elseif (!ini_get('allow_url_fopen')) {
+            $net = '서버에 curl도 없고 바깥 주소 열기(allow_url_fopen)도 꺼져 있어요';
         }
     }
     $data = json_decode($raw, true);
@@ -65,14 +69,30 @@ function telegram_call($token, $method, $params = array())
         'result' => is_array($data) ? ($data['result'] ?? null) : null,
         'code' => $code,
         'description' => is_array($data) ? (string) ($data['description'] ?? '') : '',
+        'net' => $net,
     );
+}
+
+/** curl 오류 번호 → 이유(주소 · 토큰은 넣지 않음) */
+function telegram_net_reason($errno)
+{
+    $reasons = array(
+        6 => '텔레그램 주소(api.telegram.org)를 찾지 못했어요(DNS)',
+        7 => '텔레그램 서버로 연결이 막혔어요(방화벽 · 바깥 연결 차단)',
+        28 => '시간 안에 텔레그램이 답하지 않았어요(연결 지연 · 차단)',
+        35 => '보안 연결(SSL)을 맺지 못했어요',
+        51 => '보안 인증서를 확인하지 못했어요(SSL)',
+        60 => '서버의 보안 인증서 목록이 오래돼 텔레그램 인증서를 확인하지 못했어요(SSL)',
+        77 => '서버의 보안 인증서 목록을 읽지 못했어요(SSL)',
+    );
+    return $reasons[(int) $errno] ?? ('연결 오류 ' . (int) $errno);
 }
 
 /** 실패 결과 → 알아듣기 쉬운 안내(토큰은 넣지 않음) */
 function telegram_error_text($r)
 {
     if ($r['code'] === 0) {
-        return '이 서버에서 텔레그램으로 연결하지 못했어요. 잠시 뒤 다시 해 보고, 계속 안 되면 호스팅에서 바깥 연결을 막았을 수 있어요.';
+        return '이 서버에서 텔레그램으로 연결하지 못했어요' . (!empty($r['net']) ? ' — ' . $r['net'] : '') . '. 잠시 뒤 다시 해 보고, 계속 안 되면 ‘서버 연결 점검’ 결과를 알려 주세요.';
     }
     if ($r['code'] === 401 || $r['code'] === 404) {
         return '봇 토큰이 맞지 않아요. @BotFather 가 준 토큰을 다시 붙여 넣어 주세요.';
@@ -176,4 +196,21 @@ function telegram_notify_inquiry($v)
             error_log('telegram: ' . $e->getMessage());
         }
     });
+}
+
+/** 서버에서 텔레그램까지 연결되는지 점검(토큰 없이 주소만 열어 봄). 반환: 한 줄씩 결과 */
+function telegram_server_check()
+{
+    $lines = array('PHP ' . PHP_VERSION);
+    $lines[] = function_exists('curl_init') ? 'curl 있음' . (function_exists('curl_version') ? ' (' . (curl_version()['ssl_version'] ?? '') . ')' : '') : 'curl 없음' . (ini_get('allow_url_fopen') ? ' · 바깥 주소 열기 가능' : ' · 바깥 주소 열기도 꺼짐');
+    $host = parse_url(telegram_api_base(), PHP_URL_HOST);
+    $ip = gethostbyname($host);
+    $lines[] = filter_var($host, FILTER_VALIDATE_IP) || $ip !== $host ? '텔레그램 주소 찾음' : '텔레그램 주소를 찾지 못함(DNS)';
+    $r = telegram_call('0:check', 'getMe');
+    $lines[] = $r['code'] > 0 ? '텔레그램 서버와 연결됨' : '텔레그램 서버로 연결 안 됨' . ($r['net'] !== '' ? ' — ' . $r['net'] : '');
+    if (telegram_token_ok(gc('tg_token'))) {
+        $me = telegram_call(gc('tg_token'), 'getMe');
+        $lines[] = $me['ok'] ? '저장된 봇 토큰 확인(@' . ($me['result']['username'] ?? '') . ')' : '저장된 봇 토큰: ' . telegram_error_text($me);
+    }
+    return $lines;
 }
