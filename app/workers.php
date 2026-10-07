@@ -31,6 +31,21 @@ const WORKER_REGIONS = array(
     '인근 시 · 군' => array('충주', '괴산'),
 );
 const WORKER_REGIONS_MAX = 40;
+// 구성(혼자인지, 누구와 함께 일하는지). 기타는 관계를 직접 적습니다.
+const WORKER_TEAMS = array(
+    'male' => '남자', 'female' => '여자', 'couple' => '부부', 'siblings' => '남매',
+    'mother_daughter' => '모녀', 'mother_son' => '모자', 'friends' => '친구', 'other' => '기타',
+);
+
+/** 보여 줄 구성 이름(기타는 적은 관계, 안 적었으면 ‘기타’). 안 골랐으면 '' */
+function worker_team_label($w)
+{
+    $team = (string) ($w['team'] ?? '');
+    if ($team === 'other') {
+        return trim((string) ($w['team_note'] ?? '')) !== '' ? '기타 · ' . $w['team_note'] : '기타';
+    }
+    return WORKER_TEAMS[$team] ?? '';
+}
 
 function worker_region_options()
 {
@@ -69,16 +84,22 @@ function find_worker($id)
 
 /**
  * 찾기: $q 는 띄어쓰기로 나눈 낱말이 모두 들어 있어야 함(이름 · 지역 · 메모, 숫자는 전화번호까지).
- * $method: commission | takeover | '' , $region: 지역 이름 | ''
+ * $method: commission | takeover | '' , $region: 지역 이름 | '', $team: 구성 키 | ''
  */
-function workers_search($q, $method, $region)
+function workers_search($q, $method, $region, $team = '')
 {
     $where = array();
     $params = array();
     foreach (preg_split('/\s+/u', trim((string) $q), -1, PREG_SPLIT_NO_EMPTY) as $word) {
         $like = worker_like($word);
-        $cond = "name LIKE ? ESCAPE '!' OR regions LIKE ? ESCAPE '!' OR memo LIKE ? ESCAPE '!'";
-        array_push($params, $like, $like, $like);
+        $cond = "name LIKE ? ESCAPE '!' OR regions LIKE ? ESCAPE '!' OR memo LIKE ? ESCAPE '!' OR team_note LIKE ? ESCAPE '!'";
+        array_push($params, $like, $like, $like, $like);
+        // ‘부부’ · ‘모녀’처럼 구성 이름으로도 찾기
+        $teamKey = array_search($word, WORKER_TEAMS, true);
+        if ($teamKey !== false) {
+            $cond .= ' OR team = ?';
+            $params[] = $teamKey;
+        }
         $digits = preg_replace('/\D/', '', $word);
         if (strlen($digits) >= 3) {
             $cond .= " OR REPLACE(REPLACE(phone, '-', ''), ' ', '') LIKE ?";
@@ -94,6 +115,10 @@ function workers_search($q, $method, $region)
     if ($region !== '') {
         $where[] = "regions LIKE ? ESCAPE '!'";
         $params[] = worker_like($region);
+    }
+    if (array_key_exists($team, WORKER_TEAMS)) {
+        $where[] = 'team = ?';
+        $params[] = $team;
     }
     return q_all('SELECT * FROM workers' . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY name, id', $params);
 }

@@ -82,7 +82,7 @@ $fee = $form['monthly_fee'] !== '' ? number_format((int) $form['monthly_fee']) :
 <?php endif; ?>
 <?php if ($pickWorkers): ?>            <optgroup label="인력 배치에서 고르기">
 <?php foreach ($pickWorkers as $w): ?>
-              <option value="w:<?= (int) $w['id'] ?>"<?= $selWorker === (int) $w['id'] ? ' selected' : '' ?>><?= e($w['name']) ?> · <?= e(str_cut($w['regions'], 24)) ?> · <?= e(implode('/', array_map(function ($k) { return WORKER_METHODS[$k][0]; }, worker_methods($w['method'])))) ?></option>
+              <option value="w:<?= (int) $w['id'] ?>"<?= $selWorker === (int) $w['id'] ? ' selected' : '' ?>><?= e($w['name']) ?><?= worker_team_label($w) !== '' ? ' (' . e(worker_team_label($w)) . ')' : '' ?> · <?= e(str_cut($w['regions'], 24)) ?> · <?= e(implode('/', array_map(function ($k) { return WORKER_METHODS[$k][0]; }, worker_methods($w['method'])))) ?></option>
 <?php endforeach; ?>
             </optgroup>
 <?php endif; ?>

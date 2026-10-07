@@ -1,10 +1,10 @@
-<?php /** 그린청소 관리자 › 인력 배치 목록 · 찾기. 변수: $rows, $q, $method, $region, $counts, $total, $assigned(맡은 청소), $openContracts(배치할 수 있는 청소) */
+<?php /** 그린청소 관리자 › 인력 배치 목록 · 찾기. 변수: $rows, $q, $method, $region, $team, $counts, $total, $assigned(맡은 청소), $openContracts(배치할 수 있는 청소) */
 $back = $_SERVER['REQUEST_URI'] ?? '/admin/workers';
-$link = function ($m) use ($q, $region) {
-    $params = array_filter(array('q' => $q, 'method' => $m, 'region' => $region), 'strlen');
+$link = function ($m) use ($q, $region, $team) {
+    $params = array_filter(array('q' => $q, 'method' => $m, 'region' => $region, 'team' => $team), 'strlen');
     return '/admin/workers' . ($params ? '?' . http_build_query($params) : '');
 };
-$searching = $q !== '' || $region !== '';
+$searching = $q !== '' || $region !== '' || $team !== '';
 ?>
 <div class="page-head">
   <div class="page-head-text">
@@ -19,7 +19,7 @@ $searching = $q !== '' || $region !== '';
 <?php endif; ?>
   <div class="field worker-q">
     <label for="w-q">찾기</label>
-    <input id="w-q" name="q" type="search" value="<?= e($q) ?>" placeholder="이름 · 지역 · 메모 · 전화번호 (예: 금왕, 김)" autocomplete="off">
+    <input id="w-q" name="q" type="search" value="<?= e($q) ?>" placeholder="이름 · 지역 · 구성 · 메모 · 전화번호 (예: 금왕, 부부)" autocomplete="off">
   </div>
   <div class="field worker-region">
     <label for="w-region">지역</label>
@@ -30,6 +30,14 @@ $searching = $q !== '' || $region !== '';
 <?php foreach ($list as $r): ?>        <option value="<?= e($r) ?>"<?= $region === $r ? ' selected' : '' ?>><?= e($r) ?></option>
 <?php endforeach; ?>
       </optgroup>
+<?php endforeach; ?>
+    </select>
+  </div>
+  <div class="field worker-region">
+    <label for="w-team">구성</label>
+    <select id="w-team" name="team">
+      <option value="">모든 구성</option>
+<?php foreach (WORKER_TEAMS as $key => $label): ?>      <option value="<?= e($key) ?>"<?= $team === $key ? ' selected' : '' ?>><?= e($label) ?></option>
 <?php endforeach; ?>
     </select>
   </div>
@@ -59,7 +67,7 @@ $searching = $q !== '' || $region !== '';
     <tbody>
 <?php foreach ($rows as $w): ?>
       <tr>
-        <td class="nowrap"><a class="strong" href="/admin/workers/<?= (int) $w['id'] ?>/edit"><?= e($w['name']) ?></a><?php if ($w['phone'] !== ''): ?><div class="sub"><a href="<?= e(tel_href($w['phone'])) ?>"><?= e($w['phone']) ?></a></div><?php endif; ?></td>
+        <td class="nowrap"><a class="strong" href="/admin/workers/<?= (int) $w['id'] ?>/edit"><?= e($w['name']) ?></a><?php if (worker_team_label($w) !== ''): ?> <span class="team-pill"><?= e(worker_team_label($w)) ?></span><?php endif; ?><?php if ($w['phone'] !== ''): ?><div class="sub"><a href="<?= e(tel_href($w['phone'])) ?>"><?= e($w['phone']) ?></a></div><?php endif; ?></td>
         <td><div class="region-chips"><?php foreach (worker_regions($w['regions']) as $r): ?><span class="region-chip<?= $r === $region ? ' is-hit' : '' ?>"><?= e($r) ?></span><?php endforeach; ?></div></td>
         <td><div class="method-pills"><?php foreach (worker_methods($w['method']) as $key): ?><span class="status worker-<?= e($key) ?>"><?= e(WORKER_METHODS[$key][0]) ?></span><?php endforeach; ?></div></td>
         <td class="worker-jobs"><?php $mine = array_column($assigned[(int) $w['id']] ?? array(), 0); if ($mine): foreach ($assigned[(int) $w['id']] as $job): ?><a class="job-chip" href="/admin/contracts/<?= (int) $job[0] ?>/edit"><?= e($job[1]) ?></a><?php endforeach; endif; ?>

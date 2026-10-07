@@ -18,6 +18,17 @@ $action = $worker ? '/admin/workers/' . (int) $worker['id'] . '/edit' : '/admin/
     <div class="field"><label for="w-phone">연락처</label><input id="w-phone" name="phone" type="tel" inputmode="tel" maxlength="40" value="<?= e($form['phone']) ?>" placeholder="010-0000-0000" autocomplete="off"></div>
   </div>
 
+  <fieldset class="field team-picker">
+    <legend>구성 <span class="sub">(혼자인지, 누구와 함께 일하는지)</span></legend>
+    <div class="region-checks">
+<?php foreach (WORKER_TEAMS as $key => $label): ?>
+      <input type="radio" id="t-<?= e($key) ?>" name="team" value="<?= e($key) ?>"<?= ($form['team'] ?? '') === $key ? ' checked' : '' ?>><label for="t-<?= e($key) ?>"><?= e($label) ?></label>
+<?php endforeach; ?>
+      <input type="radio" id="t-none" name="team" value=""<?= ($form['team'] ?? '') === '' ? ' checked' : '' ?>><label for="t-none" class="team-none">모름</label>
+    </div>
+    <div class="field team-note"><label for="w-team-note">기타 관계</label><input id="w-team-note" name="team_note" type="text" maxlength="30" value="<?= e($form['team_note'] ?? '') ?>" placeholder="‘기타’를 골랐을 때 적어요 (예: 자매, 이웃, 부자)"></div>
+  </fieldset>
+
   <fieldset class="field region-picker">
     <legend>커버 가능한 지역 <span class="req">*</span> <span class="sub">(여러 곳 고를 수 있어요)</span></legend>
 <?php foreach (WORKER_REGIONS as $group => $list): ?>

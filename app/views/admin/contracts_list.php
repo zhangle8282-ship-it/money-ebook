@@ -33,7 +33,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/contracts/list';
 <?php endforeach; ?>              </optgroup>
 <?php endif; ?>
 <?php if ($pickWorkers): ?>              <optgroup label="인력 배치에서 고르기">
-<?php foreach ($pickWorkers as $w): ?>                <option value="w:<?= (int) $w['id'] ?>"><?= e($w['name']) ?> · <?= e(str_cut($w['regions'], 18)) ?></option>
+<?php foreach ($pickWorkers as $w): ?>                <option value="w:<?= (int) $w['id'] ?>"><?= e($w['name']) ?><?= worker_team_label($w) !== '' ? ' (' . e(worker_team_label($w)) . ')' : '' ?> · <?= e(str_cut($w['regions'], 18)) ?></option>
 <?php endforeach; ?>              </optgroup>
 <?php endif; ?>
             </select>

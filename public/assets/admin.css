@@ -818,3 +818,10 @@ select { max-width: 100%; }
 .tg-check { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--line); }
 .tg-check form { margin: 0; }
 .tg-check .sub { margin: 0; flex: 1 1 240px; }
+
+/* 인력 배치 › 구성(남자 · 여자 · 부부 · 남매 · 모녀 · 모자 · 친구 · 기타) */
+.team-picker { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.team-picker legend { padding: 0; margin-bottom: 4px; font-size: 14px; font-weight: 600; }
+.team-picker .team-none { color: var(--sub); }
+.team-note { margin: 0; max-width: 360px; }
+.team-pill { display: inline-block; margin-left: 4px; padding: 1px 8px; border-radius: 10px; background: #FBF1DC; color: #6A4A12; font-size: 12px; font-weight: 600; vertical-align: 2px; }

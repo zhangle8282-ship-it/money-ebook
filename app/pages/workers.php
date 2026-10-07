@@ -9,10 +9,11 @@ function admin_workers()
     $q = str_cut(input('q'), 60, '');
     $method = array_key_exists(input('method'), WORKER_METHODS) ? input('method') : '';
     $region = in_array(input('region'), worker_region_options(), true) ? input('region') : '';
+    $team = array_key_exists(input('team'), WORKER_TEAMS) ? input('team') : '';
     render_admin('workers', array(
         'title' => '인력 배치', 'nav' => 'workers',
-        'rows' => workers_search($q, $method, $region),
-        'q' => $q, 'method' => $method, 'region' => $region,
+        'rows' => workers_search($q, $method, $region, $team),
+        'q' => $q, 'method' => $method, 'region' => $region, 'team' => $team,
         'counts' => worker_counts(),
         'assigned' => worker_assignments(),
         'openContracts' => contracts_open(),
@@ -27,7 +28,7 @@ function admin_worker_form($id = null)
     if ($id !== null && !$worker) {
         not_found();
     }
-    $form = $worker ?: array('name' => '', 'phone' => '', 'regions' => '', 'method' => '', 'memo' => '');
+    $form = $worker ?: array('name' => '', 'phone' => '', 'regions' => '', 'method' => '', 'memo' => '', 'team' => '', 'team_note' => '');
     $other = '';
     $errors = array();
     $here = $worker ? '/admin/workers/' . (int) $worker['id'] . '/edit' : '/admin/workers/new';
@@ -42,6 +43,8 @@ function admin_worker_form($id = null)
             // 둘 다 고를 수 있음(methods[]). 예전 방식(method 하나)도 받습니다.
             'method' => worker_method_value(isset($_POST['methods']) && is_array($_POST['methods']) ? $_POST['methods'] : array(input('method'))),
             'memo' => str_cut(str_replace("\r\n", "\n", trim((string) input('memo'))), 1000, ''),
+            'team' => array_key_exists(input('team'), WORKER_TEAMS) ? input('team') : '',
+            'team_note' => input('team') === 'other' ? str_cut(trim(preg_replace('/\s+/u', ' ', input('team_note'))), 30, '') : '',
         ));
         if ($form['name'] === '') {
             $errors[] = '이름을 적어 주세요.';
@@ -52,11 +55,14 @@ function admin_worker_form($id = null)
         if ($form['regions'] === '') {
             $errors[] = '커버 가능한 지역을 하나 이상 골라 주세요.';
         }
+        if ($form['team'] === 'other' && $form['team_note'] === '') {
+            $errors[] = '구성을 ‘기타’로 골랐다면 어떤 관계인지 적어 주세요(예: 자매, 이웃, 부자).';
+        }
         if ($form['method'] === '') {
             $errors[] = '원하는 방식(수수료 방식 / 인수해서 직접)을 하나 이상 골라 주세요. 둘 다 골라도 돼요.';
         }
         if (!$errors) {
-            $data = array_intersect_key($form, array_flip(array('name', 'phone', 'regions', 'method', 'memo')));
+            $data = array_intersect_key($form, array_flip(array('name', 'phone', 'regions', 'method', 'memo', 'team', 'team_note')));
             $data['updated_at'] = now();
             if ($worker) {
                 q_update('workers', (int) $worker['id'], $data);

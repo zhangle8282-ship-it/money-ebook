@@ -263,6 +263,18 @@ function migrate(PDO $pdo)
         }
         $pdo->prepare("UPDATE settings SET v = '17' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 18) {
+        // 18: 인력 배치 구성(남자 · 여자 · 부부 · 남매 · 모녀 · 모자 · 친구 · 기타)과 기타 관계 글
+        $cols = $sqlite ? array_column($pdo->query('PRAGMA table_info(workers)')->fetchAll(PDO::FETCH_ASSOC), 'name')
+            : $pdo->query('SHOW COLUMNS FROM workers')->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('team', $cols, true)) {
+            $pdo->exec("ALTER TABLE workers ADD COLUMN team VARCHAR(20) NOT NULL DEFAULT ''");
+        }
+        if (!in_array('team_note', $cols, true)) {
+            $pdo->exec("ALTER TABLE workers ADD COLUMN team_note VARCHAR(60) NOT NULL DEFAULT ''");
+        }
+        $pdo->prepare("UPDATE settings SET v = '18' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */
