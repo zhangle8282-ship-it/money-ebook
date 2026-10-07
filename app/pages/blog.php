@@ -28,9 +28,11 @@ function page_blog_post($id, $slug = '')
         header('Location: ' . blog_url($post), true, 301);
         exit;
     }
-    // 조회수: 방문 한 번에 2~3씩 올립니다(관리자가 볼 때는 세지 않음).
+    // 조회수: 방문 한 번에 2~3씩 올립니다(관리자가 볼 때는 세지 않음). 화면에는 올린 뒤 숫자를 보여 줍니다.
     if (!$admin) {
-        q('UPDATE blog_posts SET views = views + ? WHERE id = ?', array(random_int(2, 3), (int) $post['id']));
+        $add = random_int(2, 3);
+        q('UPDATE blog_posts SET views = views + ? WHERE id = ?', array($add, (int) $post['id']));
+        $post['views'] = (int) $post['views'] + $add;
     }
     render('cleaning/blog_post', array(
         'post' => $post,

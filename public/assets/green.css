@@ -426,6 +426,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .g-post-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .g-post-thumb svg { width: 56px; height: 54px; opacity: .55; }
 .g-post-body { padding: 20px 22px 24px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.g-post-views { font-size: 13px; color: var(--sub-2); }
 .g-post-card h3 { font-size: 19px; font-weight: 800; line-height: 1.4; color: var(--hero-ink); }
 .g-post-card p { font-size: 15px; line-height: 1.6; color: var(--sub); }
 .g-blog-head { padding: 64px 0 40px; background: var(--hero-bg); }
