@@ -1,0 +1,98 @@
+<?php
+/**
+ * 그린청소 인력 배치 정보: 일할 사람의 이름 · 연락처 · 커버 가능한 지역 · 원하는 방식(수수료 / 인수)을 모아 두고 찾아봅니다.
+ * 관리자 화면 전용입니다(검색 사이트에 나오지 않음).
+ */
+
+// 원하는 방식: 키 => [이름, 설명]
+const WORKER_METHODS = array(
+    'commission' => array('수수료 방식', '일을 받아서 하고, 수수료를 떼고 받기'),
+    'takeover' => array('인수해서 직접', '현장을 넘겨받아 본인이 직접 맡기'),
+);
+// 고를 수 있는 지역(음성군 9개 읍 · 면, 진천군 7개 읍 · 면, 충북혁신도시). 이 밖의 지역은 ‘기타 지역’ 칸에 적습니다.
+const WORKER_REGIONS = array(
+    '음성군' => array('음성읍', '금왕읍', '대소면', '삼성면', '맹동면', '원남면', '생극면', '감곡면', '소이면'),
+    '진천군' => array('진천읍', '덕산읍', '이월면', '광혜원면', '문백면', '백곡면', '초평면'),
+    '혁신도시' => array('충북혁신도시'),
+);
+const WORKER_REGIONS_MAX = 40;
+
+function worker_region_options()
+{
+    return array_merge(...array_values(WORKER_REGIONS));
+}
+
+/** 저장된 지역 글자 → 목록 */
+function worker_regions($text)
+{
+    return array_values(array_filter(array_map('trim', explode(',', (string) $text)), 'strlen'));
+}
+
+/** 고른 지역 + 기타 지역 글자 → 저장할 글자(겹치는 것 빼고, 고른 순서 → 기타 순서) */
+function worker_regions_text($picked, $other)
+{
+    $options = worker_region_options();
+    $list = array();
+    foreach ((array) $picked as $r) {
+        if (is_string($r) && in_array($r, $options, true)) {
+            $list[$r] = true;
+        }
+    }
+    foreach (preg_split('/[,，、\/\n]+/u', (string) $other) as $r) {
+        $r = str_cut(trim(preg_replace('/\s+/u', ' ', $r)), 30, '');
+        if ($r !== '') {
+            $list[$r] = true;
+        }
+    }
+    return implode(', ', array_slice(array_keys($list), 0, WORKER_REGIONS_MAX));
+}
+
+function find_worker($id)
+{
+    return q_one('SELECT * FROM workers WHERE id = ?', array((int) $id));
+}
+
+/**
+ * 찾기: $q 는 띄어쓰기로 나눈 낱말이 모두 들어 있어야 함(이름 · 지역 · 메모, 숫자는 전화번호까지).
+ * $method: commission | takeover | '' , $region: 지역 이름 | ''
+ */
+function workers_search($q, $method, $region)
+{
+    $where = array();
+    $params = array();
+    foreach (preg_split('/\s+/u', trim((string) $q), -1, PREG_SPLIT_NO_EMPTY) as $word) {
+        $like = worker_like($word);
+        $cond = "name LIKE ? ESCAPE '!' OR regions LIKE ? ESCAPE '!' OR memo LIKE ? ESCAPE '!'";
+        array_push($params, $like, $like, $like);
+        $digits = preg_replace('/\D/', '', $word);
+        if (strlen($digits) >= 3) {
+            $cond .= " OR REPLACE(REPLACE(phone, '-', ''), ' ', '') LIKE ?";
+            $params[] = '%' . $digits . '%';
+        }
+        $where[] = '(' . $cond . ')';
+    }
+    if (array_key_exists($method, WORKER_METHODS)) {
+        $where[] = 'method = ?';
+        $params[] = $method;
+    }
+    if ($region !== '') {
+        $where[] = "regions LIKE ? ESCAPE '!'";
+        $params[] = worker_like($region);
+    }
+    return q_all('SELECT * FROM workers' . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY name, id', $params);
+}
+
+/** LIKE 찾기 글자(%, _ 는 글자 그대로). 백슬래시 대신 ! 로 감싸서 SQLite · MySQL 모두 같게 */
+function worker_like($word)
+{
+    return '%' . str_replace(array('!', '%', '_'), array('!!', '!%', '!_'), $word) . '%';
+}
+
+function worker_counts()
+{
+    $counts = array_fill_keys(array_keys(WORKER_METHODS), 0);
+    foreach (q_all('SELECT method, COUNT(*) AS n FROM workers GROUP BY method') as $r) {
+        $counts[$r['method']] = (int) $r['n'];
+    }
+    return $counts;
+}

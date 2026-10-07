@@ -57,6 +57,7 @@ require APP_DIR . '/blog.php';
 require APP_DIR . '/richtext.php';
 require APP_DIR . '/search.php';
 require APP_DIR . '/landing.php';
+require APP_DIR . '/workers.php';
 require APP_DIR . '/drafts.php';
 // 설치 도구(install.php)에는 같은 코드가 들어 있어 이미 불러왔을 수 있습니다.
 if (!function_exists('pkg_install')) {

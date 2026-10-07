@@ -47,6 +47,11 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/account$~', 'admin_account'),
         array('GET|POST', '~^/admin/code$~', 'admin_custom_code'),
         array('GET|POST', '~^/admin/search$~', 'admin_search_submit'),
+        // 인력 배치 정보
+        array('GET', '~^/admin/workers$~', 'admin_workers'),
+        array('GET|POST', '~^/admin/workers/new$~', 'admin_worker_form'),
+        array('GET|POST', '~^/admin/workers/(\d+)/edit$~', 'admin_worker_form'),
+        array('POST', '~^/admin/workers/(\d+)/delete$~', 'admin_worker_delete'),
         // 검색어 페이지
         array('GET', '~^/admin/pages$~', 'admin_landing_list'),
         array('GET|POST', '~^/admin/pages/new$~', 'admin_landing_form'),

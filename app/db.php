@@ -247,6 +247,13 @@ function migrate(PDO $pdo)
         $pdo->exec("UPDATE inquiries SET status = 'contacted' WHERE status = 'new' AND (memo <> '' OR updated_at > created_at)");
         $pdo->prepare("UPDATE settings SET v = '15' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 16) {
+        // 16: 인력 배치 정보(이름 · 연락처 · 커버 가능 지역 · 원하는 방식)
+        $pdo->exec("CREATE TABLE IF NOT EXISTS workers (
+            id $id, name VARCHAR(60) NOT NULL, phone VARCHAR(40) NOT NULL DEFAULT '', regions VARCHAR(600) NOT NULL DEFAULT '',
+            method VARCHAR(12) NOT NULL DEFAULT 'commission', memo TEXT, created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NOT NULL)" . $tail);
+        $pdo->prepare("UPDATE settings SET v = '16' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */
