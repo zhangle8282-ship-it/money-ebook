@@ -1,8 +1,9 @@
-<?php /** 정기청소 정산 · 일회성 정산 공통: 대표 · 운영 비율, 파트너 3명(청소 담당은 인력 배치에서도), 원천징수. 변수: $form, $fixedGap(정해진 대표 비율 — 일회성은 50) */
+<?php /** 정기청소 정산 · 일회성 정산 공통: 대표 · 운영 비율, 파트너 3명(청소 담당은 인력 배치에서도), 원천징수. 변수: $form, $fixedGap(정해진 대표 비율 — 일회성은 50), $skipByeong(청소 담당 칸을 다른 곳에 그릴 때) */
 $fixedGap = $fixedGap ?? null;
+$skipByeong = !empty($skipByeong);
 ?>
     <section class="card stack-lg" aria-labelledby="cf-split">
-      <h2 id="cf-split">파트너 3명</h2>
+      <h2 id="cf-split"><?= $skipByeong ? '대표 · 운영 파트너' : '파트너 3명' ?></h2>
       <div class="grid-2">
 <?php if ($fixedGap !== null): ?>
         <div class="field">
@@ -21,7 +22,7 @@ $fixedGap = $fixedGap ?? null;
           <div class="quick-rates"><button type="button" class="btn btn-outline btn-sm" data-gap="60">60 : 40</button><button type="button" class="btn btn-outline btn-sm" data-gap="50">50 : 50</button><button type="button" class="btn btn-outline btn-sm" data-gap="70">70 : 30</button></div>
         </div>
 <?php endif; ?>
-<?php $groups = partners_by_role(); foreach (CONTRACT_ROLE_SIDES as $role => $label): $sel = (int) ($form[$role . '_partner_id'] ?? 0); $selP = $sel ? (partners_all()[$sel] ?? null) : null; ?>
+<?php $groups = partners_by_role(); foreach (CONTRACT_ROLE_SIDES as $role => $label): if ($skipByeong && $role === 'byeong') { continue; } $sel = (int) ($form[$role . '_partner_id'] ?? 0); $selP = $sel ? (partners_all()[$sel] ?? null) : null; ?>
         <div class="field partner-pick"<?= $role === 'byeong' ? ' data-byeong-field' : '' ?>>
           <label for="cf-<?= $role ?>-partner"><?= e($label) ?></label>
           <select id="cf-<?= $role ?>-partner" name="<?= $role ?>_partner_id">

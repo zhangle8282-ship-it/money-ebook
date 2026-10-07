@@ -801,6 +801,8 @@ select { max-width: 100%; }
 .assign-row .assign-what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .assign-row .assign-form { margin-top: 0; }
 .row-delete { display: block; margin-top: 6px; }
+.cleaner-pick select { width: 100%; }
+.cleaner-pick input { margin-top: 6px; }
 .danger-link { color: var(--danger); }
 @media (max-width: 860px) { .assign-row { grid-template-columns: 1fr; } .assign-board-link { margin-left: 0; } }
 .assign-form { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 4px; }

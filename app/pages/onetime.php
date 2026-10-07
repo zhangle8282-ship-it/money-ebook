@@ -15,6 +15,9 @@ function admin_onetime_list()
         'pendingCount' => onetime_pending_count(),
         'total' => (int) q_value('SELECT COUNT(*) FROM onetime_jobs'),
         'roles' => contract_roles('onetime'),
+        // 청소 담당 배치 판: 보고 있는 달과 상관없이 정산 전 · 수수료 방식인 일 모두(작업일 순)
+        'assignRows' => array_map('onetime_row', q_all("SELECT * FROM onetime_jobs WHERE status <> 'done' AND COALESCE(method, 'commission') <> 'takeover' ORDER BY work_date, id")),
+        'workerCount' => (int) q_value('SELECT COUNT(*) FROM workers'),
     ));
 }
 

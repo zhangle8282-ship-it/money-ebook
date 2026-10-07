@@ -1,4 +1,4 @@
-<?php /** 관리자 › 일회성 정산 › 목록 · 정산. 변수: $month, $pendingOnly, $rows, $sum, $pendingCount, $total, $roles */
+<?php /** 관리자 › 일회성 정산 › 목록 · 정산. 변수: $month, $pendingOnly, $rows, $sum, $pendingCount, $total, $roles, $assignRows(배치 판: 정산 전 · 수수료 방식 일 모두), $workerCount */
 $prev = month_shift($month, -1);
 $next = month_shift($month, 1);
 $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
@@ -38,25 +38,27 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
 <?php endif; ?>
 </div>
 
-<?php $pick = array_values(array_filter($rows, function ($r) { return $r['status'] !== 'done' && ($r['method'] ?? 'commission') !== 'takeover'; }));
-if ($pick): $unassigned = count(array_filter($pick, function ($r) { return !$r['byeong_partner_id']; })); ?>
+<?php $unassigned = count(array_filter($assignRows, function ($r) { return !$r['byeong_partner_id']; })); ?>
 <section class="card assign-board" id="assign" aria-labelledby="assign-title">
   <div class="assign-board-head">
     <h2 id="assign-title">청소 담당 배치</h2>
-    <span class="sub"><?= $pendingOnly ? '정산 전인 일' : e(month_label($month)) . ' 정산 전인 일' ?> <?= count($pick) ?>건<?= $unassigned ? ' · <b class="warn-text">배치 안 됨 ' . $unassigned . '건</b>' : ' · 모두 배치됨' ?></span>
+    <span class="sub">정산 전인 일 <?= count($assignRows) ?>건<?= $assignRows ? ($unassigned ? ' · <b class="warn-text">배치 안 됨 ' . $unassigned . '건</b>' : ' · 모두 배치됨') : '' ?> · 인력 배치 <?= (int) $workerCount ?>명</span>
     <a class="assign-board-link" href="/admin/workers">인력 배치 보기 ›</a>
   </div>
-  <p class="sub">수수료 방식인 일에 청소 담당을 바로 배치해요. 인수 방식과 정산 완료한 일은 여기 나오지 않아요.</p>
+<?php if ($assignRows): ?>
+  <p class="sub">달과 상관없이 정산 전인 수수료 방식 일이 모두 나와요(작업일 순). 사람을 고르고 <b>배치</b>를 누르면 바로 바뀌어요. 인수 방식은 청소 담당이 없어서 빠져요.</p>
   <ul class="assign-rows">
-<?php foreach ($pick as $r): ?>
+<?php foreach ($assignRows as $r): ?>
     <li class="assign-row<?= $r['byeong_partner_id'] ? '' : ' is-empty' ?>">
       <div class="assign-what"><a class="strong" href="/admin/onetime/<?= (int) $r['id'] ?>/edit"><?= e($r['name']) ?></a><span class="sub"><?= e(date('Y.m.d', strtotime($r['work_date']))) ?> 작업 · 청소 담당 실지급 <?= won($r['byeong_pay']) ?></span></div>
       <?= view('admin/_cleaner_assign', array('c' => $r, 'back' => $back, 'action' => '/admin/onetime/' . (int) $r['id'] . '/assign')) ?>
     </li>
 <?php endforeach; ?>
   </ul>
-</section>
+<?php else: ?>
+  <p class="sub">청소 담당을 배치할 일이 아직 없어요. <a href="/admin/onetime/new">+ 새 일회성 정산</a>을 추가할 때 <b>청소 담당</b> 칸에서 인력 배치 사람을 고르거나, 추가한 뒤 여기서 바로 배치할 수 있어요.<?= $workerCount ? '' : ' 먼저 <a href="/admin/workers/new">인력 배치에 사람을 추가</a>해 주세요.' ?></p>
 <?php endif; ?>
+</section>
 
 <div class="settle-cards">
   <div class="card settle-card"><span>청소비용</span><strong><?= won($sum['fee']) ?></strong><small><?= $sum['count'] ?>건</small></div>

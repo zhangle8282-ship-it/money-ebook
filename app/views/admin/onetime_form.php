@@ -59,12 +59,30 @@ $fee = $form['fee'] !== '' ? number_format((int) $form['fee']) : '';
         </fieldset>
         <p class="field-help">예: 50만원 · 수수료 20% → 청소 담당에게 <b>40만원</b>, 수수료 10만원은 대표 · 운영이 <b>5만원씩</b>. 수수료는 회사가 청소 담당에게 줄 돈에서 떼는 몫이에요. 청소비용(세금계산서를 발행하면 세금을 뺀 금액)에서 수수료는 대표 · 운영 파트너가 <b><?= ONETIME_GAP ?> : <?= 100 - ONETIME_GAP ?></b>으로 나누고, 나머지 <strong data-calc="byeong_rate"><?= 100 - (int) $form['contract_rate'] ?></strong>%는 청소 담당이 받아요.</p>
       </div>
+<?php $choices = cleaner_choices();
+$pickNow = !empty($form['byeong_worker_id']) ? 'w:' . (int) $form['byeong_worker_id'] : (!empty($form['byeong_partner_id']) ? (string) (int) $form['byeong_partner_id'] : ''); ?>
+      <div class="field method-box cleaner-pick" data-method-show="commission">
+        <label for="of-cleaner" class="field-label-strong">청소 담당 <span class="sub">(인력 배치에서 고르기)</span></label>
+        <select id="of-cleaner" name="byeong_partner_id">
+          <option value="">— 사람 고르기 —</option>
+<?php if ($choices['workers']): ?>          <optgroup label="인력 배치">
+<?php foreach ($choices['workers'] as $o): ?>            <option value="<?= e($o[0]) ?>"<?= $o[0] === $pickNow ? ' selected' : '' ?>><?= e($o[1]) ?></option>
+<?php endforeach; ?>          </optgroup>
+<?php endif; ?>
+<?php if ($choices['others']): ?>          <optgroup label="그 밖의 청소 담당 파트너">
+<?php foreach ($choices['others'] as $o): ?>            <option value="<?= e($o[0]) ?>"<?= $o[0] === $pickNow ? ' selected' : '' ?>><?= e($o[1]) ?></option>
+<?php endforeach; ?>          </optgroup>
+<?php endif; ?>
+        </select>
+        <input name="byeong_name" type="text" maxlength="60" value="<?= e($form['byeong_name']) ?>" placeholder="또는 이름만 적기" aria-label="청소 담당 이름 직접 적기">
+        <p class="field-help"><?= $choices['workers'] ? '인력 배치에 등록한 사람을 고르면 청소 담당 파트너로 함께 등록돼요. 나중에 일회성 정산 › 정산 탭의 ‘청소 담당 배치’에서도 바꿀 수 있어요.' : '인력 배치에 등록한 사람이 아직 없어요.' ?> <a href="/admin/workers/new">인력 배치에 사람 추가 ›</a></p>
+      </div>
       <div class="field method-box" data-method-show="takeover">
         <p class="method-note">인수 방식은 <b>청소 담당 몫 없이</b> 청소 금액(세금계산서를 발행하면 세금 뺀 금액) <b>전체를 대표 · 운영이 <?= ONETIME_GAP ?> : <?= 100 - ONETIME_GAP ?></b>으로 나눠요. 청소 담당 · 원천징수 칸은 쓰지 않아요.</p>
       </div>
     </section>
 
-    <?= view('admin/_split_fields', array('form' => $form, 'fixedGap' => ONETIME_GAP)) ?>
+    <?= view('admin/_split_fields', array('form' => $form, 'fixedGap' => ONETIME_GAP, 'skipByeong' => true)) ?>
 
     <section class="card stack-lg" aria-labelledby="of-memo">
       <h2 id="of-memo">메모</h2>
