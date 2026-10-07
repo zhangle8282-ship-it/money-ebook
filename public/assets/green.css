@@ -522,3 +522,54 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (max-width: 480px) {
   .g-landing-btns a, .g-article-cta .g-cta-btns a { flex: 1 1 100%; white-space: nowrap; }
 }
+
+/* 블로그 본문: 서식 에디터로 쓴 글(굵게 · 색 · 크기 · 정렬 · 번호 목록 · 사진 · 이모지) */
+.g-prose ol { padding-left: 24px; list-style: decimal; display: flex; flex-direction: column; gap: 6px; }
+.g-prose img { max-width: 100%; height: auto; border-radius: 14px; vertical-align: middle; }
+.g-prose u { text-underline-offset: 3px; }
+.g-prose hr { border: 0; border-top: 1px solid var(--line); margin: 36px 0; }
+.g-prose .fs-sm { font-size: .85em; }
+.g-prose .fs-lg { font-size: 1.2em; }
+.g-prose .fs-xl { font-size: 1.5em; line-height: 1.45; }
+.g-prose p img, .g-prose li img, .g-prose h2 img, .g-prose h3 img { display: inline-block; } /* 문단 안 사진 · 스티커는 글줄을 따라 (가운데 정렬도 됨) */
+
+/* 블로그 글: 가운데 ‘청소 범위’ 상자 */
+.g-post-scope { margin-top: 44px; padding: 28px; border-radius: 22px; background: var(--soft); border: 1px solid var(--line); }
+.g-post-scope-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.g-post-scope-title { margin-top: 6px; font-size: 23px; font-weight: 800; line-height: 1.35; color: var(--hero-ink); }
+.g-post-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.g-post-tabs button { padding: 9px 14px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer; }
+.g-post-tabs button:hover { border-color: var(--g); }
+.g-post-tabs button[aria-selected="true"] { background: var(--g); border-color: var(--g); color: #fff; }
+.g-post-scope-panel { margin-top: 20px; }
+.js .g-post-scope-panel[data-hidden] { display: none; }
+.g-post-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; padding: 0; list-style: none; }
+.g-post-checks li { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; line-height: 1.5; font-weight: 600; color: var(--ink); }
+.g-post-checks .g-check { width: 22px; height: 22px; font-size: 12px; }
+.g-post-scope-foot { margin-top: 18px; font-size: 15px; color: var(--sub-2); }
+.g-post-scope-foot a { font-weight: 700; color: var(--g); white-space: nowrap; }
+
+/* 블로그 글 끝: 견적 문의 칸 + 채팅 · 전화 상담 안내 */
+.g-post-quote { margin-top: 64px; padding: 32px; border-radius: 26px; background: var(--hero-bg); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 28px; align-items: start; scroll-margin-top: 90px; }
+.g-post-quote-text h2 { margin-top: 6px; font-size: 26px; font-weight: 800; line-height: 1.35; color: var(--hero-ink); }
+.g-post-quote-text > p { margin-top: 10px; font-size: 16px; line-height: 1.7; color: var(--hero-sub); }
+.g-post-ways { margin-top: 20px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.g-post-ways li { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: rgba(255, 255, 255, .7); }
+.g-post-ways strong { display: block; font-size: 16px; color: var(--hero-ink); }
+.g-post-ways p { margin-top: 2px; font-size: 14px; line-height: 1.6; color: var(--hero-sub); }
+.g-post-ways a { font-weight: 700; color: var(--g); }
+.g-way-icon { font-size: 22px; line-height: 1.2; }
+.g-way-chat { background: #fff !important; border: 1.5px solid #D9CCFF; }
+.g-post-chat-btn { display: inline-flex; margin-top: 10px; padding: 10px 16px; border-radius: 999px; background: var(--chat); color: #fff !important; font-size: 14px; font-weight: 800; }
+.g-post-chat-btn:hover { background: var(--chat-hover); }
+.g-post-quote .g-quote-card { padding: 26px; box-shadow: 0 12px 30px rgba(35, 95, 71, .12); }
+.g-post-quote .g-sent { min-height: 320px; }
+@media (max-width: 860px) { .g-post-quote { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .g-post-scope { padding: 20px 16px; border-radius: 18px; }
+  .g-post-scope-title { font-size: 20px; }
+  .g-post-checks { grid-template-columns: 1fr; }
+  .g-post-quote { margin-top: 48px; padding: 20px 16px; border-radius: 20px; }
+  .g-post-quote-text h2 { font-size: 22px; }
+  .g-post-quote .g-quote-card { padding: 20px; }
+}

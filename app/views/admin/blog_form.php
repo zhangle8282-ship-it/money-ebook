@@ -29,22 +29,68 @@ $host = base_url();
         <input id="b-title" name="title" type="text" maxlength="200" required class="title-input" value="<?= e($form['title']) ?>" placeholder="예: 금왕 사무실 정기청소, 주 3회면 충분할까요?">
       </div>
       <div class="field">
-        <label for="b-body">본문</label>
-        <div class="editor-bar" role="toolbar" aria-label="본문 꾸미기">
-          <button type="button" data-md="h2">소제목</button>
-          <button type="button" data-md="h3">작은 제목</button>
-          <button type="button" data-md="bold"><b>굵게</b></button>
-          <button type="button" data-md="list">• 목록</button>
-          <button type="button" data-md="quote">“ 인용</button>
-          <button type="button" data-md="link">링크</button>
-          <button type="button" data-md="image">사진 넣기</button>
-          <input type="file" accept="image/jpeg,image/png,image/webp" hidden data-md-file>
-          <span class="editor-status" data-md-status></span>
+        <label id="b-body-label">본문</label>
+        <div class="rich" data-rich data-paste-url="/admin/blog/paste">
+          <div class="rich-bar" role="toolbar" aria-label="본문 꾸미기">
+            <select data-rich-block aria-label="문단 모양">
+              <option value="p">본문</option>
+              <option value="h2">소제목</option>
+              <option value="h3">작은 제목</option>
+              <option value="blockquote">인용</option>
+            </select>
+            <select data-rich-size aria-label="글자 크기">
+              <option value="">크기</option>
+              <option value="2">작게</option>
+              <option value="3">보통</option>
+              <option value="4">크게</option>
+              <option value="6">아주 크게</option>
+            </select>
+            <span class="rich-sep" aria-hidden="true"></span>
+            <button type="button" data-cmd="bold" title="굵게 (Ctrl+B)"><b>B</b></button>
+            <button type="button" data-cmd="italic" title="기울임 (Ctrl+I)"><i>I</i></button>
+            <button type="button" data-cmd="underline" title="밑줄 (Ctrl+U)"><u>U</u></button>
+            <button type="button" data-cmd="strikeThrough" title="취소선"><s>S</s></button>
+            <span class="rich-pop-wrap">
+              <button type="button" data-pop="color" title="글자색"><span class="rich-a">가</span><span class="rich-swatch" data-swatch="color"></span></button>
+              <div class="rich-pop" data-pop-panel="color" hidden>
+<?php foreach (array('#000000', '#555555', '#999999', '#E03131', '#F76707', '#F59F00', '#2F9E44', '#2F7D5C', '#1971C2', '#7048E8', '#C2255C', '#FFFFFF') as $c): ?>                <button type="button" data-color="<?= $c ?>" style="background:<?= $c ?>" aria-label="글자색 <?= $c ?>"></button>
+<?php endforeach; ?>
+              </div>
+            </span>
+            <span class="rich-pop-wrap">
+              <button type="button" data-pop="hilite" title="형광펜"><span class="rich-a rich-hl">가</span></button>
+              <div class="rich-pop" data-pop-panel="hilite" hidden>
+<?php foreach (array('#FFF59D', '#FFE0B2', '#C8E6C9', '#B3E5FC', '#F8BBD0', '#E1BEE7') as $c): ?>                <button type="button" data-hilite="<?= $c ?>" style="background:<?= $c ?>" aria-label="형광펜 <?= $c ?>"></button>
+<?php endforeach; ?>
+                <button type="button" data-hilite="transparent" class="rich-none" aria-label="형광펜 없애기">없음</button>
+              </div>
+            </span>
+            <span class="rich-sep" aria-hidden="true"></span>
+            <button type="button" data-cmd="justifyLeft" title="왼쪽 정렬"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 10h10M4 14h16M4 18h10"/></svg></button>
+            <button type="button" data-cmd="justifyCenter" title="가운데 정렬"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 10h10M4 14h16M7 18h10"/></svg></button>
+            <button type="button" data-cmd="justifyRight" title="오른쪽 정렬"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M10 10h10M4 14h16M10 18h10"/></svg></button>
+            <button type="button" data-cmd="insertUnorderedList" title="글머리 목록">• 목록</button>
+            <button type="button" data-cmd="insertOrderedList" title="번호 목록">1. 목록</button>
+            <span class="rich-sep" aria-hidden="true"></span>
+            <button type="button" data-rich-link title="링크">링크</button>
+            <button type="button" data-rich-image title="사진 넣기">사진</button>
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden data-rich-file>
+            <span class="rich-pop-wrap">
+              <button type="button" data-pop="emoji" title="이모지">😊</button>
+              <div class="rich-pop rich-emoji" data-pop-panel="emoji" hidden>
+<?php foreach (array('😀', '😊', '😍', '🥰', '😆', '😂', '🤗', '😎', '🤔', '😮', '😢', '🙏', '👍', '👏', '💪', '🙌', '❤️', '💚', '💙', '⭐', '✨', '🌟', '🔥', '🎉', '✅', '☑️', '❗', '❓', '📌', '📍', '📞', '💬', '🧹', '🧽', '🧼', '🫧', '🪣', '🚽', '🚿', '🏢', '🏬', '🏭', '🏠', '🗓️', '⏰', '🌿', '🍀', '☀️') as $em): ?>                <button type="button" data-emoji="<?= $em ?>"><?= $em ?></button>
+<?php endforeach; ?>
+              </div>
+            </span>
+            <button type="button" data-cmd="insertHorizontalRule" title="구분선">―</button>
+            <button type="button" data-cmd="removeFormat" title="서식 지우기">서식 지우기</button>
+            <span class="editor-status" data-md-status></span>
+          </div>
+          <div class="rich-area" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="b-body-label" data-rich-area data-placeholder="첫 문단에 지역과 청소 종류를 자연스럽게 넣어 주세요. 네이버 블로그 글을 복사해 붙여 넣으면 굵게 · 색 · 크기 · 이모지 · 사진이 그대로 들어와요."><?= rich_clean_html($form['body']) ?></div>
+          <textarea name="body" hidden><?= e($form['body']) ?></textarea>
+          <input type="hidden" name="format" value="html">
         </div>
-        <textarea id="b-body" name="body" rows="22" class="editor-area" placeholder="첫 문단에 지역과 청소 종류를 자연스럽게 넣어 주세요. 예: 충북 음성 금왕읍에서 사무실 정기청소를 맡은 이야기예요."><?= e($form['body']) ?></textarea>
-        <details class="editor-help"><summary>쓰는 법 보기</summary>
-          <p><code>## 소제목</code> · <code>### 작은 제목</code> · <code>- 목록</code> · <code>&gt; 인용</code> · <code>**굵게**</code> · <code>[글자](https://주소)</code> · 사진은 ‘사진 넣기’ 단추로 넣어요. 빈 줄로 문단을 나눠요.</p>
-        </details>
+        <p class="field-help">네이버 블로그 · 웹페이지에서 복사해 붙여 넣으면 서식이 그대로 들어오고, 사진은 이 홈페이지로 가져와요. 서식 없이 글자만 붙이려면 Ctrl+Shift+V(맥은 ⌘+Shift+V)로 붙여 넣으세요.</p>
       </div>
     </section>
   </div>
@@ -88,7 +134,7 @@ $host = base_url();
         <li data-check="desc_len">검색 설명 50~160자</li>
         <li data-check="keyword">키워드 넣기 + 본문에 키워드 쓰기</li>
         <li data-check="body_len">본문 800자 이상</li>
-        <li data-check="heading">소제목(##) 2개 이상</li>
+        <li data-check="heading">소제목 2개 이상</li>
         <li data-check="image">사진 1장 이상</li>
       </ul>
     </section>

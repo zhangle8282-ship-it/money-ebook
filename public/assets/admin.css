@@ -667,3 +667,45 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .draft-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
 .draft-list li:first-child { border-top: 0; }
 @media (max-width: 640px) { .draft-list li { flex-direction: column; align-items: flex-start; } }
+
+/* 블로그 서식 에디터 */
+.rich { border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.rich:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(46,94,78,.12); }
+.rich-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px; border-bottom: 1px solid var(--line); background: #FBFAF7; border-radius: 10px 10px 0 0; }
+.rich-bar button, .rich-bar select { height: 34px; min-width: 34px; padding: 0 9px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--ink); font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; }
+.rich-bar select { width: auto; border-color: var(--line); background: #fff; padding: 0 6px; }
+.rich-bar button:hover { background: #fff; border-color: var(--line); }
+.rich-bar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.rich-sep { width: 1px; height: 22px; margin: 0 4px; background: var(--line); }
+.rich-a { font-weight: 700; }
+.rich-hl { background: #FFF59D; padding: 0 2px; }
+.rich-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: #E03131; }
+.rich-pop-wrap { position: relative; display: inline-flex; }
+.rich-pop { position: absolute; top: 40px; left: 0; z-index: 10; display: grid; grid-template-columns: repeat(6, 28px); gap: 6px; padding: 10px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(29,28,26,.12); }
+.rich-pop[hidden] { display: none; }
+.rich-pop button { width: 28px; height: 28px; min-width: 0; padding: 0; border: 1px solid rgba(0,0,0,.12); border-radius: 6px; }
+.rich-pop .rich-none { grid-column: span 6; width: auto; font-size: 13px; background: #fff; }
+.rich-emoji { grid-template-columns: repeat(8, 34px); }
+.rich-emoji button { width: 34px; height: 34px; border: 0; font-size: 20px; }
+.rich-emoji button:hover { background: var(--bg); }
+.rich-area { position: relative; min-height: 520px; padding: 22px 24px; outline: none; font-size: 17px; line-height: 1.85; color: #33373D; overflow-wrap: anywhere; }
+.rich-area > * + * { margin-top: 14px; }
+.rich-area p { margin: 0; }
+.rich-area h2 { margin: 28px 0 0; font-size: 25px; line-height: 1.4; font-weight: 700; color: var(--ink); }
+.rich-area h3 { margin: 22px 0 0; font-size: 20px; line-height: 1.45; font-weight: 700; color: var(--ink); }
+.rich-area ul, .rich-area ol { padding-left: 24px; }
+.rich-area ul { list-style: disc; }
+.rich-area ol { list-style: decimal; }
+.rich-area blockquote { margin: 0; padding: 12px 18px; border-left: 4px solid var(--accent); background: #F3F6F2; border-radius: 0 10px 10px 0; }
+.rich-area img { max-width: 100%; height: auto; border-radius: 8px; vertical-align: middle; }
+.rich-area img.rich-failed { outline: 3px solid var(--danger); outline-offset: 2px; }
+.rich-area a { color: var(--accent); text-decoration: underline; }
+.rich-area hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
+.rich-area .fs-sm { font-size: .85em; }
+.rich-area .fs-lg { font-size: 1.2em; }
+.rich-area .fs-xl { font-size: 1.5em; line-height: 1.45; }
+.rich-area.is-empty::before { content: attr(data-placeholder); position: absolute; margin: 0; color: #A39E93; pointer-events: none; max-width: 640px; }
+.rich-area.is-busy { opacity: .6; }
+.rich .editor-status { margin-left: auto; font-size: 13px; color: var(--sub); }
+.rich .editor-status.warn-text { color: var(--danger); }
+@media (max-width: 640px) { .rich-area { padding: 16px; min-height: 380px; } .rich .editor-status { flex-basis: 100%; margin-left: 0; } }

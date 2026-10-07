@@ -57,7 +57,7 @@ function blog_rss()
         . ($built ? '<lastBuildDate>' . e(date('r', strtotime($built))) . '</lastBuildDate>' : '') . "\n";
     foreach ($posts as $p) {
         // 본문 속 사진 · 링크의 /로 시작하는 주소는 전체 주소로(다른 사이트에서 읽어도 보이게)
-        $html = preg_replace('/(src|href)="\/(?!\/)/', '$1="' . $base . '/', blog_render($p['body']));
+        $html = preg_replace('/(src|href)="\/(?!\/)/', '$1="' . $base . '/', blog_body_html($p));
         $image = blog_image($p);
         if ($image !== '') {
             $html = '<p><img src="' . e(strpos($image, '/') === 0 ? $base . $image : $image) . '" alt="' . e($p['title']) . '"></p>' . "\n" . $html;
@@ -105,6 +105,11 @@ function admin_blog_form($id = null)
     if ($draftNo >= 1 && isset($drafts[$draftNo - 1])) {
         list($form['title'], $form['keywords'], $form['summary'], $form['body']) = $drafts[$draftNo - 1];
     }
+    // 에디터는 서식 있는 글(HTML)로 보여 줍니다. 예전 글(간단 표시)은 열 때 HTML로 바꿔 두고, 저장하면 HTML 글이 됩니다.
+    if (!blog_is_html($form)) {
+        $form['body'] = blog_render($form['body']);
+        $form['format'] = 'html';
+    }
     $here = $post ? '/admin/blog/' . (int) $post['id'] . '/edit' : '/admin/blog/new';
     if (is_post() && !$_POST && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
         $errors[] = '올린 사진이 서버 한도(post_max_size ' . ini_get('post_max_size') . ')보다 커요.';
@@ -112,9 +117,17 @@ function admin_blog_form($id = null)
         require_csrf($here);
         $status = input('status') === 'draft' ? 'draft' : 'published';
         $date = input('published_date');
+        // 에디터는 본문을 base64로 감싸 보냅니다(카페24 웹 방화벽이 HTML 태그가 든 요청을 막지 않게).
+        $format = input('format') === 'html' ? 'html' : 'md';
+        $body = str_replace("\r\n", "\n", (string) input('body'));
+        if ($format === 'html') {
+            $b64 = base64_decode((string) input('body_b64'), true);
+            $body = rich_clean_html($b64 !== false && $b64 !== '' ? $b64 : $body);
+        }
         $form = array_merge($form, array(
             'title' => str_cut(trim(preg_replace('/\s+/u', ' ', input('title'))), 200, ''),
-            'body' => str_replace("\r\n", "\n", (string) input('body')),
+            'body' => $body,
+            'format' => $format,
             'summary' => str_cut(trim(preg_replace('/\s+/u', ' ', input('summary'))), 300, ''),
             'seo_title' => str_cut(trim(input('seo_title')), 200, ''),
             'keywords' => str_cut(trim(input('keywords')), 300, ''),
@@ -124,7 +137,7 @@ function admin_blog_form($id = null)
         if ($form['title'] === '') {
             $errors[] = '글 제목을 적어 주세요.';
         }
-        if ($status === 'published' && str_len(blog_plain($form['body'])) < 20) {
+        if ($status === 'published' && str_len(blog_text($form)) < 20) {
             $errors[] = '공개하려면 본문을 조금 더 써 주세요(20자 이상). 아직 쓰는 중이면 ‘임시저장’으로 저장하세요.';
         }
         if ($date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
@@ -162,7 +175,7 @@ function admin_blog_form($id = null)
         }
         if (!$errors) {
             $wasPublic = $post && blog_is_public($post);
-            $data = array_intersect_key($form, array_flip(array('title', 'slug', 'summary', 'body', 'cover', 'seo_title', 'keywords', 'status', 'published_at')));
+            $data = array_intersect_key($form, array_flip(array('title', 'slug', 'summary', 'body', 'format', 'cover', 'seo_title', 'keywords', 'status', 'published_at')));
             $data['updated_at'] = now();
             if ($post) {
                 q_update('blog_posts', (int) $post['id'], $data);
@@ -224,8 +237,30 @@ function admin_blog_upload()
         json_out(array('ok' => false, 'error' => '사진을 골라 주세요.'), 422);
     }
     try {
-        json_out(array('ok' => true, 'path' => store_image($_FILES['image'], 'blog')));
+        json_out(array('ok' => true, 'path' => store_image($_FILES['image'], 'blog', null, true)));
     } catch (RuntimeException $e) {
         json_out(array('ok' => false, 'error' => $e->getMessage()), 422);
     }
+}
+
+/**
+ * 에디터에 붙여 넣기: 복사한 글(HTML, base64로 감쌈)을 정리하고 사진은 우리 서버로 가져와 돌려줍니다.
+ * 반환: {"ok":true,"html":"…","imported":가져온 사진 수,"failed":[못 가져온 사진 주소]}
+ */
+function admin_blog_paste()
+{
+    require_admin();
+    if (!csrf_valid()) {
+        json_out(array('ok' => false, 'error' => '보안 확인이 만료되었어요. 새로고침해 주세요.'), 400);
+    }
+    $raw = (string) ($_POST['html_b64'] ?? '');
+    if (strlen($raw) > 8 * 1048576) {
+        json_out(array('ok' => false, 'error' => '한 번에 붙여 넣기에는 너무 길어요. 나눠서 붙여 넣어 주세요.'), 413);
+    }
+    $html = base64_decode($raw, true);
+    if ($html === false) {
+        json_out(array('ok' => false, 'error' => '붙여 넣은 내용을 읽지 못했어요.'), 422);
+    }
+    list($html, $imported, $failed) = rich_import_images(rich_clean_html($html, true));
+    json_out(array('ok' => true, 'html' => rich_clean_html($html), 'imported' => $imported, 'failed' => $failed));
 }

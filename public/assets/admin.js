@@ -461,6 +461,7 @@
   var form = document.querySelector('[data-blog-form]');
   if (!form) return;
   var area = form.querySelector('textarea[name="body"]');
+  var richArea = form.querySelector('[data-rich-area]'); // 블로그: 서식 에디터(아래 모듈), 검색어 페이지: 간단 표시
   var status = form.querySelector('[data-md-status]');
   var fileInput = form.querySelector('[data-md-file]');
 
@@ -511,7 +512,7 @@
       img.src = URL.createObjectURL(file);
     });
   }
-  fileInput.addEventListener('change', function () {
+  if (fileInput) fileInput.addEventListener('change', function () {
     var file = fileInput.files && fileInput.files[0];
     if (!file) return;
     status.textContent = '사진 올리는 중…';
@@ -538,8 +539,11 @@
   var slugify = function (t) { return t.toLowerCase().replace(join ? /\s+/g : /$^/, '').replace(/[^0-9a-z\u3131-\uD79D]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60); };
   var siteName = document.querySelector('.brand-name') ? document.querySelector('.brand-name').textContent.trim() : '';
   function update() {
-    var title = get('title'), body = area.value, summary = get('summary'), keywords = get('keywords');
-    var bodyText = plain(body);
+    var title = get('title'), summary = get('summary'), keywords = get('keywords');
+    var body = richArea ? '' : area.value;
+    var bodyText = richArea ? richArea.innerText.replace(/\s+/g, ' ').trim() : plain(body);
+    var headCount = richArea ? richArea.querySelectorAll('h2').length : (body.match(/^##\s+/gm) || []).length;
+    var bodyImage = richArea ? !!richArea.querySelector('img') : /!\[[^\]]*\]\([^)]+\)/.test(body);
     var desc = summary || bodyText.slice(0, 150);
     form.querySelector('[data-serp="title"]').textContent = get('seo_title') || ((title || '글 제목') + (siteName ? ' | ' + siteName : ''));
     form.querySelector('[data-serp="desc"]').textContent = desc || '검색 설명이 여기에 보여요.';
@@ -554,8 +558,8 @@
       desc_len: desc.length >= 50 && desc.length <= 160,
       keyword: kws.length > 0 && kws.some(function (k) { return flat.indexOf(k) !== -1 || bodyText.indexOf(k) !== -1; }),
       body_len: bodyText.length >= 800,
-      heading: (body.match(/^##\s+/gm) || []).length >= 2,
-      image: /!\[[^\]]*\]\([^)]+\)/.test(body) || !!form.querySelector('.photo-preview img') || (form.querySelector('input[name="cover"]') && form.querySelector('input[name="cover"]').files.length > 0)
+      heading: headCount >= 2,
+      image: bodyImage || !!form.querySelector('.photo-preview img') || (form.querySelector('input[name="cover"]') && form.querySelector('input[name="cover"]').files.length > 0)
     };
     form.querySelectorAll('[data-check]').forEach(function (li) { li.classList.toggle('ok', !!checks[li.getAttribute('data-check')]); });
   }
@@ -627,3 +631,245 @@ document.querySelectorAll('input[data-verify]').forEach(function (input) {
   input.addEventListener('paste', function () { setTimeout(clean, 0); });
   if (input.form) input.form.addEventListener('submit', clean);
 });
+
+// 블로그 서식 에디터: 네이버 블로그처럼 굵게 · 색 · 크기 · 정렬 · 이모지 · 사진.
+// 붙여 넣은 글은 서버(/admin/blog/paste)에서 위험한 것은 지우고 서식은 살리며, 다른 사이트 사진은 이 홈페이지로 가져옵니다.
+(function () {
+  var box = document.querySelector('[data-rich]');
+  if (!box) return;
+  var form = box.closest('form');
+  var area = box.querySelector('[data-rich-area]');
+  var store = box.querySelector('textarea[name="body"]');
+  var bar = box.querySelector('.rich-bar');
+  var status = box.querySelector('[data-md-status]');
+  var fileInput = box.querySelector('[data-rich-file]');
+  var blockSel = box.querySelector('[data-rich-block]');
+  var sizeSel = box.querySelector('[data-rich-size]');
+  var saved = null;
+  var plainNext = false;
+
+  try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) {}
+  if (!area.innerHTML.trim()) area.innerHTML = '<p><br></p>';
+
+  function say(msg, bad) { status.textContent = msg; status.classList.toggle('warn-text', !!bad); }
+  function sync() {
+    store.value = area.innerHTML;
+    var empty = area.textContent.replace(/[\s​]/g, '') === '' && !area.querySelector('img');
+    area.classList.toggle('is-empty', empty);
+  }
+  function changed() { sync(); area.dispatchEvent(new Event('input', { bubbles: true })); }
+  function saveSel() {
+    var sel = window.getSelection();
+    if (sel.rangeCount && area.contains(sel.getRangeAt(0).commonAncestorContainer)) saved = sel.getRangeAt(0).cloneRange();
+  }
+  function restoreSel() {
+    area.focus();
+    if (!saved) return;
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(saved);
+  }
+  function exec(cmd, val, css) {
+    restoreSel();
+    try { document.execCommand('styleWithCSS', false, !!css); } catch (e) {}
+    document.execCommand(cmd, false, val === undefined ? null : val);
+    saveSel();
+    changed();
+  }
+  function insertHtml(html) { exec('insertHTML', html); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function b64(s) {
+    var bytes = new TextEncoder().encode(s), bin = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  function csrf() { return form.querySelector('input[name="csrf"]').value; }
+
+  // 지금 커서가 있는 문단 모양을 고르기 칸에 보여 주기
+  function currentBlock() {
+    var sel = window.getSelection();
+    if (!sel.rangeCount) return;
+    var n = sel.getRangeAt(0).startContainer;
+    if (!area.contains(n)) return;
+    while (n && n !== area) {
+      if (n.nodeType === 1 && /^(P|H2|H3|BLOCKQUOTE)$/.test(n.nodeName)) { blockSel.value = n.nodeName.toLowerCase(); return; }
+      n = n.parentNode;
+    }
+    blockSel.value = 'p';
+  }
+  document.addEventListener('selectionchange', function () {
+    if (document.activeElement === area) { saveSel(); currentBlock(); }
+  });
+  area.addEventListener('input', sync);
+
+  bar.addEventListener('mousedown', function (e) { if (e.target.closest('button')) e.preventDefault(); });
+  bar.querySelectorAll('[data-cmd]').forEach(function (b) {
+    b.addEventListener('click', function () { exec(b.getAttribute('data-cmd')); });
+  });
+  blockSel.addEventListener('change', function () { exec('formatBlock', '<' + blockSel.value + '>'); });
+  sizeSel.addEventListener('change', function () {
+    if (sizeSel.value) exec('fontSize', sizeSel.value);
+    sizeSel.value = '';
+  });
+
+  // 글자색 · 형광펜 · 이모지 고르는 작은 창
+  var pops = box.querySelectorAll('[data-pop-panel]');
+  function closePops() { pops.forEach(function (p) { p.hidden = true; }); }
+  box.querySelectorAll('[data-pop]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var panel = box.querySelector('[data-pop-panel="' + b.getAttribute('data-pop') + '"]');
+      var open = panel.hidden;
+      closePops();
+      panel.hidden = !open;
+    });
+  });
+  document.addEventListener('click', function (e) { if (!e.target.closest('.rich-pop-wrap')) closePops(); });
+  box.querySelectorAll('[data-color]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      exec('foreColor', b.getAttribute('data-color'), true);
+      box.querySelector('[data-swatch="color"]').style.background = b.getAttribute('data-color');
+      closePops();
+    });
+  });
+  box.querySelectorAll('[data-hilite]').forEach(function (b) {
+    b.addEventListener('click', function () { exec('hiliteColor', b.getAttribute('data-hilite'), true); closePops(); });
+  });
+  box.querySelectorAll('[data-emoji]').forEach(function (b) {
+    b.addEventListener('click', function () { exec('insertText', b.getAttribute('data-emoji')); closePops(); });
+  });
+
+  box.querySelector('[data-rich-link]').addEventListener('click', function () {
+    var url = window.prompt('연결할 주소를 넣어 주세요 (https://…)', 'https://');
+    if (!url || !/^(https?:\/\/|\/)/.test(url)) return;
+    restoreSel();
+    var sel = window.getSelection();
+    if (sel.isCollapsed) insertHtml('<a href="' + esc(url) + '">' + esc(url) + '</a>');
+    else exec('createLink', url);
+  });
+
+  // 사진: 올리기 전에 줄이고(GIF는 움직임 그대로) 커서 자리에 넣기
+  function shrink(file) {
+    return new Promise(function (resolve) {
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return resolve(file);
+      var img = new Image();
+      img.onload = function () {
+        var scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+        if (scale === 1 && file.size < 900 * 1024) return resolve(file);
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * scale);
+        c.height = Math.round(img.naturalHeight * scale);
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function (blob) { resolve(blob ? new File([blob], 'photo.jpg', { type: 'image/jpeg' }) : file); }, 'image/jpeg', 0.85);
+      };
+      img.onerror = function () { resolve(file); };
+      img.src = URL.createObjectURL(file);
+    });
+  }
+  function uploadFiles(files) {
+    files = Array.prototype.filter.call(files, function (f) { return /^image\//.test(f.type); });
+    if (!files.length) return;
+    var done = 0;
+    say('사진 올리는 중… (0/' + files.length + ')');
+    files.reduce(function (chain, file) {
+      return chain.then(function () {
+        return shrink(file).then(function (small) {
+          var fd = new FormData();
+          fd.append('csrf', csrf());
+          fd.append('image', small, file.type === 'image/gif' ? 'photo.gif' : 'photo.jpg');
+          return fetch('/admin/blog/upload', { method: 'POST', body: fd, credentials: 'same-origin', headers: { Accept: 'application/json' } });
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          if (!d.ok) throw new Error(d.error || '올리지 못했어요');
+          insertHtml('<img src="' + esc(d.path) + '" alt="">');
+          done++;
+          say('사진 올리는 중… (' + done + '/' + files.length + ')');
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      say('사진 ' + done + '장을 넣었어요.');
+    }).catch(function (e) { say('사진을 넣지 못했어요: ' + e.message, true); });
+  }
+  box.querySelector('[data-rich-image]').addEventListener('click', function () { saveSel(); fileInput.click(); });
+  fileInput.addEventListener('change', function () { uploadFiles(fileInput.files); fileInput.value = ''; });
+
+  // 붙여 넣기
+  function insertPlain(text) {
+    text = String(text || '').replace(/\r\n?/g, '\n');
+    if (text.indexOf('\n') === -1) { exec('insertText', text); return; }
+    insertHtml(text.split(/\n{2,}/).map(function (para) {
+      return '<p>' + esc(para).replace(/\n/g, '<br>') + '</p>';
+    }).join(''));
+  }
+  function pasteHtml(html, text) {
+    say('붙여 넣는 중… (사진이 있으면 이 홈페이지로 가져와요)');
+    area.classList.add('is-busy');
+    var fd = new FormData();
+    fd.append('csrf', csrf());
+    fd.append('html_b64', b64(html));
+    fetch(box.getAttribute('data-paste-url'), { method: 'POST', body: fd, credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) throw new Error(d.error || '붙여 넣지 못했어요');
+        insertHtml(d.html || esc(text));
+        var failed = d.failed || [];
+        area.querySelectorAll('img').forEach(function (img) {
+          if (failed.indexOf(img.getAttribute('src')) !== -1) img.classList.add('rich-failed');
+        });
+        var msg = '붙여 넣었어요.' + (d.imported ? ' 사진 ' + d.imported + '장을 이 홈페이지로 가져왔어요.' : '');
+        if (failed.length) msg += ' 사진 ' + failed.length + '장은 가져오지 못했어요(빨간 테두리). 지우고 ‘사진’으로 직접 올려 주세요.';
+        say(msg, failed.length > 0);
+      })
+      .catch(function (e) { insertPlain(text); say('서식을 가져오지 못해 글자만 붙였어요: ' + e.message, true); })
+      .then(function () { area.classList.remove('is-busy'); });
+  }
+  area.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'v' || e.key === 'V')) plainNext = true;
+  });
+  area.addEventListener('paste', function (e) {
+    var cd = e.clipboardData;
+    if (!cd) return;
+    e.preventDefault();
+    saveSel();
+    var html = cd.getData('text/html');
+    var text = cd.getData('text/plain');
+    var files = Array.prototype.filter.call(cd.files || [], function (f) { return /^image\//.test(f.type); });
+    var asPlain = plainNext;
+    plainNext = false;
+    if (asPlain) { insertPlain(text); return; }
+    // 사진 한 장만 복사한 경우: 파일로 올리는 게 더 확실함
+    var htmlText = html ? new DOMParser().parseFromString(html, 'text/html').body.textContent.replace(/\s/g, '') : '';
+    if (files.length && htmlText === '') { uploadFiles(files); return; }
+    if (html) pasteHtml(html, text);
+    else insertPlain(text);
+  });
+  area.addEventListener('dragover', function (e) { e.preventDefault(); });
+  area.addEventListener('drop', function (e) {
+    var dt = e.dataTransfer;
+    if (!dt) return;
+    e.preventDefault();
+    if (document.caretRangeFromPoint) {
+      var r = document.caretRangeFromPoint(e.clientX, e.clientY);
+      if (r) { var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); saveSel(); }
+    }
+    if (dt.files && dt.files.length) uploadFiles(dt.files);
+    else if (dt.getData('text/html')) pasteHtml(dt.getData('text/html'), dt.getData('text/plain'));
+    else if (dt.getData('text/plain')) insertPlain(dt.getData('text/plain'));
+  });
+
+  // 저장: 본문은 base64로 감싸 보냄(웹 방화벽이 HTML 태그를 막지 않게)
+  form.addEventListener('submit', function () {
+    sync();
+    var hidden = form.querySelector('input[name="body_b64"]');
+    if (!hidden) {
+      hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = 'body_b64';
+      form.appendChild(hidden);
+    }
+    hidden.value = b64(area.innerHTML);
+    store.removeAttribute('name');
+  });
+  sync();
+})();

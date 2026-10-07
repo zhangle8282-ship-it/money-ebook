@@ -32,6 +32,7 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/blog/(\d+)/edit$~', 'admin_blog_form'),
         array('POST', '~^/admin/blog/(\d+)/delete$~', 'admin_blog_delete'),
         array('POST', '~^/admin/blog/upload$~', 'admin_blog_upload'),
+        array('POST', '~^/admin/blog/paste$~', 'admin_blog_paste'),
         // 도급 정산
         array('GET', '~^/admin/contracts$~', 'admin_contracts_month'),
         array('POST', '~^/admin/contracts/settle$~', 'admin_contracts_settle'),

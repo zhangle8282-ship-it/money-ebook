@@ -52,7 +52,7 @@ function random_name($ext)
 }
 
 /** 이미지 검사 후 저장. 성공하면 공개 경로(/uploads/...), 실패하면 예외. */
-function store_image($file, $subdir, $name = null)
+function store_image($file, $subdir, $name = null, $gif = false)
 {
     $err = upload_error($file);
     if ($err !== '') {
@@ -62,9 +62,9 @@ function store_image($file, $subdir, $name = null)
         throw new RuntimeException('이미지는 10MB 이하로 올려 주세요.');
     }
     $info = @getimagesize($file['tmp_name']);
-    $types = array(IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp');
+    $types = array(IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp') + ($gif ? array(IMAGETYPE_GIF => 'gif') : array());
     if (!$info || !isset($types[$info[2]])) {
-        throw new RuntimeException('JPG, PNG, WEBP 이미지만 올릴 수 있어요.');
+        throw new RuntimeException($gif ? 'JPG, PNG, GIF, WEBP 이미지만 올릴 수 있어요.' : 'JPG, PNG, WEBP 이미지만 올릴 수 있어요.');
     }
     $dir = UPLOAD_DIR . '/' . $subdir;
     if (!is_dir($dir)) {

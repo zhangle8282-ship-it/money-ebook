@@ -54,6 +54,7 @@ require APP_DIR . '/epub.php';
 require APP_DIR . '/cleaning.php';
 require APP_DIR . '/contracts.php';
 require APP_DIR . '/blog.php';
+require APP_DIR . '/richtext.php';
 require APP_DIR . '/search.php';
 require APP_DIR . '/landing.php';
 require APP_DIR . '/drafts.php';

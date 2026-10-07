@@ -233,6 +233,15 @@ function migrate(PDO $pdo)
         $pdo->exec('CREATE UNIQUE INDEX ' . ($sqlite ? 'IF NOT EXISTS ' : '') . 'idx_landing_slug ON landing_pages (slug)');
         $pdo->prepare("UPDATE settings SET v = '13' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 14) {
+        // 14: 블로그 본문 형식(md: 예전 간단 표시, html: 서식 있는 에디터)
+        $cols = $sqlite ? array_column($pdo->query('PRAGMA table_info(blog_posts)')->fetchAll(PDO::FETCH_ASSOC), 'name')
+            : $pdo->query('SHOW COLUMNS FROM blog_posts')->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('format', $cols, true)) {
+            $pdo->exec("ALTER TABLE blog_posts ADD COLUMN format VARCHAR(8) NOT NULL DEFAULT 'md'");
+        }
+        $pdo->prepare("UPDATE settings SET v = '14' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

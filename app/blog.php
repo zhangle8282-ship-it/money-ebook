@@ -74,11 +74,29 @@ function blog_plain($text)
     return trim(preg_replace('/\s+/u', ' ', $t));
 }
 
+/** 본문이 서식 있는 글(에디터로 쓴 HTML)인지. 예전 글과 검색어 페이지는 간단 표시(md) */
+function blog_is_html($post)
+{
+    return ($post['format'] ?? 'md') === 'html';
+}
+
+/** 본문 HTML(보여 줄 때도 한 번 더 정리) */
+function blog_body_html($post)
+{
+    return blog_is_html($post) ? rich_clean_html($post['body']) : blog_render($post['body']);
+}
+
+/** 본문 글자만 */
+function blog_text($post)
+{
+    return blog_is_html($post) ? rich_text($post['body']) : blog_plain($post['body']);
+}
+
 /** 검색 설명: 직접 쓴 요약, 없으면 본문 앞부분 */
 function blog_desc($post, $len = 150)
 {
     $s = trim((string) $post['summary']);
-    return str_cut($s !== '' ? $s : blog_plain($post['body']), $len);
+    return str_cut($s !== '' ? $s : blog_text($post), $len);
 }
 
 /** 대표 사진: 직접 올린 것, 없으면 본문 첫 사진 */
@@ -87,12 +105,15 @@ function blog_image($post)
     if ($post['cover'] !== '') {
         return $post['cover'];
     }
+    if (blog_is_html($post)) {
+        return preg_match('/<img\b[^>]*\bsrc="([^"]+)"/i', (string) $post['body'], $m) && blog_safe_url(html_entity_decode($m[1], ENT_QUOTES, 'UTF-8')) ? html_entity_decode($m[1], ENT_QUOTES, 'UTF-8') : '';
+    }
     return preg_match('/!\[[^\]]*\]\(([^)\s]+)\)/u', (string) $post['body'], $m) && blog_safe_url($m[1]) ? $m[1] : '';
 }
 
-function blog_reading_minutes($text)
+function blog_reading_minutes($post)
 {
-    return max(1, (int) ceil(str_len(blog_plain($text)) / 500));
+    return max(1, (int) ceil(str_len(blog_text($post)) / 500));
 }
 
 function blog_safe_url($url)
@@ -172,10 +193,79 @@ function blog_render($text)
 }
 
 /** 본문의 소제목 목록(글 위 목차) */
-function blog_headings($text)
+function blog_headings($post)
 {
-    preg_match_all('/^##\s+(.+)$/mu', (string) $text, $m);
+    if (blog_is_html($post)) {
+        preg_match_all('~<h2\b[^>]*>(.*?)</h2>~su', (string) $post['body'], $m);
+        return array_values(array_filter(array_map('rich_text', $m[1])));
+    }
+    preg_match_all('/^##\s+(.+)$/mu', (string) $post['body'], $m);
     return array_map(function ($h) {
         return blog_plain($h);
     }, $m[1]);
+}
+
+/**
+ * 본문을 가운데쯤(문단 경계)에서 둘로 나눕니다. 가운데에 ‘청소 범위’ 상자를 넣기 위해서예요.
+ * 소제목 바로 앞에서 나누는 게 가장 자연스럽고, 소제목과 그 내용 사이는 나누지 않습니다. 짧은 글이면 [본문, ''].
+ */
+function blog_split_middle($html)
+{
+    if (trim($html) === '') {
+        return array($html, '');
+    }
+    $doc = dom_from_html($html);
+    $root = $doc->getElementsByTagName('div')->item(0);
+    $nodes = array();
+    $lens = array();
+    $total = 0;
+    foreach ($root->childNodes as $n) {
+        $nodes[] = $n;
+        $lens[] = str_len(trim($n->textContent));
+        $total += end($lens);
+    }
+    if ($total < 300 || count($nodes) < 3) {
+        return array($html, '');
+    }
+    $cut = null;
+    $acc = 0;
+    foreach ($nodes as $i => $n) {
+        $prev = $i > 0 ? $nodes[$i - 1] : null;
+        $afterHeading = $prev instanceof DOMElement && in_array($prev->nodeName, array('h2', 'h3'), true);
+        if ($i > 0 && !$afterHeading && $acc >= $total * 0.4 && ($n->nodeName === 'h2' || $acc >= $total * 0.5)) {
+            $cut = $i;
+            break;
+        }
+        $acc += $lens[$i];
+    }
+    if ($cut === null) {
+        return array($html, '');
+    }
+    $a = $b = '';
+    foreach ($nodes as $i => $n) {
+        if ($i < $cut) {
+            $a .= $doc->saveHTML($n);
+        } else {
+            $b .= $doc->saveHTML($n);
+        }
+    }
+    return trim(strip_tags($b, '<img>')) === '' ? array($html, '') : array($a, $b);
+}
+
+/** 글 내용으로 어떤 청소 이야기인지 짐작(청소 범위 상자에서 먼저 보여 줄 종류) */
+function blog_guess_kind($post)
+{
+    // 제목 · 키워드를 먼저 보고, 거기서 모르면 본문 앞부분을 봅니다.
+    foreach (array($post['title'] . ' ' . $post['keywords'], mb_substr(blog_text($post), 0, 600)) as $text) {
+        if (preg_match('/상가|공장|공단|건물|계단|복도|엘리베이터|매장/u', $text)) {
+            return 'building';
+        }
+        if (mb_strpos($text, '화장실') !== false) {
+            return 'restroom';
+        }
+        if (mb_strpos($text, '사무실') !== false) {
+            return 'office';
+        }
+    }
+    return 'office';
 }
