@@ -6,7 +6,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
 <div class="page-head">
   <div class="page-head-text">
     <h1>일회성 정산</h1>
-    <p class="muted">입주청소 · 대청소처럼 <strong>한 번 하는 일</strong>의 수익을 나눠요. 청소비용에서 (세금계산서를 발행했으면 <strong>세금 <?= CONTRACT_TAX_RATE ?>%</strong>를 빼고) <strong>회사 몫은 대표파트너 · 운영파트너</strong>가 나누고(예: 60:40), <strong>나머지는 청소 담당</strong>이 원천징수 <?= CONTRACT_WITHHOLDING ?>%를 떼고 받아요. 회사 몫은 <strong>수수료 방식</strong>(10 · 20%)이나 <strong>인수 방식</strong>(금액 · 비율을 직접 정함)으로 정해요. 달마다 하는 청소는 <a href="/admin/contracts">정기청소 정산</a>에서 해요.</p>
+    <p class="muted">입주청소 · 대청소처럼 <strong>한 번 하는 일</strong>의 수익을 나눠요. 청소비용에서 (세금계산서를 발행했으면 <strong>세금 <?= CONTRACT_TAX_RATE ?>%</strong>를 빼고) <strong>회사 몫(수수료)은 대표파트너 · 운영파트너</strong>가 <strong><?= ONETIME_GAP ?> : <?= 100 - ONETIME_GAP ?></strong>으로 나누고, <strong>나머지는 청소 담당</strong>이 원천징수 <?= CONTRACT_WITHHOLDING ?>%를 떼고 받아요. <strong>수수료 방식</strong>은 청소 담당에게 수수료 10 · 20%를 빼고 주고, <strong>인수 방식</strong>은 청소 담당 몫 없이 청소 금액 전체를 대표 · 운영이 나눠요. 달마다 하는 청소는 <a href="/admin/contracts">정기청소 정산</a>에서 해요.</p>
   </div>
   <a class="btn btn-primary" href="/admin/onetime/new">+ 새 일회성 정산</a>
 </div>
@@ -48,7 +48,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
 
 <?php if ($rows): ?>
 <div class="settle-list">
-<?php foreach ($rows as $r): $done = $r['status'] === 'done';
+<?php foreach ($rows as $r): $done = $r['status'] === 'done'; $takeover = ($r['method'] ?? 'commission') === 'takeover';
     $steps = settlement_steps($r); $doneSteps = 0;
     foreach ($steps as $k => $label) { if (!empty($r['step_' . $k])) { $doneSteps++; } }
     $settleUrl = '/admin/onetime/' . (int) $r['id'] . '/settle'; ?>
@@ -67,10 +67,12 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
     <dl class="settle-amounts">
       <div><dt>청소비용</dt><dd><?= won($r['fee']) ?></dd></div>
       <div class="minus"><dt>세금 <?= CONTRACT_TAX_RATE ?>%</dt><dd><?= $r['tax'] ? '− ' . won($r['tax']) : '없음' ?></dd></div>
+<?php if (!$takeover): ?>
       <div><dt>청소 담당 몫 <?= $r['byeong_rate'] ?>%</dt><dd><?= won($r['byeong_amount']) ?></dd></div>
       <div class="minus"><dt>원천징수 <?= CONTRACT_WITHHOLDING ?>%</dt><dd><?= $r['withholding_amount'] ? '− ' . won($r['withholding_amount']) : '없음' ?></dd><?php if ($r['withholding_amount']): ?><small>소득세 <?= number_format($r['income_tax']) ?> + 지방세 <?= number_format($r['local_tax']) ?></small><?php endif; ?></div>
       <div class="is-byeong"><dt>청소 담당 실지급</dt><dd><?= won($r['byeong_pay']) ?></dd><?php if (contract_partner_name($r, 'byeong') !== ''): ?><small><?= e(contract_partner_name($r, 'byeong')) ?></small><?php endif; ?></div>
-      <div><dt>회사 몫 <?= ($r['method'] ?? 'commission') === 'takeover' ? '(인수)' : (int) $r['contract_rate'] . '%' ?></dt><dd><?= won($r['contract_amount']) ?></dd></div>
+<?php endif; ?>
+      <div><dt><?= $takeover ? '대표 · 운영이 나눌 금액(인수)' : '수수료 ' . (int) $r['contract_rate'] . '% (대표 · 운영)' ?></dt><dd><?= won($r['contract_amount']) ?></dd></div>
       <div class="is-gap"><dt>대표파트너 <?= (int) $r['gap_rate'] ?>%</dt><dd><?= won($r['gap_amount']) ?></dd><?php if (contract_partner_name($r, 'gap') !== ''): ?><small><?= e(contract_partner_name($r, 'gap')) ?></small><?php endif; ?></div>
       <div class="is-eul"><dt>운영파트너 <?= 100 - (int) $r['gap_rate'] ?>%</dt><dd><?= won($r['eul_amount']) ?></dd><?php if (contract_partner_name($r, 'eul') !== ''): ?><small><?= e(contract_partner_name($r, 'eul')) ?></small><?php endif; ?></div>
     </dl>
@@ -94,7 +96,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
       </div>
     </div>
     <ul class="pay-to">
-<?php foreach (array('byeong' => $r['byeong_pay'], 'eul' => $r['eul_amount']) as $role => $amount): $pp = contract_partner($r, $role); $nm = contract_partner_name($r, $role); ?>
+<?php foreach ($takeover ? array('eul' => $r['eul_amount']) : array('byeong' => $r['byeong_pay'], 'eul' => $r['eul_amount']) as $role => $amount): $pp = contract_partner($r, $role); $nm = contract_partner_name($r, $role); ?>
       <li>
         <span class="pay-role"><?= e(CONTRACT_ROLE_SIDES[$role]) ?><?= $nm !== '' ? ' ' . e($nm) : '' ?></span>
         <strong><?= won($amount) ?></strong>

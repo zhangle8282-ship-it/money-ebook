@@ -33,6 +33,10 @@ function settlement_steps($calc)
     if (!$calc['invoice']) {
         unset($steps['invoiced']);
     }
+    // 일회성 · 인수 방식은 청소 담당 몫이 없어서 지급 단계도 없음
+    if (($calc['method'] ?? '') === 'takeover') {
+        unset($steps['paid_byeong']);
+    }
     return $steps;
 }
 

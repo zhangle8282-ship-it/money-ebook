@@ -6,12 +6,13 @@
  */
 
 const ONETIME_FILTERS = array('month' => '월별', 'pending' => '정산 전 모두');
-// 일하는 방식: 수수료 방식(회사가 10 · 20% 수수료), 인수 방식(청소 담당이 일을 넘겨받고, 회사 몫은 관리자가 금액 또는 비율로 정함)
+// 일하는 방식
+//  - 수수료 방식: 청소 담당에게 청소비용에서 수수료 10 · 20%를 빼고 줌. 뺀 수수료는 대표 · 운영이 나눔
+//  - 인수 방식: 청소 담당 몫 없이 청소 금액 전체를 대표 · 운영이 나눔
 const ONETIME_METHODS = array('commission' => '수수료 방식', 'takeover' => '인수 방식');
 const ONETIME_RATES = array(10, 20);
-const ONETIME_UNITS = array('won' => '원', 'rate' => '%');
-// 인수 방식이면 회사 몫을 대표파트너 · 운영파트너가 이 비율로 나눕니다(대표 50 : 운영 50).
-const ONETIME_TAKEOVER_GAP = 50;
+// 일회성 정산은 회사 몫(수수료 · 인수 금액)을 대표파트너 · 운영파트너가 이 비율로 나눕니다(대표 50 : 운영 50).
+const ONETIME_GAP = 50;
 
 /** 일 하나의 금액 계산(방식에 따라) */
 function onetime_calc($job)
@@ -19,18 +20,17 @@ function onetime_calc($job)
     $gap = (int) $job['gap_rate'];
     $wh = (int) $job['withholding'];
     if (($job['method'] ?? 'commission') === 'takeover') {
-        return ($job['takeover_unit'] ?? 'won') === 'rate'
-            ? contract_calc($job['fee'], (int) $job['invoice'], (int) $job['takeover_value'], $gap, $wh)
-            : contract_calc($job['fee'], (int) $job['invoice'], 0, $gap, $wh, (int) $job['takeover_value']);
+        // 인수 방식: 세금 뺀 청소 금액 전체가 대표 · 운영 몫(청소 담당 몫 · 원천징수 없음)
+        return contract_calc($job['fee'], (int) $job['invoice'], 100, $gap, 0);
     }
     return contract_calc($job['fee'], (int) $job['invoice'], (int) $job['contract_rate'], $gap, $wh);
 }
 
-/** 방식 한 줄: 수수료 20% / 인수 · 회사 몫 50,000원 / 인수 · 회사 몫 15% */
+/** 방식 한 줄: 수수료 20% / 인수 방식 · 대표 · 운영 50:50 */
 function onetime_method_label($job)
 {
     if (($job['method'] ?? 'commission') === 'takeover') {
-        return '인수 · 회사 몫 ' . (($job['takeover_unit'] ?? 'won') === 'rate' ? (int) $job['takeover_value'] . '%' : won($job['takeover_value']));
+        return '인수 방식 · 대표 · 운영 ' . ONETIME_GAP . ':' . (100 - ONETIME_GAP);
     }
     return '수수료 ' . (int) $job['contract_rate'] . '%';
 }

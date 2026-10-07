@@ -302,6 +302,28 @@ function migrate(PDO $pdo)
         }
         $pdo->prepare("UPDATE settings SET v = '20' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 21) {
+        // 21: 일회성 정산은 대표 · 운영 50:50. 정산 전인 일은 50:50으로 다시 나눔(정산 완료한 일은 그대로)
+        $rows = $pdo->query("SELECT id, contract_amount FROM onetime_jobs WHERE status <> 'done' AND gap_rate <> 50")->fetchAll(PDO::FETCH_ASSOC);
+        $fix = $pdo->prepare('UPDATE onetime_jobs SET gap_rate = 50, gap_amount = ?, eul_amount = ? WHERE id = ?');
+        foreach ($rows as $r) {
+            $gap = (int) round((int) $r['contract_amount'] * 50 / 100);
+            $fix->execute(array($gap, (int) $r['contract_amount'] - $gap, (int) $r['id']));
+        }
+        $pdo->prepare("UPDATE settings SET v = '21' WHERE k = 'schema_version'")->execute();
+    }
+    if ($version < 22) {
+        // 22: 일회성 · 인수 방식 = 청소 금액 전체를 대표 · 운영이 50:50(청소 담당 몫 없음). 정산 전인 인수 방식 일을 다시 계산
+        $rows = $pdo->query("SELECT id, fee, invoice FROM onetime_jobs WHERE method = 'takeover' AND status <> 'done'")->fetchAll(PDO::FETCH_ASSOC);
+        $fix = $pdo->prepare('UPDATE onetime_jobs SET contract_rate = 100, gap_rate = 50, withholding = 0, tax = ?, contract_amount = ?, byeong_amount = 0, withholding_amount = 0, byeong_pay = 0, gap_amount = ?, eul_amount = ?, byeong_partner_id = NULL, step_paid_byeong = NULL WHERE id = ?');
+        foreach ($rows as $r) {
+            $tax = (int) $r['invoice'] ? (int) round((int) $r['fee'] * 10 / 100) : 0;
+            $after = (int) $r['fee'] - $tax;
+            $gap = (int) round($after * 50 / 100);
+            $fix->execute(array($tax, $after, $gap, $after - $gap, (int) $r['id']));
+        }
+        $pdo->prepare("UPDATE settings SET v = '22' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

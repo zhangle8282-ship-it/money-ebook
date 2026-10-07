@@ -1,7 +1,17 @@
-<?php /** 정기청소 정산 · 일회성 정산 공통: 대표 · 운영 비율, 파트너 3명(청소 담당은 인력 배치에서도), 원천징수. 변수: $form */ ?>
+<?php /** 정기청소 정산 · 일회성 정산 공통: 대표 · 운영 비율, 파트너 3명(청소 담당은 인력 배치에서도), 원천징수. 변수: $form, $fixedGap(정해진 대표 비율 — 일회성은 50) */
+$fixedGap = $fixedGap ?? null;
+?>
     <section class="card stack-lg" aria-labelledby="cf-split">
       <h2 id="cf-split">파트너 3명</h2>
       <div class="grid-2">
+<?php if ($fixedGap !== null): ?>
+        <div class="field">
+          <span class="field-label-strong">대표 · 운영 나누기</span>
+          <input type="hidden" name="gap_rate" value="<?= (int) $fixedGap ?>" data-calc-input="gap">
+          <p class="fixed-split"><span>대표파트너 <b><?= (int) $fixedGap ?>%</b></span><span>운영파트너 <b><?= 100 - (int) $fixedGap ?>%</b></span></p>
+          <p class="field-help">회사 몫(수수료)을 대표 · 운영이 반씩 나눠요. 일회성 정산은 이 비율로 정해져 있어요.</p>
+        </div>
+<?php else: ?>
         <div class="field">
           <label for="cf-gap">대표파트너 비율 (도급 몫 안에서)</label>
           <div class="input-suffix"><input id="cf-gap" name="gap_rate" type="number" min="0" max="100" step="1" value="<?= e((string) ($form['gap_rate'] >= 0 ? $form['gap_rate'] : CONTRACT_GAP_DEFAULT)) ?>" data-calc-input="gap"><span>%</span></div>
@@ -10,8 +20,9 @@
         <div class="field"><span class="field-label-strong">빠르게 고르기</span>
           <div class="quick-rates"><button type="button" class="btn btn-outline btn-sm" data-gap="60">60 : 40</button><button type="button" class="btn btn-outline btn-sm" data-gap="50">50 : 50</button><button type="button" class="btn btn-outline btn-sm" data-gap="70">70 : 30</button></div>
         </div>
+<?php endif; ?>
 <?php $groups = partners_by_role(); foreach (CONTRACT_ROLE_SIDES as $role => $label): $sel = (int) ($form[$role . '_partner_id'] ?? 0); $selP = $sel ? (partners_all()[$sel] ?? null) : null; ?>
-        <div class="field partner-pick">
+        <div class="field partner-pick"<?= $role === 'byeong' ? ' data-byeong-field' : '' ?>>
           <label for="cf-<?= $role ?>-partner"><?= e($label) ?></label>
           <select id="cf-<?= $role ?>-partner" name="<?= $role ?>_partner_id">
             <option value=""><?= $role === 'byeong' ? '파트너 · 인력 배치에서 고르기' : '등록한 파트너에서 고르기' ?></option>
@@ -38,7 +49,7 @@
 <?php endif; ?>
         </div>
 <?php endforeach; ?>
-        <div class="field">
+        <div class="field" data-byeong-field>
           <span class="field-label-strong">청소 담당 파트너 원천징수</span>
           <fieldset class="segmented">
             <legend class="sr-only">청소 담당 파트너 원천징수</legend>
