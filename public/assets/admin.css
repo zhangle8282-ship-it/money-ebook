@@ -788,19 +788,23 @@ select { max-width: 100%; }
 .worker-jobs { min-width: 220px; }
 @media (max-width: 720px) { .assign-cell, .worker-jobs, .contract-name-cell { min-width: 0; } }
 
-/* 왼쪽 메뉴: 업무(견적 문의 · 도급 정산 · 인력 배치)는 파란색으로, 나머지는 홈페이지 관리 */
-:root { --work: #2456A6; --work-soft: #EAF1FC; --work-line: #CFDDF5; }
+/* 왼쪽 메뉴(그린청소): 업무(견적 문의 · 정기청소 정산 · 일회성 정산 · 인력 배치)는 녹색, 홈페이지 관리는 주황색 */
+:root { --work: #1F7A4C; --work-soft: #E8F5ED; --work-line: #C4E4D0; --site: #B45309; --site-soft: #FFF4EA; --site-line: #F7D6B8; }
 .nav-group { display: block; margin: 10px 12px 2px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--sub); }
 .nav-group:first-child { margin-top: 0; }
 .nav-group-work { color: var(--work); }
+.nav-group-site { color: var(--site); }
 .sidebar-nav a.nav-work { color: var(--work); background: var(--work-soft); font-weight: 600; }
-.sidebar-nav a.nav-work + a.nav-work { margin-top: 0; }
 .sidebar-nav a.nav-work:hover { background: var(--work-line); color: var(--work); }
 .sidebar-nav a.nav-work[aria-current] { background: var(--work); color: #fff; }
+.sidebar-nav a.nav-site { color: var(--site); background: var(--site-soft); font-weight: 600; }
+.sidebar-nav a.nav-site:hover { background: var(--site-line); color: var(--site); }
+.sidebar-nav a.nav-site[aria-current] { background: var(--site); color: #fff; }
 @media (max-width: 860px) {
   .nav-group { grid-column: 1 / -1; margin: 6px 4px 0; }
   .nav-group:first-child { margin-top: 0; }
   .sidebar-nav a.nav-work { border: 1px solid var(--work-line); }
+  .sidebar-nav a.nav-site { border: 1px solid var(--site-line); }
 }
 
 /* 홈페이지 관리 › 텔레그램 알림 */

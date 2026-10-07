@@ -73,7 +73,7 @@ select,input,textarea{max-width:100%}
     </div>
     <nav class="sidebar-nav" aria-label="관리자 메뉴">
 <?php
-// 그린청소: 매일 쓰는 업무(견적 문의 · 정기청소 정산 · 일회성 정산 · 인력 배치)와 홈페이지를 고치는 관리 메뉴를 색과 제목으로 나눕니다.
+// 그린청소: 매일 쓰는 업무(견적 문의 · 정기청소 정산 · 일회성 정산 · 인력 배치, 녹색)와 홈페이지를 고치는 관리 메뉴(주황색)를 색과 제목으로 나눕니다.
 $workKeys = $cleaning ? array('inquiries', 'contracts', 'onetime', 'workers') : array();
 $group = '';
 foreach ($menu as $key => $m):
@@ -82,7 +82,7 @@ foreach ($menu as $key => $m):
         $group = $isWork ? 'work' : 'site'; ?>
       <span class="nav-group nav-group-<?= $group ?>"><?= $isWork ? '업무' : '홈페이지 관리' ?></span>
 <?php endif; ?>
-      <a href="<?= $m[0] ?>"<?= $isWork ? ' class="nav-work"' : '' ?><?= ($nav ?? '') === $key ? ' aria-current="page"' : '' ?>>
+      <a href="<?= $m[0] ?>"<?= $isWork ? ' class="nav-work"' : ($cleaning ? ' class="nav-site"' : '') ?><?= ($nav ?? '') === $key ? ' aria-current="page"' : '' ?>>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $m[2] ?></svg><?= e($m[1]) ?>
 <?php if ($key === 'inquiries' && !empty($inquiryBadge)): ?>        <span class="nav-badge" aria-label="새 문의 <?= $inquiryBadge ?>건"><?= $inquiryBadge ?></span>
 <?php elseif ($key === 'onetime' && !empty($onetimeBadge)): ?>        <span class="nav-badge" aria-label="정산 전 <?= $onetimeBadge ?>건"><?= $onetimeBadge ?></span>
