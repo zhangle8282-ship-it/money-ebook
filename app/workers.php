@@ -4,11 +4,25 @@
  * 관리자 화면 전용입니다(검색 사이트에 나오지 않음).
  */
 
-// 원하는 방식: 키 => [이름, 설명]
+// 원하는 방식: 키 => [이름, 설명]. 둘 다 고르면 DB에는 'both'로 저장합니다.
 const WORKER_METHODS = array(
     'commission' => array('수수료 방식', '일을 받아서 하고, 수수료를 떼고 받기'),
     'takeover' => array('인수해서 직접', '현장을 넘겨받아 본인이 직접 맡기'),
 );
+const WORKER_BOTH = 'both';
+
+/** 저장된 방식 → 고른 방식 키 목록 */
+function worker_methods($method)
+{
+    return $method === WORKER_BOTH ? array_keys(WORKER_METHODS) : (array_key_exists($method, WORKER_METHODS) ? array($method) : array());
+}
+
+/** 고른 방식 키 목록 → 저장할 값(하나면 그 키, 둘이면 both, 없으면 '') */
+function worker_method_value($keys)
+{
+    $keys = array_values(array_intersect(array_keys(WORKER_METHODS), (array) $keys));
+    return count($keys) === count(WORKER_METHODS) ? WORKER_BOTH : ($keys[0] ?? '');
+}
 // 고를 수 있는 지역(음성군 9개 읍 · 면, 진천군 7개 읍 · 면, 충북혁신도시, 인근 충주 · 괴산). 이 밖의 지역은 ‘기타 지역’ 칸에 적습니다.
 const WORKER_REGIONS = array(
     '음성군' => array('음성읍', '금왕읍', '대소면', '삼성면', '맹동면', '원남면', '생극면', '감곡면', '소이면'),
@@ -73,8 +87,9 @@ function workers_search($q, $method, $region)
         $where[] = '(' . $cond . ')';
     }
     if (array_key_exists($method, WORKER_METHODS)) {
-        $where[] = 'method = ?';
-        $params[] = $method;
+        // 둘 다 고른 사람은 어느 쪽으로 찾아도 나옵니다.
+        $where[] = '(method = ? OR method = ?)';
+        array_push($params, $method, WORKER_BOTH);
     }
     if ($region !== '') {
         $where[] = "regions LIKE ? ESCAPE '!'";
@@ -93,7 +108,9 @@ function worker_counts()
 {
     $counts = array_fill_keys(array_keys(WORKER_METHODS), 0);
     foreach (q_all('SELECT method, COUNT(*) AS n FROM workers GROUP BY method') as $r) {
-        $counts[$r['method']] = (int) $r['n'];
+        foreach (worker_methods($r['method']) as $key) {
+            $counts[$key] += (int) $r['n'];
+        }
     }
     return $counts;
 }

@@ -37,7 +37,8 @@ function admin_worker_form($id = null)
             'name' => str_cut(trim(preg_replace('/\s+/u', ' ', input('name'))), 60, ''),
             'phone' => str_cut(trim(input('phone')), 40, ''),
             'regions' => worker_regions_text($picked, $other),
-            'method' => array_key_exists(input('method'), WORKER_METHODS) ? input('method') : '',
+            // 둘 다 고를 수 있음(methods[]). 예전 방식(method 하나)도 받습니다.
+            'method' => worker_method_value(isset($_POST['methods']) && is_array($_POST['methods']) ? $_POST['methods'] : array(input('method'))),
             'memo' => str_cut(str_replace("\r\n", "\n", trim((string) input('memo'))), 1000, ''),
         ));
         if ($form['name'] === '') {
@@ -50,7 +51,7 @@ function admin_worker_form($id = null)
             $errors[] = '커버 가능한 지역을 하나 이상 골라 주세요.';
         }
         if ($form['method'] === '') {
-            $errors[] = '원하는 방식(수수료 방식 / 인수해서 직접)을 골라 주세요.';
+            $errors[] = '원하는 방식(수수료 방식 / 인수해서 직접)을 하나 이상 골라 주세요. 둘 다 골라도 돼요.';
         }
         if (!$errors) {
             $data = array_intersect_key($form, array_flip(array('name', 'phone', 'regions', 'method', 'memo')));

@@ -745,3 +745,4 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
   .region-group-name { flex: none; padding-top: 0; }
   .worker-search { padding: 16px; }
 }
+.method-pills { display: flex; flex-wrap: wrap; gap: 4px; }

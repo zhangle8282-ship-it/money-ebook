@@ -34,10 +34,10 @@ $action = $worker ? '/admin/workers/' . (int) $worker['id'] . '/edit' : '/admin/
   </fieldset>
 
   <fieldset class="field method-picker">
-    <legend>원하는 방식 <span class="req">*</span></legend>
+    <legend>원하는 방식 <span class="req">*</span> <span class="sub">(둘 다 골라도 돼요)</span></legend>
     <div class="method-options">
-<?php foreach (WORKER_METHODS as $key => $m): ?>
-      <label class="method-option"><input type="radio" name="method" value="<?= e($key) ?>"<?= $form['method'] === $key ? ' checked' : '' ?> required><span><strong><?= e($m[0]) ?></strong><small><?= e($m[1]) ?></small></span></label>
+<?php $chosen = worker_methods($form['method']); foreach (WORKER_METHODS as $key => $m): ?>
+      <label class="method-option"><input type="checkbox" name="methods[]" value="<?= e($key) ?>"<?= in_array($key, $chosen, true) ? ' checked' : '' ?>><span><strong><?= e($m[0]) ?></strong><small><?= e($m[1]) ?></small></span></label>
 <?php endforeach; ?>
     </div>
   </fieldset>

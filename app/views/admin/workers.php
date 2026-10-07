@@ -60,7 +60,7 @@ $searching = $q !== '' || $region !== '';
       <tr>
         <td class="nowrap"><a class="strong" href="/admin/workers/<?= (int) $w['id'] ?>/edit"><?= e($w['name']) ?></a><?php if ($w['phone'] !== ''): ?><div class="sub"><a href="<?= e(tel_href($w['phone'])) ?>"><?= e($w['phone']) ?></a></div><?php endif; ?></td>
         <td><div class="region-chips"><?php foreach (worker_regions($w['regions']) as $r): ?><span class="region-chip<?= $r === $region ? ' is-hit' : '' ?>"><?= e($r) ?></span><?php endforeach; ?></div></td>
-        <td class="nowrap"><span class="status worker-<?= e($w['method']) ?>"><?= e(WORKER_METHODS[$w['method']][0] ?? $w['method']) ?></span></td>
+        <td><div class="method-pills"><?php foreach (worker_methods($w['method']) as $key): ?><span class="status worker-<?= e($key) ?>"><?= e(WORKER_METHODS[$key][0]) ?></span><?php endforeach; ?></div></td>
         <td class="worker-memo"><?= $w['memo'] !== '' ? nl2br(e($w['memo']), false) : '<span class="sub">-</span>' ?></td>
         <td class="actions"><a class="btn btn-outline btn-sm" href="/admin/workers/<?= (int) $w['id'] ?>/edit">고치기</a></td>
       </tr>
