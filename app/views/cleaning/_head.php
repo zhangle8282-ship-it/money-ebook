@@ -1,7 +1,7 @@
 <?php
 /**
  * 그린청소 공개 화면 <head>: 검색 노출(제목·설명·대표 주소·공유 정보·구조화 데이터)을 한곳에서 만듭니다.
- * 변수: $meta[title, desc, canonical, type(website|article), image, keywords(bool), ld(배열), published, modified]
+ * 변수: $meta[title, desc, canonical, type(website|article), image, keywords(true: 첫 화면 키워드 | 글자: 그 페이지 키워드), ld(배열), published, modified]
  */
 $m = $meta + array('type' => 'website', 'image' => base_url() . '/assets/green-og.jpg', 'keywords' => false, 'ld' => array(), 'published' => null, 'modified' => null);
 $naver = verify_code(gc('naver_verify'));
@@ -14,7 +14,7 @@ $bing = verify_code(gc('bing_verify'));
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($m['title']) ?></title>
 <meta name="description" content="<?= e($m['desc']) ?>">
-<?php if ($m['keywords'] && gc('seo_keywords') !== ''): ?><meta name="keywords" content="<?= e(gc('seo_keywords')) ?>">
+<?php $kw = is_string($m['keywords']) ? $m['keywords'] : ($m['keywords'] ? gc('seo_keywords') : ''); if ($kw !== ''): ?><meta name="keywords" content="<?= e($kw) ?>">
 <?php endif; ?>
 <meta name="robots" content="index,follow,max-image-preview:large">
 <link rel="canonical" href="<?= e($m['canonical']) ?>">

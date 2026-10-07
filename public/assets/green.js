@@ -77,6 +77,30 @@
     a.addEventListener('click', function (e) { e.preventDefault(); goQuote(true); });
   });
 
+  // 지역 · 업종별 청소: 여섯 장 뒤는 접어 두고 ‘더 보기’로 펼치기
+  var areaGrid = document.querySelector('[data-area-grid]');
+  var areaMore = document.querySelector('[data-area-more]');
+  if (areaGrid && areaMore) {
+    var areaLabel = areaMore.querySelector('[data-area-more-label]');
+    var setAreas = function (open) {
+      areaGrid.classList.toggle('is-folded', !open);
+      areaMore.setAttribute('aria-expanded', open ? 'true' : 'false');
+      areaLabel.textContent = open ? '접기' : '지역 · 업종 더 보기 (' + areaMore.getAttribute('data-area-more') + ')';
+    };
+    setAreas(false);
+    areaMore.hidden = false;
+    areaMore.addEventListener('click', function () {
+      var open = areaMore.getAttribute('aria-expanded') !== 'true';
+      setAreas(open);
+      if (open) {
+        var first = areaGrid.querySelector('.g-area-extra a');
+        if (first) first.focus({ preventScroll: true });
+      } else {
+        areaGrid.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
   // 청소 범위 탭(방향키로도 이동)
   var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-tab]'));
   function selectTab(tab, focus) {

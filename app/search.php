@@ -283,8 +283,13 @@ function indexnow_due()
     if (!$posts) {
         return;
     }
-    $paths = array_merge(array_map('blog_url', $posts), array('/blog', '/'));
-    register_shutdown_function(function () use ($paths) {
+    indexnow_later(array_merge(array_map('blog_url', $posts), array('/blog', '/')), '예약 글 공개');
+}
+
+/** 화면을 방문자에게 다 보낸 뒤에 검색 사이트에 알립니다(방문자는 기다리지 않음). */
+function indexnow_later($paths, $why)
+{
+    register_shutdown_function(function () use ($paths, $why) {
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_write_close();
         }
@@ -292,7 +297,7 @@ function indexnow_due()
             fastcgi_finish_request();
         }
         try {
-            indexnow_ping($paths, '예약 글 공개');
+            indexnow_ping($paths, $why);
         } catch (Throwable $e) {
             error_log('indexnow: ' . $e->getMessage());
         }

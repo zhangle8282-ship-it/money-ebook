@@ -45,7 +45,7 @@ $meta = array(
             'description' => gc('seo_desc'), 'priceRange' => '견적 문의',
             'areaServed' => array_map(function ($a) {
                 return array('@type' => 'AdministrativeArea', 'name' => $a);
-            }, array('충청북도 음성군', '음성군 금왕읍', '음성군 대소면', '충청북도 진천군', '충북혁신도시', '충청북도 청주시 오창읍', '경기도 안성시')),
+            }, array('충청북도 음성군', '음성군 금왕읍', '음성군 대소면', '충청북도 진천군', '충북혁신도시', '충청북도 청주시', '충청북도 청주시 오창읍', '경기도 안성시')),
             'keywords' => gc('seo_keywords'),
             'hasOfferCatalog' => array('@type' => 'OfferCatalog', 'name' => '정기청소 서비스', 'itemListElement' => array_map(function ($l) {
                 return array('@type' => 'Offer', 'itemOffered' => array('@type' => 'Service', 'name' => $l[0], 'description' => $l[1]) + ($l[3] !== '' ? array('url' => base_url() . $l[3]) : array()));
@@ -118,28 +118,34 @@ if ($h1 === '') {
 </section>
 
 <section class="g-section g-soft" id="areas" aria-labelledby="areas-title">
+<?php
+// 처음엔 여섯 장만 보이고 나머지는 ‘더 보기’로 펼칩니다. 검색 사이트가 모두 읽도록 링크는 전부 화면에 넣어 둡니다(자바스크립트가 꺼져 있으면 모두 보임).
+if (count($areas) % 3 === 2) {
+    $areas[] = array('그 밖의 지역 · 공간', '음성 · 진천 · 청주 오창 · 안성 인근이라면 사무실 · 상가 · 공장 · 화장실 어디든 먼저 문의해 주세요.', '', '');
+}
+$areaShow = 6;
+$areaMore = max(0, count($areas) - $areaShow);
+?>
   <div class="g-wrap">
-    <div class="g-head"><span class="g-kicker">— 지역 · 업종별 청소 —</span><h2 id="areas-title">음성 · 진천 · 혁신도시, 공간에 맞춰 관리합니다</h2></div>
-    <ul class="g-area-grid">
-<?php foreach ($areas as $l): ?>
-      <li class="g-area">
+    <div class="g-head"><span class="g-kicker">— 지역 · 업종별 청소 —</span><h2 id="areas-title">음성 · 진천 · 청주 오창 · 안성, 공간에 맞춰 관리합니다</h2></div>
+    <ul class="g-area-grid" id="area-grid"<?= $areaMore ? ' data-area-grid' : '' ?>>
+<?php foreach ($areas as $i => $l): ?>
+      <li class="g-area<?= $i >= $areaShow ? ' g-area-extra' : '' ?>">
         <h3><?= $l[3] !== '' ? '<a href="' . e($l[3]) . '">' . e($l[0]) . '</a>' : e($l[0]) ?></h3>
         <p><?= e(str_cut($l[1], 90)) ?></p>
         <div class="g-area-links">
 <?php if ($l[3] !== ''): ?>          <a class="g-more" href="<?= e($l[3]) ?>">자세히 보기 →</a>
 <?php endif; ?>
-          <a class="g-more" href="/?kind=<?= e($l[2]) ?>#quote" data-pick-kind="<?= e($l[2]) ?>">견적 받기 →</a>
+<?php if ($l[2] !== ''): ?>          <a class="g-more" href="/?kind=<?= e($l[2]) ?>#quote" data-pick-kind="<?= e($l[2]) ?>">견적 받기 →</a>
+<?php else: ?>          <a class="g-more" href="#quote" data-go-quote>견적 문의 →</a>
+<?php endif; ?>
         </div>
       </li>
 <?php endforeach; ?>
-<?php if (count($areas) % 3 === 2): ?>
-      <li class="g-area">
-        <h3>그 밖의 지역 · 공간</h3>
-        <p>음성 · 진천 · 혁신도시 인근이라면 사무실 · 상가 · 공장 · 화장실 어디든 먼저 문의해 주세요.</p>
-        <div class="g-area-links"><a class="g-more" href="#quote" data-go-quote>견적 문의 →</a></div>
-      </li>
-<?php endif; ?>
     </ul>
+<?php if ($areaMore): ?>
+    <div class="g-area-more-wrap"><button type="button" class="g-area-more" aria-controls="area-grid" aria-expanded="false" data-area-more="<?= $areaMore ?>" hidden><span data-area-more-label>지역 · 업종 더 보기 (<?= $areaMore ?>)</span> <span aria-hidden="true" class="g-area-more-arrow">↓</span></button></div>
+<?php endif; ?>
   </div>
 </section>
 
