@@ -51,8 +51,11 @@ $phone = gc('phone');
 <?php if ($post['cover'] !== ''): ?>
       <figure class="g-article-cover"><img src="<?= e($post['cover']) ?>" alt="<?= e($post['title']) ?>"></figure>
 <?php endif; ?>
-<?php if (count($heads) >= 3): ?>
-      <nav class="g-toc" aria-label="목차"><strong>목차</strong><ol><?php foreach ($heads as $i => $h): ?><li><a href="#s<?= $i + 1 ?>"><?= e($h) ?></a></li><?php endforeach; ?></ol></nav>
+<?php if (count($heads) >= 2): ?>
+      <details class="g-toc">
+        <summary><span class="g-toc-title">목차</span><span class="g-toc-count"><?= count($heads) ?>개</span><span class="g-toc-arrow" aria-hidden="true"></span></summary>
+        <nav aria-label="목차"><ul><?php foreach ($heads as $i => $h): ?><li><a href="#s<?= $i + 1 ?>"><?= e($h) ?></a></li><?php endforeach; ?></ul></nav>
+      </details>
 <?php endif; ?>
       <div class="g-prose"><?= $bodyTop ?></div>
       <?= view('cleaning/_scope_box', array('kind' => $kind)) ?>

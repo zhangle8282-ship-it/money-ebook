@@ -447,10 +447,20 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .g-article-meta { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--sub-2); }
 .g-article-cover { margin: 32px 0 0; border-radius: 20px; overflow: hidden; }
 .g-article-cover img { width: 100%; max-height: 460px; object-fit: cover; }
-.g-toc { margin: 32px 0 0; padding: 20px 24px; border-radius: 16px; background: var(--soft); }
-.g-toc strong { display: block; font-size: 15px; margin-bottom: 8px; }
-.g-toc ol { margin: 0; padding-left: 20px; list-style: decimal; display: flex; flex-direction: column; gap: 4px; }
+/* 블로그 목차: 처음엔 접혀 있고 눌러서 펼침, 번호 없이 */
+.g-toc { margin: 32px 0 0; border-radius: 16px; background: var(--soft); }
+.g-toc summary { display: flex; align-items: center; gap: 8px; padding: 16px 22px; cursor: pointer; list-style: none; font-size: 16px; font-weight: 700; color: var(--hero-ink); border-radius: 16px; }
+.g-toc summary::-webkit-details-marker { display: none; }
+.g-toc summary:focus-visible { outline: 3px solid var(--g); outline-offset: 2px; }
+.g-toc-count { font-size: 13px; font-weight: 600; color: var(--sub-2); }
+.g-toc-arrow { margin-left: auto; width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); transition: transform .2s; }
+.g-toc[open] .g-toc-arrow { transform: rotate(-135deg) translateY(-2px); }
+.g-toc nav { padding: 0 22px 18px; }
+.g-toc ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 12px; }
+.g-toc li { position: relative; padding-left: 14px; }
+.g-toc li::before { content: ''; position: absolute; left: 0; top: .72em; width: 5px; height: 5px; border-radius: 50%; background: var(--g); }
 .g-toc a { color: var(--ink); }
+.g-toc a:hover { color: var(--g); }
 .g-prose { margin-top: 36px; font-size: 18px; line-height: 1.85; color: #33373D; }
 .g-prose > * + * { margin-top: 20px; }
 .g-prose h2 { margin-top: 48px; font-size: 27px; line-height: 1.4; font-weight: 800; color: var(--hero-ink); scroll-margin-top: 90px; }

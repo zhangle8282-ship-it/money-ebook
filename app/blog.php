@@ -83,7 +83,49 @@ function blog_is_html($post)
 /** 본문 HTML(보여 줄 때도 한 번 더 정리) */
 function blog_body_html($post)
 {
-    return blog_is_html($post) ? rich_clean_html($post['body']) : blog_render($post['body']);
+    return blog_is_html($post) ? blog_strip_heading_numbers(rich_clean_html($post['body'])) : blog_render($post['body']);
+}
+
+/**
+ * 소제목(h2 · h3) 맨 앞의 번호 칸을 뺍니다. 네이버 블로그에서 붙여 온 글은 ‘1’ ‘2’ 번호가 따로 된 칸(흰 글씨 등)으로 들어와
+ * 목차에 ‘1공장 …’처럼 붙어 보이기 때문입니다. 숫자만 든 칸일 때만 빼고, ‘3가지 방법’처럼 글자에 붙은 숫자는 그대로 둡니다.
+ */
+function blog_strip_heading_numbers($html)
+{
+    if (!preg_match('~<h[23]\b~i', $html)) {
+        return $html;
+    }
+    $doc = dom_from_html($html);
+    $root = $doc->getElementsByTagName('div')->item(0);
+    if (!$root) {
+        return $html;
+    }
+    $xp = new DOMXPath($doc);
+    $changed = false;
+    foreach (iterator_to_array($xp->query('.//h2|.//h3', $root)) as $h) {
+        $first = $xp->query('.//text()[normalize-space()]', $h)->item(0);
+        if (!$first || !preg_match('/^\s*\d{1,2}[.)]?\s*$/u', $first->nodeValue) || trim($h->textContent) === trim($first->nodeValue)) {
+            continue;
+        }
+        // 숫자만 든 가장 바깥 칸(소제목 바로 안의 글자는 건드리지 않음)
+        $node = $first;
+        while ($node->parentNode && $node->parentNode !== $h && trim($node->parentNode->textContent) === trim($first->nodeValue)) {
+            $node = $node->parentNode;
+        }
+        if ($node === $first) {
+            continue;
+        }
+        $node->parentNode->removeChild($node);
+        $changed = true;
+    }
+    if (!$changed) {
+        return $html;
+    }
+    $out = '';
+    foreach ($root->childNodes as $child) {
+        $out .= $doc->saveHTML($child);
+    }
+    return trim(str_replace("\xC2\xA0", '&nbsp;', $out));
 }
 
 /** 본문 글자만 */
@@ -191,7 +233,7 @@ function blog_render($text)
 function blog_headings($post)
 {
     if (blog_is_html($post)) {
-        preg_match_all('~<h2\b[^>]*>(.*?)</h2>~su', (string) $post['body'], $m);
+        preg_match_all('~<h2\b[^>]*>(.*?)</h2>~su', blog_body_html($post), $m);
         return array_values(array_filter(array_map('rich_text', $m[1])));
     }
     preg_match_all('/^##\s+(.+)$/mu', (string) $post['body'], $m);
