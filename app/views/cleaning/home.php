@@ -24,6 +24,15 @@ $nav += array('regions' => '서비스 지역', 'faq' => 'FAQ');
 // 검색 노출: 제목·설명은 관리자 › 홈페이지 관리 › 검색 노출에서 바꿀 수 있어요.
 $url = base_url() . '/';
 $faq = cleaning_faq();
+// 지역 · 업종별 청소: 검색어 페이지가 있으면 그 페이지로 연결(없으면 처음 소개 카드)
+$areas = array_map(function ($p) {
+    return array($p['title'], $p['summary'], $p['kind'], landing_url($p));
+}, landing_public());
+if (!$areas) {
+    $areas = array_map(function ($l) {
+        return array($l[0], $l[1], $l[2], '');
+    }, cleaning_local_services());
+}
 $meta = array(
     'title' => gc('seo_title') !== '' ? gc('seo_title') : $name,
     'desc' => gc('seo_desc'),
@@ -39,8 +48,8 @@ $meta = array(
             }, array('충청북도 음성군', '음성군 금왕읍', '음성군 대소면', '충청북도 진천군', '충북혁신도시')),
             'keywords' => gc('seo_keywords'),
             'hasOfferCatalog' => array('@type' => 'OfferCatalog', 'name' => '정기청소 서비스', 'itemListElement' => array_map(function ($l) {
-                return array('@type' => 'Offer', 'itemOffered' => array('@type' => 'Service', 'name' => $l[0], 'description' => $l[1]));
-            }, cleaning_local_services())),
+                return array('@type' => 'Offer', 'itemOffered' => array('@type' => 'Service', 'name' => $l[0], 'description' => $l[1]) + ($l[3] !== '' ? array('url' => base_url() . $l[3]) : array()));
+            }, $areas)),
         ),
         array('@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => array_map(function ($f) {
             return array('@type' => 'Question', 'name' => $f[0], 'acceptedAnswer' => array('@type' => 'Answer', 'text' => $f[1]));
@@ -149,13 +158,24 @@ if ($h1 === '') {
   <div class="g-wrap">
     <div class="g-head"><span class="g-kicker">— 지역 · 업종별 청소 —</span><h2 id="areas-title">음성 · 진천 · 혁신도시, 공간에 맞춰 관리합니다</h2></div>
     <ul class="g-area-grid">
-<?php foreach (cleaning_local_services() as $l): ?>
+<?php foreach ($areas as $l): ?>
       <li class="g-area">
-        <h3><?= e($l[0]) ?></h3>
-        <p><?= e($l[1]) ?></p>
-        <a class="g-more" href="/?kind=<?= e($l[2]) ?>#quote" data-pick-kind="<?= e($l[2]) ?>">견적 받기 →</a>
+        <h3><?= $l[3] !== '' ? '<a href="' . e($l[3]) . '">' . e($l[0]) . '</a>' : e($l[0]) ?></h3>
+        <p><?= e(str_cut($l[1], 90)) ?></p>
+        <div class="g-area-links">
+<?php if ($l[3] !== ''): ?>          <a class="g-more" href="<?= e($l[3]) ?>">자세히 보기 →</a>
+<?php endif; ?>
+          <a class="g-more" href="/?kind=<?= e($l[2]) ?>#quote" data-pick-kind="<?= e($l[2]) ?>">견적 받기 →</a>
+        </div>
       </li>
 <?php endforeach; ?>
+<?php if (count($areas) % 3 === 2): ?>
+      <li class="g-area">
+        <h3>그 밖의 지역 · 공간</h3>
+        <p>음성 · 진천 · 혁신도시 인근이라면 사무실 · 상가 · 공장 · 화장실 어디든 먼저 문의해 주세요.</p>
+        <div class="g-area-links"><a class="g-more" href="#quote" data-go-quote>견적 문의 →</a></div>
+      </li>
+<?php endif; ?>
     </ul>
   </div>
 </section>

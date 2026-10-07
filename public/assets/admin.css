@@ -661,3 +661,9 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .engine-steps .btn-sm { height: 30px; padding: 0 10px; font-size: 13px; margin: 2px 0; vertical-align: middle; }
 .engine-steps code { padding: 1px 6px; border-radius: 5px; background: var(--bg); font-size: 14px; }
 @media (max-width: 640px) { .submit-urls li { flex-direction: column; align-items: flex-start; } }
+
+/* 블로그 › 준비된 초안 */
+.draft-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.draft-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+.draft-list li:first-child { border-top: 0; }
+@media (max-width: 640px) { .draft-list li { flex-direction: column; align-items: flex-start; } }

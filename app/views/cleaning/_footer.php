@@ -13,6 +13,9 @@ $channelKey = gc('channeltalk_key');
       <p><span>상호 <?= e($name) ?></span><?php if (gc('owner') !== ''): ?><span>대표 <?= e(gc('owner')) ?></span><?php endif; ?><?php if (gc('biz_number') !== ''): ?><span>사업자등록번호 <?= e(gc('biz_number')) ?></span><?php endif; ?><?php if (gc('biz_type') !== '' || gc('biz_item') !== ''): ?><span>업태 <?= e(gc('biz_type')) ?> · 종목 <?= e(gc('biz_item')) ?></span><?php endif; ?></p>
       <p><?php if (gc('address') !== ''): ?><span>주소 <?= e(gc('address')) ?></span><?php endif; ?><?php if (gc('email') !== ''): ?><span>이메일 <a href="mailto:<?= e(gc('email')) ?>"><?= e(gc('email')) ?></a></span><?php endif; ?><?php if (gc('area') !== ''): ?><span>서비스 지역 <?= e(gc('area')) ?></span><?php endif; ?></p>
     </div>
+<?php $footerAreas = landing_public(); if ($footerAreas): ?>
+    <nav class="g-footer-areas" aria-label="지역 · 업종별 청소"><strong>지역 · 업종별 청소</strong><?php foreach ($footerAreas as $fa): ?><a href="<?= e(landing_url($fa)) ?>"><?= e($fa['title']) ?></a><?php endforeach; ?></nav>
+<?php endif; ?>
     <p class="g-copy">© <?= e($name) ?>. All rights reserved. <a href="/privacy">개인정보처리방침</a><?php if (blog_has_posts()): ?> <a href="/blog">블로그</a><?php endif; ?></p>
   </div>
 </footer>

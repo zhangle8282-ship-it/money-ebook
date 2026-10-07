@@ -223,6 +223,16 @@ function migrate(PDO $pdo)
         $fix->execute(array('충북음성청소업체, 금왕사무실정기청소, 음성공장청소, 충북혁신도시화장실청소, 진천상가청소, 대소공단청소', 'gc_seo_desc', '충북음성청소업체 그린청소 – 금왕사무실정기청소, 음성공장청소, 충북혁신도시화장실청소, 진천상가청소, 대소공단청소까지. 요일·시간만 정하면 전담 인력이 매번 같은 기준으로 관리합니다. 현장 방문 견적 무료.'));
         $pdo->prepare("UPDATE settings SET v = '12' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 13) {
+        // 13: 그린청소 검색어 페이지(지역 · 업종별 소개 페이지, 주소 /음성공장청소 처럼)
+        $pdo->exec("CREATE TABLE IF NOT EXISTS landing_pages (
+            id $id, slug VARCHAR(120) NOT NULL, title VARCHAR(200) NOT NULL, summary VARCHAR(300) NOT NULL DEFAULT '',
+            body $long, cover VARCHAR(255) NOT NULL DEFAULT '', seo_title VARCHAR(200) NOT NULL DEFAULT '', keywords VARCHAR(300) NOT NULL DEFAULT '',
+            kind VARCHAR(12) NOT NULL DEFAULT 'office', sort INT NOT NULL DEFAULT 0, status VARCHAR(12) NOT NULL DEFAULT 'published',
+            created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NOT NULL)" . $tail);
+        $pdo->exec('CREATE UNIQUE INDEX ' . ($sqlite ? 'IF NOT EXISTS ' : '') . 'idx_landing_slug ON landing_pages (slug)');
+        $pdo->prepare("UPDATE settings SET v = '13' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

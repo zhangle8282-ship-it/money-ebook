@@ -42,6 +42,9 @@ $on = ($values['gc_indexnow_on'] ?? '1') === '1';
       </div>
       <?= $copy($rss) ?>
     </li>
+    <li class="submit-canonical">
+      <label class="check-row"><input type="checkbox" name="canonical_redirect" value="1" form="search-form"<?= ($values['gc_canonical_redirect'] ?? '1') === '1' ? ' checked' : '' ?>> <span>주소 하나로 모으기 · <b><?= e(display_url('https://' . preg_replace('/^www\./', '', (string) parse_url($base, PHP_URL_HOST)))) ?></b><small>http:// 나 www. 로 들어와도 이 주소로 옮겨서, 검색 사이트가 홈페이지를 하나로 보게 해요. 보안 인증서(https)에 문제가 생겼을 때만 끄세요.</small></span></label>
+    </li>
     <li>
       <div class="submit-main"><span class="submit-kind">robots.txt</span><a class="submit-url" href="/robots.txt" target="_blank" rel="noopener"><?= e(display_url($base . '/robots.txt')) ?></a><span class="sub">관리자 화면은 막고, 사이트맵<?= $posts ? ' · RSS' : '' ?> 주소를 알려 줘요</span></div>
     </li>

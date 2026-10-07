@@ -534,7 +534,8 @@
   var plain = function (t) {
     return t.replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/^\s*(#{2,3}|[-*]|>)\s+/gm, '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
   };
-  var slugify = function (t) { return t.toLowerCase().replace(/[^0-9a-z\u3131-\uD79D]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60); };
+  var join = form.hasAttribute('data-slug-join'); // 검색어 페이지: 띄어쓰기를 붙여 씀(음성 공장 청소 → 음성공장청소)
+  var slugify = function (t) { return t.toLowerCase().replace(join ? /\s+/g : /$^/, '').replace(/[^0-9a-z\u3131-\uD79D]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60); };
   var siteName = document.querySelector('.brand-name') ? document.querySelector('.brand-name').textContent.trim() : '';
   function update() {
     var title = get('title'), body = area.value, summary = get('summary'), keywords = get('keywords');

@@ -37,22 +37,59 @@ function indexnow_key_file($key)
     exit;
 }
 
-/** 인터넷에서 열리는 주소인지(내 컴퓨터 · IP 주소면 알리지 않음) */
-function indexnow_public_host()
+/** 인터넷에서 열리는 주소인지(내 컴퓨터 · IP 주소 · 시험용 주소가 아닌지) */
+function is_public_host($host)
 {
-    $host = strtolower((string) parse_url(base_url(), PHP_URL_HOST));
+    $host = strtolower(preg_replace('/:\d+$/', '', (string) $host));
     if ($host === '' || $host === 'localhost' || filter_var(trim($host, '[]'), FILTER_VALIDATE_IP) || strpos($host, '.') === false) {
         return false;
     }
     return !preg_match('/\.(localhost|test|local|invalid)$/', $host);
 }
 
+/** 지금 주소가 인터넷 주소인지(아니면 검색 사이트에 알리지 않음) */
+function indexnow_public_host()
+{
+    return is_public_host(parse_url(base_url(), PHP_URL_HOST));
+}
+
+/**
+ * 주소 하나로 모으기: http:// 와 www. 로 들어오면 https://(www 없는 주소)로 영구 이동(301)합니다.
+ * 같은 홈페이지가 주소 4개로 따로 열리면 검색 점수가 나뉘기 때문입니다.
+ * 내 컴퓨터 · IP 주소로 열 때와 보내는 요청(POST)은 그대로 둡니다. 관리자 › 검색 등록에서 끌 수 있습니다.
+ */
+function canonical_host_redirect()
+{
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if (($method !== 'GET' && $method !== 'HEAD') || gc('canonical_redirect') === '0') {
+        return;
+    }
+    $host = strtolower(preg_replace('/[^A-Za-z0-9.:\-]/', '', $_SERVER['HTTP_HOST'] ?? ''));
+    if (!is_public_host($host)) {
+        return;
+    }
+    $host = preg_replace('/:\d+$/', '', $host);
+    $target = preg_replace('/^www\./', '', $host);
+    if ($target === $host && is_https()) {
+        return;
+    }
+    $uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+    header('Location: https://' . $target . ($uri !== '' && $uri[0] === '/' ? $uri : '/'), true, 301);
+    exit;
+}
+
 /** 사이트맵에 담기는 주소 전부: [주소(‘/’로 시작), 마지막 수정 시각 또는 null] */
 function sitemap_entries()
 {
     $postsUpdated = q_value('SELECT MAX(updated_at) FROM blog_posts WHERE ' . blog_public_sql(), array(now()));
-    $home = max((string) gc('home_updated'), (string) $postsUpdated);
-    $rows = array(array('/', $home !== '' ? $home : null), array('/privacy', null));
+    $pages = landing_public();
+    $pagesUpdated = $pages ? max(array_column($pages, 'updated_at')) : '';
+    $home = max((string) gc('home_updated'), (string) $postsUpdated, (string) $pagesUpdated);
+    $rows = array(array('/', $home !== '' ? $home : null));
+    foreach ($pages as $p) {
+        $rows[] = array(landing_url($p), $p['updated_at']);
+    }
+    $rows[] = array('/privacy', null);
     if ($postsUpdated) {
         $rows[] = array('/blog', $postsUpdated);
     }

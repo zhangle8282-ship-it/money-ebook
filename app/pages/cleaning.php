@@ -46,6 +46,13 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/account$~', 'admin_account'),
         array('GET|POST', '~^/admin/code$~', 'admin_custom_code'),
         array('GET|POST', '~^/admin/search$~', 'admin_search_submit'),
+        // 검색어 페이지
+        array('GET', '~^/admin/pages$~', 'admin_landing_list'),
+        array('GET|POST', '~^/admin/pages/new$~', 'admin_landing_form'),
+        array('GET|POST', '~^/admin/pages/(\d+)/edit$~', 'admin_landing_form'),
+        array('POST', '~^/admin/pages/(\d+)/delete$~', 'admin_landing_delete'),
+        // 맨 끝: /음성공장청소 처럼 검색어 페이지(위 주소에 해당하지 않을 때만)
+        array('GET', '~^/([^/.]+)$~', 'page_landing'),
     );
 }
 
@@ -440,7 +447,7 @@ function admin_account()
 }
 
 /** 검색 등록: 사이트맵 · RSS 주소 안내, 검색 사이트 확인 코드, 바뀐 주소 바로 알리기(IndexNow) */
-const SEARCH_SUBMIT_FIELDS = array('gc_naver_verify', 'gc_google_verify', 'gc_bing_verify', 'gc_daum_verify', 'gc_indexnow_on');
+const SEARCH_SUBMIT_FIELDS = array('gc_naver_verify', 'gc_google_verify', 'gc_bing_verify', 'gc_daum_verify', 'gc_indexnow_on', 'gc_canonical_redirect');
 
 function admin_search_submit()
 {
@@ -474,6 +481,7 @@ function admin_search_submit()
             $values['gc_daum_verify'] = $daum;
         }
         $values['gc_indexnow_on'] = input('indexnow_on') === '1' ? '1' : '0';
+        $values['gc_canonical_redirect'] = input('canonical_redirect') === '1' ? '1' : '0';
         if (!$errors) {
             save_settings(array_intersect_key($values, array_flip(SEARCH_SUBMIT_FIELDS)));
             flash('저장했어요. 확인 코드는 홈페이지에 바로 들어가요. 이제 검색 사이트 화면에서 ‘소유 확인’을 눌러 주세요.');

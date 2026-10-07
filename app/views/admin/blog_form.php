@@ -1,4 +1,4 @@
-<?php /** 그린청소 관리자 › 블로그 글쓰기. 변수: $post, $form, $errors */
+<?php /** 그린청소 관리자 › 블로그 글쓰기. 변수: $post, $form, $errors, $fromDraft(초안을 불러왔는지) */
 $action = $post ? '/admin/blog/' . (int) $post['id'] . '/edit' : '/admin/blog/new';
 $date = $form['published_at'] ? substr($form['published_at'], 0, 10) : date('Y-m-d');
 $host = base_url();
@@ -14,6 +14,9 @@ $host = base_url();
     <button type="submit" form="blog-form" class="btn btn-primary">저장하기</button>
   </div>
 </div>
+<?php if (!empty($fromDraft)): ?>
+<div class="notice-box"><p>준비된 초안을 불러왔어요. 우리 업체와 다른 내용은 고치고, <b>현장 사진</b>을 ‘사진 넣기’로 1장 이상 넣은 뒤 저장해 주세요. 직접 겪은 이야기를 한두 줄 더하면 검색에 더 잘 나와요.</p></div>
+<?php endif; ?>
 <?php if ($errors): ?>
 <div class="alert" role="alert"><?php foreach ($errors as $err): ?><p><?= e($err) ?></p><?php endforeach; ?></div>
 <?php endif; ?>

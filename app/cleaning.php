@@ -50,6 +50,10 @@ function cleaning_defaults()
         'gc_indexnow_next' => '',
         // 첫 화면 내용(홈페이지 정보 · 사진 · 후기)을 마지막으로 바꾼 시각(사이트맵 lastmod)
         'gc_home_updated' => '',
+        // 주소 하나로 모으기(http · www → https://그린청소.com): '0'이면 끔
+        'gc_canonical_redirect' => '1',
+        // 검색어 페이지 기본 5개를 넣었는지(한 번만)
+        'gc_landing_seeded' => '',
     );
 }
 

@@ -16,6 +16,7 @@ require APP_DIR . '/pages/admin_books.php';
 require APP_DIR . '/pages/cleaning.php';
 require APP_DIR . '/pages/contracts.php';
 require APP_DIR . '/pages/blog.php';
+require APP_DIR . '/pages/landing.php';
 
 function routes()
 {
@@ -115,6 +116,9 @@ function page_health()
 
 function dispatch()
 {
+    if (SITE_MODE === 'cleaning') {
+        canonical_host_redirect();
+    }
     capture_referral();
     $path = rawurldecode(current_path());
     if ($path !== '/') {

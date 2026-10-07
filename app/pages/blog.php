@@ -78,9 +78,12 @@ function blog_rss()
 function admin_blog_list()
 {
     require_admin();
+    $posts = q_all('SELECT * FROM blog_posts ORDER BY COALESCE(published_at, created_at) DESC, id DESC');
     render_admin('blog_list', array(
         'title' => '블로그', 'nav' => 'blog',
-        'posts' => q_all('SELECT * FROM blog_posts ORDER BY COALESCE(published_at, created_at) DESC, id DESC'),
+        'posts' => $posts,
+        'drafts' => blog_drafts(),
+        'usedTitles' => array_flip(array_column($posts, 'title')),
     ));
 }
 
@@ -96,6 +99,12 @@ function admin_blog_form($id = null)
         'status' => 'published', 'published_at' => null,
     );
     $errors = array();
+    // 준비된 초안으로 쓰기(/admin/blog/new?draft=번호): 제목 · 키워드 · 설명 · 본문을 채워 둡니다.
+    $drafts = blog_drafts();
+    $draftNo = !$post && !is_post() ? input_int('draft', 0) : 0;
+    if ($draftNo >= 1 && isset($drafts[$draftNo - 1])) {
+        list($form['title'], $form['keywords'], $form['summary'], $form['body']) = $drafts[$draftNo - 1];
+    }
     $here = $post ? '/admin/blog/' . (int) $post['id'] . '/edit' : '/admin/blog/new';
     if (is_post() && !$_POST && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
         $errors[] = '올린 사진이 서버 한도(post_max_size ' . ini_get('post_max_size') . ')보다 커요.';
@@ -184,7 +193,7 @@ function admin_blog_form($id = null)
             redirect('/admin/blog/' . $newId . '/edit');
         }
     }
-    render_admin('blog_form', array('title' => $post ? '글 고치기' : '새 글 쓰기', 'nav' => 'blog', 'post' => $post, 'form' => $form, 'errors' => $errors));
+    render_admin('blog_form', array('title' => $post ? '글 고치기' : '새 글 쓰기', 'nav' => 'blog', 'post' => $post, 'form' => $form, 'errors' => $errors, 'fromDraft' => $draftNo >= 1 && isset($drafts[$draftNo - 1])));
 }
 
 function admin_blog_delete($id)
