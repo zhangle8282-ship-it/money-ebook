@@ -29,6 +29,8 @@ function cleaning_defaults()
         'gc_reviews' => '',
         // 도급 정산 › 갑·을이 하는 일: {"gap":[…], "eul":[…]}. 비어 있으면 처음 목록(CONTRACT_ROLE_DEFAULTS)
         'gc_roles' => '',
+        // 일회성 정산 › 파트너가 하는 일(비어 있으면 ONETIME_ROLE_DEFAULTS)
+        'gc_onetime_roles' => '',
         // 검색 노출(SEO): 첫 화면 제목·설명·키워드, 네이버·구글 사이트 확인 코드
         'gc_seo_title' => '충북음성청소업체',
         'gc_seo_desc' => '충북음성청소업체, 금왕사무실정기청소, 음성공장청소, 충북혁신도시화장실청소, 진천상가청소, 대소공단청소',

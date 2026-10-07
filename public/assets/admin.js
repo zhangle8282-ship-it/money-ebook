@@ -416,7 +416,8 @@
   var won = function (n) { return Number(n).toLocaleString('ko-KR') + '원'; };
   var set = function (key, text) { form.querySelectorAll('[data-calc="' + key + '"]').forEach(function (el) { el.textContent = text; }); };
   function calc() {
-    var fee = Number((form.monthly_fee.value || '').replace(/[^0-9]/g, '')) || 0;
+    var feeInput = form.monthly_fee || form.fee; // 도급 정산: 월 청소비용, 일회성 정산: 청소비용
+    var fee = Number((feeInput.value || '').replace(/[^0-9]/g, '')) || 0;
     var invoice = (form.querySelector('input[name="invoice"]:checked') || {}).value !== '0';
     var rate = Number((form.querySelector('input[name="contract_rate"]:checked') || {}).value || 20);
     var gap = Math.max(0, Math.min(100, Number(form.gap_rate.value) || 0));

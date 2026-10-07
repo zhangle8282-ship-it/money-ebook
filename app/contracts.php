@@ -42,6 +42,12 @@ const CONTRACT_ROLE_DEFAULTS = array(
     'eul' => array('홈페이지 관리', '홍보', '채널톡상담', '인원배치'),
     'byeong' => array('현장 청소 작업'),
 );
+// 일회성 정산(입주청소 등)의 처음 역할. 관리자 › 일회성 정산 › 파트너 역할에서 따로 고칩니다.
+const ONETIME_ROLE_DEFAULTS = array(
+    'gap' => array('전화상담', '인력배치'),
+    'eul' => array('홈페이지 관리', '홍보', '채널톡상담'),
+    'byeong' => array('현장 청소 업무'),
+);
 const CONTRACT_ROLE_SIDES = array('gap' => '대표파트너', 'eul' => '운영파트너', 'byeong' => '청소 담당 파트너');
 const CONTRACT_ROLE_SHORT = array('gap' => '대표', 'eul' => '운영', 'byeong' => '청소');
 const CONTRACT_ROLE_MAX = 20;
@@ -99,24 +105,26 @@ function partner_account($p)
 }
 
 /** 파트너가 하는 일 목록 */
-function contract_roles()
+/** 파트너가 하는 일. $scope: contract(도급 정산) | onetime(일회성 정산) — 따로 저장 */
+function contract_roles($scope = 'contract')
 {
-    $saved = json_decode(gc('roles'), true);
+    $saved = json_decode(gc($scope === 'onetime' ? 'onetime_roles' : 'roles'), true);
+    $defaults = $scope === 'onetime' ? ONETIME_ROLE_DEFAULTS : CONTRACT_ROLE_DEFAULTS;
     $roles = array();
     foreach (CONTRACT_ROLE_SIDES as $side => $label) {
-        $list = is_array($saved) && isset($saved[$side]) && is_array($saved[$side]) ? $saved[$side] : CONTRACT_ROLE_DEFAULTS[$side];
+        $list = is_array($saved) && isset($saved[$side]) && is_array($saved[$side]) ? $saved[$side] : $defaults[$side];
         $roles[$side] = array_values(array_filter(array_map('strval', $list), 'strlen'));
     }
     return $roles;
 }
 
-function save_contract_roles($roles)
+function save_contract_roles($roles, $scope = 'contract')
 {
     $out = array();
     foreach (array_keys(CONTRACT_ROLE_SIDES) as $side) {
         $out[$side] = array_values($roles[$side]);
     }
-    save_settings(array('gc_roles' => json_encode($out, JSON_UNESCAPED_UNICODE)));
+    save_settings(array(($scope === 'onetime' ? 'gc_onetime_roles' : 'gc_roles') => json_encode($out, JSON_UNESCAPED_UNICODE)));
 }
 
 /** 금액 계산. 반환: fee, tax, after_tax, byeong_amount, withholding_amount, byeong_pay, contract_amount, gap_amount, eul_amount (+ 비율) */

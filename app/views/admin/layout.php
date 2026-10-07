@@ -6,6 +6,7 @@ $cleaning = SITE_MODE === 'cleaning';
 $pendingBadge = $bookBadge = $marketBadge = 0;
 if ($cleaning) {
     $inquiryBadge = (int) q_value("SELECT COUNT(*) FROM inquiries WHERE status = 'new'");
+    $onetimeBadge = onetime_pending_count();
 } else {
     $pendingBadge = (int) q_value("SELECT COUNT(*) FROM orders WHERE status = 'pending'");
     $counts = market_pending_counts();
@@ -15,6 +16,7 @@ if ($cleaning) {
 $menu = $cleaning ? array(
     'inquiries' => array('/admin/inquiries', '견적 문의', '<path d="M4 4h16v12H7l-3 3z"></path><path d="M8 9h8M8 12h5"></path>'),
     'contracts' => array('/admin/contracts', '도급 정산', '<rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M8 18h8"></path>'),
+    'onetime' => array('/admin/onetime', '일회성 정산', '<rect x="4" y="4" width="16" height="17" rx="2"></rect><path d="M8 2v4M16 2v4M4 10h16"></path><path d="M9 15l2 2 4-4"></path>'),
     'workers' => array('/admin/workers', '인력 배치', '<circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"></path>'),
     'site' => array('/admin/site', '홈페이지 관리', '<path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path>'),
     'photos' => array('/admin/photos', '사진 관리', '<rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5-5-8 8"></path>'),
@@ -71,8 +73,8 @@ select,input,textarea{max-width:100%}
     </div>
     <nav class="sidebar-nav" aria-label="관리자 메뉴">
 <?php
-// 그린청소: 매일 쓰는 업무(견적 문의 · 도급 정산 · 인력 배치)와 홈페이지를 고치는 관리 메뉴를 색과 제목으로 나눕니다.
-$workKeys = $cleaning ? array('inquiries', 'contracts', 'workers') : array();
+// 그린청소: 매일 쓰는 업무(견적 문의 · 도급 정산 · 일회성 정산 · 인력 배치)와 홈페이지를 고치는 관리 메뉴를 색과 제목으로 나눕니다.
+$workKeys = $cleaning ? array('inquiries', 'contracts', 'onetime', 'workers') : array();
 $group = '';
 foreach ($menu as $key => $m):
     $isWork = in_array($key, $workKeys, true);
@@ -83,6 +85,7 @@ foreach ($menu as $key => $m):
       <a href="<?= $m[0] ?>"<?= $isWork ? ' class="nav-work"' : '' ?><?= ($nav ?? '') === $key ? ' aria-current="page"' : '' ?>>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $m[2] ?></svg><?= e($m[1]) ?>
 <?php if ($key === 'inquiries' && !empty($inquiryBadge)): ?>        <span class="nav-badge" aria-label="새 문의 <?= $inquiryBadge ?>건"><?= $inquiryBadge ?></span>
+<?php elseif ($key === 'onetime' && !empty($onetimeBadge)): ?>        <span class="nav-badge" aria-label="정산 전 <?= $onetimeBadge ?>건"><?= $onetimeBadge ?></span>
 <?php elseif ($key === 'orders' && $pendingBadge): ?>        <span class="nav-badge" aria-label="입금 대기 <?= $pendingBadge ?>건"><?= $pendingBadge ?></span>
 <?php elseif ($key === 'market' && $marketBadge): ?>        <span class="nav-badge" aria-label="처리할 일 <?= $marketBadge ?>건"><?= $marketBadge ?></span>
 <?php elseif ($key === 'books' && $bookBadge): ?>        <span class="nav-badge" aria-label="승인 대기 <?= $bookBadge ?>권"><?= $bookBadge ?></span>

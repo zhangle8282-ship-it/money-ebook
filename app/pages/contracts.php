@@ -224,22 +224,24 @@ function admin_contract_form($id = null)
 }
 
 /** 파트너(대표·운영·청소 담당)가 하는 일: 보기 · 더하기 · 빼기 · 순서 바꾸기 · 처음 목록으로 */
-function admin_contract_roles()
+function admin_contract_roles($scope = 'contract')
 {
     require_admin();
-    $roles = contract_roles();
+    $scope = $scope === 'onetime' ? 'onetime' : 'contract';
+    $base = $scope === 'onetime' ? '/admin/onetime/roles' : '/admin/contracts/roles';
+    $roles = contract_roles($scope);
     if (is_post()) {
-        require_csrf('/admin/contracts/roles');
+        require_csrf($base);
         $side = array_key_exists(input('side'), CONTRACT_ROLE_SIDES) ? input('side') : null;
         $action = input('action');
         $index = input_int('index', -1);
         if ($action === 'reset') {
-            save_settings(array('gc_roles' => ''));
+            save_settings(array(($scope === 'onetime' ? 'gc_onetime_roles' : 'gc_roles') => ''));
             flash('파트너 역할을 처음 목록으로 되돌렸어요.');
-            redirect('/admin/contracts/roles');
+            redirect($base);
         }
         if ($side === null) {
-            redirect('/admin/contracts/roles');
+            redirect($base);
         }
         $label = CONTRACT_ROLE_SIDES[$side];
         if ($action === 'add') {
@@ -252,13 +254,13 @@ function admin_contract_roles()
                 flash('‘' . $task . '’은(는) 이미 ' . $label . '의 일에 있어요.', 'error');
             } else {
                 $roles[$side][] = $task;
-                save_contract_roles($roles);
+                save_contract_roles($roles, $scope);
                 flash($label . '가 하는 일에 ‘' . $task . '’을(를) 더했어요.');
             }
         } elseif ($action === 'delete' && isset($roles[$side][$index])) {
             $task = $roles[$side][$index];
             array_splice($roles[$side], $index, 1);
-            save_contract_roles($roles);
+            save_contract_roles($roles, $scope);
             flash($label . '가 하는 일에서 ‘' . $task . '’을(를) 뺐어요.');
         } elseif (($action === 'up' || $action === 'down') && isset($roles[$side][$index])) {
             $to = $action === 'up' ? $index - 1 : $index + 1;
@@ -266,7 +268,7 @@ function admin_contract_roles()
                 $tmp = $roles[$side][$to];
                 $roles[$side][$to] = $roles[$side][$index];
                 $roles[$side][$index] = $tmp;
-                save_contract_roles($roles);
+                save_contract_roles($roles, $scope);
             }
         } elseif (preg_match('/^move_(gap|eul|byeong)$/', (string) $action, $mv) && $mv[1] !== $side && isset($roles[$side][$index])) {
             // 다른 사람에게 넘기기
@@ -276,12 +278,12 @@ function admin_contract_roles()
             if (!in_array($task, $roles[$other], true)) {
                 $roles[$other][] = $task;
             }
-            save_contract_roles($roles);
+            save_contract_roles($roles, $scope);
             flash('‘' . $task . '’을(를) ' . CONTRACT_ROLE_SIDES[$other] . '가 하는 일로 옮겼어요.');
         }
-        redirect('/admin/contracts/roles');
+        redirect($base);
     }
-    render_admin('contracts_roles', array('title' => '파트너 역할', 'nav' => 'contracts', 'tab' => 'roles', 'roles' => $roles));
+    render_admin('contracts_roles', array('title' => '파트너 역할', 'nav' => $scope === 'onetime' ? 'onetime' : 'contracts', 'tab' => 'roles', 'roles' => $roles, 'scope' => $scope, 'base' => $base));
 }
 
 /** 파트너 입력값 검사. 반환: [값, 오류] */

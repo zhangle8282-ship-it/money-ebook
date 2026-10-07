@@ -275,6 +275,21 @@ function migrate(PDO $pdo)
         }
         $pdo->prepare("UPDATE settings SET v = '18' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 19) {
+        // 19: 일회성 정산(입주청소처럼 한 번 하는 일): 조건 · 나눈 금액(저장할 때 계산해 둠) · 정산 단계
+        $pdo->exec("CREATE TABLE IF NOT EXISTS onetime_jobs (
+            id $id, name VARCHAR(100) NOT NULL, client VARCHAR(100) NOT NULL DEFAULT '', work_date VARCHAR(10) NOT NULL,
+            fee INT NOT NULL DEFAULT 0, invoice INT NOT NULL DEFAULT 1, contract_rate INT NOT NULL DEFAULT 20, gap_rate INT NOT NULL DEFAULT 60, withholding INT NOT NULL DEFAULT 1,
+            gap_partner_id INT NULL, eul_partner_id INT NULL, byeong_partner_id INT NULL,
+            gap_name VARCHAR(60) NOT NULL DEFAULT '', eul_name VARCHAR(60) NOT NULL DEFAULT '', byeong_name VARCHAR(60) NOT NULL DEFAULT '',
+            tax INT NOT NULL DEFAULT 0, contract_amount INT NOT NULL DEFAULT 0, byeong_amount INT NOT NULL DEFAULT 0, withholding_amount INT NOT NULL DEFAULT 0,
+            byeong_pay INT NOT NULL DEFAULT 0, gap_amount INT NOT NULL DEFAULT 0, eul_amount INT NOT NULL DEFAULT 0,
+            status VARCHAR(12) NOT NULL DEFAULT 'pending', step_received VARCHAR(19) NULL, step_invoiced VARCHAR(19) NULL,
+            step_paid_byeong VARCHAR(19) NULL, step_paid_eul VARCHAR(19) NULL, settled_at VARCHAR(19) NULL, settled_by VARCHAR(64) NOT NULL DEFAULT '',
+            memo TEXT, created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NOT NULL)" . $tail);
+        $pdo->exec('CREATE INDEX ' . ($sqlite ? 'IF NOT EXISTS ' : '') . 'idx_onetime_date ON onetime_jobs (work_date)');
+        $pdo->prepare("UPDATE settings SET v = '19' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

@@ -48,6 +48,13 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/account$~', 'admin_account'),
         array('GET|POST', '~^/admin/code$~', 'admin_custom_code'),
         array('GET|POST', '~^/admin/search$~', 'admin_search_submit'),
+        // 일회성 정산
+        array('GET', '~^/admin/onetime$~', 'admin_onetime_list'),
+        array('GET|POST', '~^/admin/onetime/new$~', 'admin_onetime_form'),
+        array('GET|POST', '~^/admin/onetime/(\d+)/edit$~', 'admin_onetime_form'),
+        array('POST', '~^/admin/onetime/(\d+)/settle$~', 'admin_onetime_settle'),
+        array('POST', '~^/admin/onetime/(\d+)/delete$~', 'admin_onetime_delete'),
+        array('GET|POST', '~^/admin/onetime/roles$~', 'admin_onetime_roles'),
         // 인력 배치 정보
         array('GET', '~^/admin/workers$~', 'admin_workers'),
         array('GET|POST', '~^/admin/workers/new$~', 'admin_worker_form'),
