@@ -37,7 +37,7 @@ $text = function ($key, $label, $opts = array()) use ($v) {
 
   <section class="card stack-lg" id="seo" aria-labelledby="s-seo">
     <div class="card-intro"><h2 id="s-seo">검색 노출 (SEO)</h2><p class="muted">네이버 · 구글 검색 결과에 보이는 첫 화면 제목과 설명이에요. 사람들이 검색할 말을 앞쪽에 넣으세요.</p></div>
-    <?= $text('gc_seo_title', '검색 제목', array('help' => '예: 충북음성청소업체 | 그린청소 (30자 안팎이 좋아요)')) ?>
+    <?= $text('gc_seo_title', '검색 제목', array('help' => '예: 충북음성청소업체 (30자 안팎이 좋아요)')) ?>
     <div class="field"><label for="f-gc_seo_desc">검색 설명</label><textarea id="f-gc_seo_desc" name="gc_seo_desc" rows="3" maxlength="200"><?= $v('gc_seo_desc') ?></textarea><p class="field-help">검색 결과 제목 아래에 보이는 글이에요. 80~160자가 좋아요.</p></div>
     <?= $text('gc_seo_keywords', '키워드 (쉼표로)', array('help' => '예: 충북음성청소업체, 금왕사무실정기청소, 음성공장청소')) ?>
     <p class="field-help">네이버 · 구글 사이트 확인 코드와 사이트맵 · RSS 제출은 <a href="/admin/search">검색 등록</a> 메뉴에서 해요.</p>

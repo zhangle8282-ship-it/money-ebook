@@ -215,6 +215,14 @@ function migrate(PDO $pdo)
         }
         $pdo->prepare("UPDATE settings SET v = '11' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 12) {
+        // 12: 첫 화면 검색 제목 · 설명을 주인이 정한 그대로(제목 ‘충북음성청소업체’, 설명은 검색어 6개만).
+        //     관리자에서 직접 바꾼 값은 그대로 둡니다.
+        $fix = $pdo->prepare('UPDATE settings SET v = ? WHERE k = ? AND v = ?');
+        $fix->execute(array('충북음성청소업체', 'gc_seo_title', '충북음성청소업체 | 그린청소'));
+        $fix->execute(array('충북음성청소업체, 금왕사무실정기청소, 음성공장청소, 충북혁신도시화장실청소, 진천상가청소, 대소공단청소', 'gc_seo_desc', '충북음성청소업체 그린청소 – 금왕사무실정기청소, 음성공장청소, 충북혁신도시화장실청소, 진천상가청소, 대소공단청소까지. 요일·시간만 정하면 전담 인력이 매번 같은 기준으로 관리합니다. 현장 방문 견적 무료.'));
+        $pdo->prepare("UPDATE settings SET v = '12' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */
