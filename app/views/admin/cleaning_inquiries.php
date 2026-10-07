@@ -6,7 +6,7 @@ $total = array_sum($counts);
 <div class="page-head">
   <div class="page-head-text">
     <h1>견적 문의</h1>
-    <p class="muted">홈페이지 ‘무료 견적 문의’로 들어온 문의예요. 연락한 뒤 상태와 메모를 남겨 두세요.</p>
+    <p class="muted">홈페이지 ‘무료 견적 문의’로 들어온 문의예요. 연락한 뒤 메모를 적고 저장하면 ‘새 문의’에서 빠져요.</p>
   </div>
   <a class="btn btn-outline" href="/" target="_blank" rel="noopener">홈페이지 보기 ↗</a>
 </div>
@@ -42,8 +42,10 @@ $total = array_sum($counts);
       <?= csrf_field() ?><input type="hidden" name="back" value="<?= e($back) ?>">
       <label class="sr-only" for="st-<?= (int) $q['id'] ?>">상태</label>
       <select id="st-<?= (int) $q['id'] ?>" name="status">
-<?php foreach (INQUIRY_STATUS as $key => $label): ?>
-        <option value="<?= $key ?>"<?= $q['status'] === $key ? ' selected' : '' ?>><?= e($label) ?></option>
+<?php // 새 문의는 ‘연락함’을 미리 골라 둡니다. 메모만 적고 저장해도 처리한 문의가 되어 ‘새 문의’에서 빠져요.
+$pick = $q['status'] === 'new' ? 'contacted' : $q['status'];
+foreach (INQUIRY_STATUS as $key => $label): ?>
+        <option value="<?= $key ?>"<?= $pick === $key ? ' selected' : '' ?>><?= e($label) ?></option>
 <?php endforeach; ?>
       </select>
       <label class="sr-only" for="memo-<?= (int) $q['id'] ?>">메모</label>

@@ -179,12 +179,13 @@ function admin_inquiry_action($id)
         flash($row['name'] . ' 문의를 지웠어요.');
         redirect($back);
     }
+    $status = array_key_exists(input('status'), INQUIRY_STATUS) ? input('status') : $row['status'];
     q_update('inquiries', (int) $row['id'], array(
-        'status' => array_key_exists(input('status'), INQUIRY_STATUS) ? input('status') : $row['status'],
+        'status' => $status,
         'memo' => str_cut(str_replace("\r\n", "\n", input('memo')), 1000, ''),
         'updated_at' => now(),
     ));
-    flash($row['name'] . ' 문의를 저장했어요.');
+    flash($row['name'] . ' 문의를 저장했어요.' . ($row['status'] === 'new' && $status !== 'new' ? ' 처리한 문의라 ‘새 문의’에서 뺐어요.' : ''));
     redirect($back);
 }
 

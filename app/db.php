@@ -242,6 +242,11 @@ function migrate(PDO $pdo)
         }
         $pdo->prepare("UPDATE settings SET v = '14' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 15) {
+        // 15: 이미 처리한 견적 문의(메모를 적었거나 한 번이라도 저장한 것)는 ‘새 문의’에서 ‘연락함’으로
+        $pdo->exec("UPDATE inquiries SET status = 'contacted' WHERE status = 'new' AND (memo <> '' OR updated_at > created_at)");
+        $pdo->prepare("UPDATE settings SET v = '15' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */
