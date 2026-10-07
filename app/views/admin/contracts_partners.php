@@ -1,7 +1,7 @@
-<?php /** 관리자 › 도급 정산 › 파트너 · 계좌. 변수: $groups, $usage, $form, $errors */ ?>
+<?php /** 관리자 › 정기청소 정산 › 파트너 · 계좌. 변수: $groups, $usage, $form, $errors */ ?>
 <div class="page-head">
   <div class="page-head-text">
-    <h1>도급 정산</h1>
+    <h1>정기청소 정산</h1>
     <p class="muted">대표 · 운영 · 청소 담당 파트너의 지급 계좌를 등록해요. 청소마다 담당 파트너를 고르면, 월별 정산의 지급 단계에 보낼 계좌가 바로 나와요.</p>
   </div>
   <a class="btn btn-primary" href="#partner-add">+ 파트너 추가</a>

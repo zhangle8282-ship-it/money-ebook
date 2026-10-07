@@ -1,6 +1,6 @@
 <?php
 /**
- * 청소 도급 정산(그린청소 관리자): 대표파트너 · 운영파트너 · 청소 담당 파트너가 청소비용을 나눕니다. 매달 정산합니다.
+ * 청소 정기청소 정산(그린청소 관리자): 대표파트너 · 운영파트너 · 청소 담당 파트너가 청소비용을 나눕니다. 매달 정산합니다.
  *
  * 계산(예: 청소비용 100만원, 도급 20%, 대표·운영 60:40):
  *   세금(세금계산서 발행 시) = 청소비용 × 10%                     → 100,000
@@ -36,7 +36,7 @@ function settlement_steps($calc)
     return $steps;
 }
 
-// 파트너가 하는 일(처음 목록). 관리자 › 도급 정산 › 파트너 역할에서 더하고 뺄 수 있어요.
+// 파트너가 하는 일(처음 목록). 관리자 › 정기청소 정산 › 파트너 역할에서 더하고 뺄 수 있어요.
 const CONTRACT_ROLE_DEFAULTS = array(
     'gap' => array('세금계산서 발행', '전화상담', '방문견적', '계약서 체결'),
     'eul' => array('홈페이지 관리', '홍보', '채널톡상담', '인원배치'),
@@ -105,7 +105,7 @@ function partner_account($p)
 }
 
 /** 파트너가 하는 일 목록 */
-/** 파트너가 하는 일. $scope: contract(도급 정산) | onetime(일회성 정산) — 따로 저장 */
+/** 파트너가 하는 일. $scope: contract(정기청소 정산) | onetime(일회성 정산) — 따로 저장 */
 function contract_roles($scope = 'contract')
 {
     $saved = json_decode(gc($scope === 'onetime' ? 'onetime_roles' : 'roles'), true);

@@ -27,7 +27,7 @@ function cleaning_defaults()
         'gc_photos' => '',
         // 고객 후기: [[글, 누가]…]. 비어 있으면 처음 후기(cleaning_default_reviews)
         'gc_reviews' => '',
-        // 도급 정산 › 갑·을이 하는 일: {"gap":[…], "eul":[…]}. 비어 있으면 처음 목록(CONTRACT_ROLE_DEFAULTS)
+        // 정기청소 정산 › 갑·을이 하는 일: {"gap":[…], "eul":[…]}. 비어 있으면 처음 목록(CONTRACT_ROLE_DEFAULTS)
         'gc_roles' => '',
         // 일회성 정산 › 파트너가 하는 일(비어 있으면 ONETIME_ROLE_DEFAULTS)
         'gc_onetime_roles' => '',

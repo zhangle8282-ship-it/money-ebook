@@ -73,7 +73,7 @@ function admin_onetime_form($id = null)
             $note = '';
             if ($form['byeong_worker_id']) {
                 list($form['byeong_partner_id'], $created) = partner_from_worker(find_worker($form['byeong_worker_id']));
-                $note = $created ? ' 인력 배치의 사람을 청소 담당 파트너로 등록했어요. 지급 계좌는 도급 정산 › 파트너 · 계좌에서 넣어 주세요.' : '';
+                $note = $created ? ' 인력 배치의 사람을 청소 담당 파트너로 등록했어요. 지급 계좌는 정기청소 정산 › 파트너 · 계좌에서 넣어 주세요.' : '';
             }
             $data = array_intersect_key($form, array_flip(array('name', 'client', 'work_date', 'fee', 'invoice', 'contract_rate', 'gap_rate', 'withholding',
                 'gap_partner_id', 'eul_partner_id', 'byeong_partner_id', 'gap_name', 'eul_name', 'byeong_name', 'memo')));
@@ -155,7 +155,7 @@ function admin_onetime_delete($id)
     redirect('/admin/onetime?month=' . substr($job['work_date'], 0, 7));
 }
 
-/** 일회성 정산 › 파트너 역할(도급 정산과 따로) */
+/** 일회성 정산 › 파트너 역할(정기청소 정산과 따로) */
 function admin_onetime_roles()
 {
     admin_contract_roles('onetime');

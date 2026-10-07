@@ -6,7 +6,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
 <div class="page-head">
   <div class="page-head-text">
     <h1>일회성 정산</h1>
-    <p class="muted">입주청소 · 대청소처럼 <strong>한 번 하는 일</strong>의 수익을 나눠요. 청소비용에서 (세금계산서를 발행했으면 <strong>세금 <?= CONTRACT_TAX_RATE ?>%</strong>를 빼고) <strong>도급 비율(10 · 20%)은 대표파트너 · 운영파트너</strong>가 나누고(예: 60:40), <strong>나머지는 청소 담당</strong>이 원천징수 <?= CONTRACT_WITHHOLDING ?>%를 떼고 받아요. 달마다 하는 청소는 <a href="/admin/contracts">도급 정산</a>에서 해요.</p>
+    <p class="muted">입주청소 · 대청소처럼 <strong>한 번 하는 일</strong>의 수익을 나눠요. 청소비용에서 (세금계산서를 발행했으면 <strong>세금 <?= CONTRACT_TAX_RATE ?>%</strong>를 빼고) <strong>도급 비율(10 · 20%)은 대표파트너 · 운영파트너</strong>가 나누고(예: 60:40), <strong>나머지는 청소 담당</strong>이 원천징수 <?= CONTRACT_WITHHOLDING ?>%를 떼고 받아요. 달마다 하는 청소는 <a href="/admin/contracts">정기청소 정산</a>에서 해요.</p>
   </div>
   <a class="btn btn-primary" href="/admin/onetime/new">+ 새 일회성 정산</a>
 </div>

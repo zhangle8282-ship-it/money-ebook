@@ -1,6 +1,6 @@
 <?php
 /**
- * 그린청소 관리자 › 도급 정산: 월별 정산표, 청소 목록, 새 청소 · 고치기.
+ * 그린청소 관리자 › 정기청소 정산: 월별 정산표, 청소 목록, 새 청소 · 고치기.
  */
 
 function admin_contracts_month()
@@ -13,7 +13,7 @@ function admin_contracts_month()
         while (ob_get_level()) {
             ob_end_clean();
         }
-        $name = '도급정산-' . $month . '.csv';
+        $name = '정기청소정산-' . $month . '.csv';
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="contract-settlement-' . $month . '.csv"; filename*=UTF-8\'\'' . rawurlencode($name));
         header('Cache-Control: private, no-store');
@@ -31,7 +31,7 @@ function admin_contracts_month()
     }
     $year = (int) substr($month, 0, 4);
     render_admin('contracts_month', array(
-        'title' => '도급 정산', 'nav' => 'contracts', 'tab' => 'month', 'roles' => contract_roles(),
+        'title' => '정기청소 정산', 'nav' => 'contracts', 'tab' => 'month', 'roles' => contract_roles(),
         'month' => $month, 'rows' => $rows, 'sum' => $sum,
         'year' => $year, 'yearSummary' => year_settlement_summary($year),
         'contractCount' => (int) q_value('SELECT COUNT(*) FROM contracts'),
@@ -199,7 +199,7 @@ function admin_contract_form($id = null)
             $workerNote = '';
             if ($worker) {
                 list($form['byeong_partner_id'], $created) = partner_from_worker($worker);
-                $workerNote = $created ? ' 인력 배치의 ‘' . $worker['name'] . '’ 님을 청소 담당 파트너로 등록했어요. 지급 계좌는 도급 정산 › 파트너 · 계좌에서 넣어 주세요.' : '';
+                $workerNote = $created ? ' 인력 배치의 ‘' . $worker['name'] . '’ 님을 청소 담당 파트너로 등록했어요. 지급 계좌는 정기청소 정산 › 파트너 · 계좌에서 넣어 주세요.' : '';
             }
             $data = $form;
             unset($data['byeong_worker_id']);

@@ -6,7 +6,7 @@
 
 function render_admin($view, $vars)
 {
-    // 관리자 화면(도급 정산·문의 등)은 검색 사이트에 절대 나오지 않게 합니다.
+    // 관리자 화면(정기청소 정산·문의 등)은 검색 사이트에 절대 나오지 않게 합니다.
     if (!headers_sent()) {
         header('X-Robots-Tag: noindex, nofollow, noarchive');
     }

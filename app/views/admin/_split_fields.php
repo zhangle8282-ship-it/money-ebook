@@ -1,4 +1,4 @@
-<?php /** 도급 정산 · 일회성 정산 공통: 대표 · 운영 비율, 파트너 3명(청소 담당은 인력 배치에서도), 원천징수. 변수: $form */ ?>
+<?php /** 정기청소 정산 · 일회성 정산 공통: 대표 · 운영 비율, 파트너 3명(청소 담당은 인력 배치에서도), 원천징수. 변수: $form */ ?>
     <section class="card stack-lg" aria-labelledby="cf-split">
       <h2 id="cf-split">파트너 3명</h2>
       <div class="grid-2">

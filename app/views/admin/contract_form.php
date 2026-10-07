@@ -1,4 +1,4 @@
-<?php /** 관리자 › 도급 정산 › 새 청소 / 고치기. 변수: $contract, $form, $errors */
+<?php /** 관리자 › 정기청소 정산 › 새 청소 / 고치기. 변수: $contract, $form, $errors */
 $months = array();
 for ($i = -24; $i <= 24; $i++) {
     $months[] = month_shift(date('Y-m'), $i);

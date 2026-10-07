@@ -161,7 +161,7 @@ function migrate(PDO $pdo)
         $pdo->prepare("UPDATE settings SET v = '7' WHERE k = 'schema_version'")->execute();
     }
     if ($version < 8) {
-        // 8: 청소 도급 정산(청소별 계약 조건, 달마다 정산)
+        // 8: 청소 정기청소 정산(청소별 계약 조건, 달마다 정산)
         $pdo->exec("CREATE TABLE IF NOT EXISTS contracts (
             id $id, name VARCHAR(100) NOT NULL, client VARCHAR(100) NOT NULL DEFAULT '',
             monthly_fee INT NOT NULL DEFAULT 0, invoice INT NOT NULL DEFAULT 1, contract_rate INT NOT NULL DEFAULT 10,
@@ -190,7 +190,7 @@ function migrate(PDO $pdo)
         $pdo->prepare("UPDATE settings SET v = '9' WHERE k = 'schema_version'")->execute();
     }
     if ($version < 10) {
-        // 10: 도급 정산을 갑·을·병으로(병 = 청소담당자, 원천징수 3.3%)
+        // 10: 정기청소 정산을 갑·을·병으로(병 = 청소담당자, 원천징수 3.3%)
         $pdo->exec("ALTER TABLE contracts ADD COLUMN byeong_name VARCHAR(60) NOT NULL DEFAULT ''");
         $pdo->exec('ALTER TABLE contracts ADD COLUMN withholding INT NOT NULL DEFAULT 1');
         $pdo->exec('ALTER TABLE contract_settlements ADD COLUMN withholding INT NOT NULL DEFAULT 1');

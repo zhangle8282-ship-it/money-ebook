@@ -1,4 +1,4 @@
-<?php /** 관리자 › 도급 정산 · 일회성 정산 › 파트너 역할. 변수: $roles, $scope(contract | onetime), $base(이 화면 주소) */
+<?php /** 관리자 › 정기청소 정산 · 일회성 정산 › 파트너 역할. 변수: $roles, $scope(contract | onetime), $base(이 화면 주소) */
 $scope = $scope ?? 'contract';
 $base = $base ?? '/admin/contracts/roles';
 $onetime = $scope === 'onetime';
@@ -8,8 +8,8 @@ $descs = $onetime
 ?>
 <div class="page-head">
   <div class="page-head-text">
-    <h1><?= $onetime ? '일회성 정산 · 파트너 역할' : '도급 정산' ?></h1>
-    <p class="muted"><?= $onetime ? '입주청소처럼 한 번 하는 일에서 ' : '' ?>대표파트너 · 운영파트너 · 청소 담당 파트너가 각자 맡은 일을 한눈에 정리해요. 일을 더하거나 빼고, 순서를 바꾸거나 다른 파트너에게 넘길 수 있어요.<?= $onetime ? ' 도급 정산의 역할과는 따로 정해요.' : '' ?></p>
+    <h1><?= $onetime ? '일회성 정산 · 파트너 역할' : '정기청소 정산' ?></h1>
+    <p class="muted"><?= $onetime ? '입주청소처럼 한 번 하는 일에서 ' : '' ?>대표파트너 · 운영파트너 · 청소 담당 파트너가 각자 맡은 일을 한눈에 정리해요. 일을 더하거나 빼고, 순서를 바꾸거나 다른 파트너에게 넘길 수 있어요.<?= $onetime ? ' 정기청소 정산의 역할과는 따로 정해요.' : '' ?></p>
   </div>
 <?php if ($onetime): ?>  <a class="btn btn-outline" href="/admin/onetime">일회성 정산으로</a>
 <?php endif; ?>

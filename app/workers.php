@@ -140,7 +140,7 @@ function worker_counts()
     return $counts;
 }
 
-/* ───────── 도급 정산과 잇기: 인력 배치 사람을 청소 담당 파트너로 ───────── */
+/* ───────── 정기청소 정산과 잇기: 인력 배치 사람을 청소 담당 파트너로 ───────── */
 
 /** 청소 담당으로 고를 수 있는 인력 배치 사람(아직 청소 담당 파트너로 이어지지 않은 사람만. 이어진 사람은 파트너 목록에 나옴) */
 function workers_for_pick()
@@ -175,7 +175,7 @@ function worker_assignments()
 }
 
 /**
- * 청소에 청소 담당 배치(도급 정산 › 청소 목록, 인력 배치 목록에서 바로).
+ * 청소에 청소 담당 배치(정기청소 정산 › 청소 목록, 인력 배치 목록에서 바로).
  * $pick: 청소 담당 파트너 번호 | 'w:인력 배치 번호'(처음이면 청소 담당 파트너로 등록) | ''(비우기). 반환: [성공했는지, 안내 글]
  */
 function assign_cleaner($contract, $pick)
@@ -202,7 +202,7 @@ function assign_cleaner($contract, $pick)
     q_update('contracts', (int) $contract['id'], array('byeong_partner_id' => $pid, 'updated_at' => now()));
     $name = (string) q_value('SELECT name FROM partners WHERE id = ?', array($pid));
     return array(true, '‘' . $contract['name'] . '’에 ‘' . $name . '’ 님을 청소 담당으로 배치했어요.'
-        . ($created ? ' 처음 배치라 청소 담당 파트너로도 등록했어요. 지급 계좌는 도급 정산 › 파트너 · 계좌에서 넣어 주세요.' : ''));
+        . ($created ? ' 처음 배치라 청소 담당 파트너로도 등록했어요. 지급 계좌는 정기청소 정산 › 파트너 · 계좌에서 넣어 주세요.' : ''));
 }
 
 /** 배치할 수 있는 청소(끝나지 않은 것): 이름순 */

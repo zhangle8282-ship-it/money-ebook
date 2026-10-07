@@ -29,7 +29,7 @@
 
   <form method="post" action="/admin/account" class="card stack-lg" aria-labelledby="ad-new" autocomplete="off">
     <?= csrf_field() ?><input type="hidden" name="form" value="create">
-    <div class="card-intro"><h2 id="ad-new">관리자 추가</h2><p class="muted">새 아이디는 이 관리자 화면의 모든 메뉴(견적 문의 · 도급 정산 · 블로그 등)를 쓸 수 있어요.</p></div>
+    <div class="card-intro"><h2 id="ad-new">관리자 추가</h2><p class="muted">새 아이디는 이 관리자 화면의 모든 메뉴(견적 문의 · 정기청소 정산 · 블로그 등)를 쓸 수 있어요.</p></div>
     <div class="field"><label for="ad-user">새 아이디 (영문·숫자 3~30자)</label><input id="ad-user" name="new_username" type="text" maxlength="30" required pattern="[A-Za-z0-9_.\-]{3,30}" autocomplete="off" value="<?= e($form === 'create' ? $created['username'] : '') ?>"></div>
     <div class="grid-2">
       <div class="field"><label for="ad-pw">새 비밀번호 (10자 이상)</label><input id="ad-pw" name="new_admin_password" type="password" required minlength="10" autocomplete="new-password"></div>

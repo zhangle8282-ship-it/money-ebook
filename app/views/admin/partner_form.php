@@ -1,4 +1,4 @@
-<?php /** 관리자 › 도급 정산 › 파트너 고치기. 변수: $partner, $form, $errors */ ?>
+<?php /** 관리자 › 정기청소 정산 › 파트너 고치기. 변수: $partner, $form, $errors */ ?>
 <div class="page-head">
   <div class="page-head-text">
     <h1>파트너 고치기</h1>

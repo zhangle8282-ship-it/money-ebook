@@ -1,11 +1,11 @@
-<?php /** 관리자 › 도급 정산 › 청소 목록. 변수: $contracts */
+<?php /** 관리자 › 정기청소 정산 › 청소 목록. 변수: $contracts */
 $cleaners = partners_by_role()['byeong'];
 $pickWorkers = workers_for_pick();
 $back = $_SERVER['REQUEST_URI'] ?? '/admin/contracts/list';
 ?>
 <div class="page-head">
   <div class="page-head-text">
-    <h1>도급 정산</h1>
+    <h1>정기청소 정산</h1>
     <p class="muted">등록한 청소와 계약 조건이에요. 금액은 한 달 기준이에요. 이름을 누르면 고칠 수 있고, 끝난 청소는 ‘끝난 월’을 정하면 그 다음 달부터 정산표에서 빠져요.</p>
   </div>
   <a class="btn btn-primary" href="/admin/contracts/new">+ 새 청소</a>

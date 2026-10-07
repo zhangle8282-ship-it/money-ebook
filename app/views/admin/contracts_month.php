@@ -1,11 +1,11 @@
-<?php /** 관리자 › 도급 정산 › 월별 정산. 변수: $month, $rows, $sum, $year, $yearSummary, $contractCount */
+<?php /** 관리자 › 정기청소 정산 › 월별 정산. 변수: $month, $rows, $sum, $year, $yearSummary, $contractCount */
 $prev = month_shift($month, -1);
 $next = month_shift($month, 1);
 $pending = $sum['count'] - $sum['done'];
 ?>
 <div class="page-head">
   <div class="page-head-text">
-    <h1>도급 정산</h1>
+    <h1>정기청소 정산</h1>
     <p class="muted">청소비용에서 <strong>세금 <?= CONTRACT_TAX_RATE ?>%</strong>를 빼고, 남은 금액의 <strong>도급비율(예: 20%)은 대표파트너 · 운영파트너</strong>가 나누고(예: 60:40), <strong>나머지(예: 80%)는 청소 담당 파트너</strong>가 원천징수 <?= CONTRACT_WITHHOLDING ?>%를 떼고 받아요.</p>
   </div>
   <a class="btn btn-primary" href="/admin/contracts/new">+ 새 청소</a>
