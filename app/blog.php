@@ -111,11 +111,6 @@ function blog_image($post)
     return preg_match('/!\[[^\]]*\]\(([^)\s]+)\)/u', (string) $post['body'], $m) && blog_safe_url($m[1]) ? $m[1] : '';
 }
 
-function blog_reading_minutes($post)
-{
-    return max(1, (int) ceil(str_len(blog_text($post)) / 500));
-}
-
 function blog_safe_url($url)
 {
     return (bool) preg_match('~^(https?://[^\s"<>]+|/[^\s"<>]*)$~i', $url);

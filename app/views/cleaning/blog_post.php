@@ -46,7 +46,7 @@ $phone = gc('phone');
       <header class="g-article-head">
         <ol class="g-crumbs"><li><a href="/">홈</a></li><li><a href="/blog">블로그</a></li></ol>
         <h1><?= e($post['title']) ?></h1>
-        <p class="g-article-meta"><time datetime="<?= e(date('Y-m-d', strtotime($published))) ?>"><?= e(date('Y.m.d', strtotime($published))) ?></time><span><?= e($name) ?></span><span>읽는 데 약 <?= blog_reading_minutes($post) ?>분</span></p>
+        <p class="g-article-meta"><span><?= e($name) ?></span></p>
       </header>
 <?php if ($post['cover'] !== ''): ?>
       <figure class="g-article-cover"><img src="<?= e($post['cover']) ?>" alt="<?= e($post['title']) ?>"></figure>
