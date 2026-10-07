@@ -324,6 +324,11 @@ function migrate(PDO $pdo)
         }
         $pdo->prepare("UPDATE settings SET v = '22' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 23) {
+        // 23: 일회성 · 수수료 방식은 청소 담당에게 청소비용에서 수수료만 빼고 줌(원천징수 기본 안 뗌). 정산 전인 일을 다시 계산
+        $pdo->exec("UPDATE onetime_jobs SET withholding = 0, withholding_amount = 0, byeong_pay = byeong_amount WHERE method = 'commission' AND status <> 'done' AND withholding = 1");
+        $pdo->prepare("UPDATE settings SET v = '23' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

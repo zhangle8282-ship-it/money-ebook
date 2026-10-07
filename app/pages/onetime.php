@@ -29,7 +29,7 @@ function admin_onetime_form($id = null)
         // 일회성은 보통 세금계산서를 발행하지 않아요(원하면 ‘발행’을 고름).
         'name' => '', 'client' => '', 'work_date' => date('Y-m-d'), 'fee' => '', 'invoice' => 0, 'contract_rate' => 20,
         'method' => 'commission', 'gap_rate' => ONETIME_GAP,
-        'withholding' => 1, 'gap_partner_id' => null, 'eul_partner_id' => null, 'byeong_partner_id' => null,
+        'withholding' => 0, 'gap_partner_id' => null, 'eul_partner_id' => null, 'byeong_partner_id' => null,
         'gap_name' => gc('name'), 'eul_name' => '', 'byeong_name' => '', 'memo' => '', 'status' => 'pending',
     );
     $locked = $job && $job['status'] === 'done';
@@ -46,11 +46,11 @@ function admin_onetime_form($id = null)
             'client' => str_cut(trim(input('client')), 100, ''),
             'work_date' => input('work_date'),
             'fee' => input('fee') === '' ? '' : (int) preg_replace('/[^0-9]/', '', input('fee')),
-            'invoice' => input('invoice') === '0' ? 0 : 1,
+            'invoice' => input('invoice') === '1' ? 1 : 0, // 일회성은 기본 발행 안 함
             'contract_rate' => input_int('contract_rate'),
             'method' => input('method') === 'takeover' ? 'takeover' : 'commission',
             'gap_rate' => input('gap_rate') === '' ? -1 : input_int('gap_rate', -1),
-            'withholding' => input('withholding') === '0' ? 0 : 1,
+            'withholding' => input('withholding') === '1' ? 1 : 0, // 일회성은 기본 안 뗌
             'gap_name' => str_cut(trim(input('gap_name')), 60, ''),
             'eul_name' => str_cut(trim(input('eul_name')), 60, ''),
             'byeong_name' => str_cut(trim(input('byeong_name')), 60, ''),

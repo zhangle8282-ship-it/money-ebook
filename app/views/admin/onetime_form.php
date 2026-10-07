@@ -57,7 +57,7 @@ $fee = $form['fee'] !== '' ? number_format((int) $form['fee']) : '';
           <input type="radio" id="cf-rate-<?= $r ?>" name="contract_rate" value="<?= $r ?>" class="sr-only" data-calc-input="rate"<?= (int) $form['contract_rate'] === $r || (!in_array((int) $form['contract_rate'], ONETIME_RATES, true) && $r === 20) ? ' checked' : '' ?>><label for="cf-rate-<?= $r ?>"><?= $r ?>%</label>
 <?php endforeach; ?>
         </fieldset>
-        <p class="field-help">수수료는 회사가 청소 담당에게 줄 돈에서 떼는 몫이에요. 청소비용(세금계산서를 발행하면 세금을 뺀 금액)에서 수수료는 대표 · 운영 파트너가 <b><?= ONETIME_GAP ?> : <?= 100 - ONETIME_GAP ?></b>으로 나누고, 나머지 <strong data-calc="byeong_rate"><?= 100 - (int) $form['contract_rate'] ?></strong>%는 청소 담당이 받아요.</p>
+        <p class="field-help">예: 50만원 · 수수료 20% → 청소 담당에게 <b>40만원</b>, 수수료 10만원은 대표 · 운영이 <b>5만원씩</b>. 수수료는 회사가 청소 담당에게 줄 돈에서 떼는 몫이에요. 청소비용(세금계산서를 발행하면 세금을 뺀 금액)에서 수수료는 대표 · 운영 파트너가 <b><?= ONETIME_GAP ?> : <?= 100 - ONETIME_GAP ?></b>으로 나누고, 나머지 <strong data-calc="byeong_rate"><?= 100 - (int) $form['contract_rate'] ?></strong>%는 청소 담당이 받아요.</p>
       </div>
       <div class="field method-box" data-method-show="takeover">
         <p class="method-note">인수 방식은 <b>청소 담당 몫 없이</b> 청소 금액(세금계산서를 발행하면 세금 뺀 금액) <b>전체를 대표 · 운영이 <?= ONETIME_GAP ?> : <?= 100 - ONETIME_GAP ?></b>으로 나눠요. 청소 담당 · 원천징수 칸은 쓰지 않아요.</p>
