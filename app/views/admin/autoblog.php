@@ -58,6 +58,7 @@ $cnt = $plan['photos'];
     <li><b>키워드 남용:</b> 대표 키워드가 제목 + 본문에 <?= AUTO_KEYWORD_MAX ?>번 넘게 들어가면 안 받아요.</li>
     <li><b>과장 · 광고:</b> <?= e(implode(' · ', AUTO_BANNED)) ?> 같은 말이 있으면 안 받아요.</li>
     <li><b>길이:</b> 본문 <?= number_format(AUTO_MIN_TEXT) ?>~<?= number_format(AUTO_MAX_TEXT) ?>자만 받아요.</li>
+    <li><b>워터마크 · 스킬 검증:</b> clean-user-facing-text · remove-ai-marks 스킬로 다듬고 검증한 기록(두 스킬의 지문 포함)이 없으면 안 받아요. 보이지 않는 문자(숨은 표시)는 홈페이지가 직접 다시 세서 하나라도 남아 있으면 안 받아요.</li>
   </ul>
   <p class="sub">걸리면 이유를 글 쓰는 Claude에게 돌려줘서 고쳐 다시 보내요. 그래도 안 되면 그날은 건너뛰어요.</p>
 <?php if ($rejects): ?>
@@ -110,7 +111,7 @@ $cnt = $plan['photos'];
 <?php foreach ($posts as $p): $public = blog_is_public($p); ?>
       <tr>
         <td><?= $p['cover'] !== '' ? '<img class="auto-thumb" src="' . e($p['cover']) . '" alt="">' : '<span class="sub">없음</span>' ?></td>
-        <td><a class="strong" href="/admin/blog/<?= (int) $p['id'] ?>/edit"><?= e($p['title']) ?></a><div class="sub"><?= e(str_cut($p['keywords'], 60)) ?></div></td>
+        <td><a class="strong" href="/admin/blog/<?= (int) $p['id'] ?>/edit"><?= e($p['title']) ?></a><div class="sub"><?= e(str_cut($p['keywords'], 60)) ?></div><?php $chk = auto_check_text($p['auto_check'] ?? ''); ?><div class="sub<?= $chk !== '' ? ' ok-text' : ' warn-text' ?>"><?= $chk !== '' ? '✔ ' . e($chk) : '⚠ 스킬 검증 기록 없음(검증 전에 받은 글)' ?></div></td>
         <td class="nowrap"><?= e(fmt_date($p['published_at'], 'm.d H:i')) ?></td>
         <td><span class="status <?= $public ? 'status-paid' : 'status-pending' ?>"><?= $public ? '공개됨' : '예약' ?></span></td>
         <td class="actions"><?php if (!$public && $p['status'] === 'published'): ?><form method="post" action="/admin/blog/<?= (int) $p['id'] ?>/publish" data-confirm="예약 시각을 기다리지 않고 지금 공개할까요?"><?= csrf_field() ?><input type="hidden" name="back" value="/admin/blog/auto"><button type="submit" class="btn btn-primary btn-sm">지금 공개</button></form><?php endif; ?></td>

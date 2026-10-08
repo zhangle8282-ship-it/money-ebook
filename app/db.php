@@ -415,6 +415,15 @@ function migrate(PDO $pdo)
         }
         $pdo->prepare("UPDATE settings SET v = '31' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 32) {
+        // 32: 자동 글의 clean-user-facing-text 스킬 검증 기록(JSON)
+        $cols = $sqlite ? array_column($pdo->query('PRAGMA table_info(blog_posts)')->fetchAll(PDO::FETCH_ASSOC), 'name')
+            : $pdo->query('SHOW COLUMNS FROM blog_posts')->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('auto_check', $cols, true)) {
+            $pdo->exec('ALTER TABLE blog_posts ADD COLUMN auto_check ' . ($sqlite ? 'TEXT' : 'TEXT NULL'));
+        }
+        $pdo->prepare("UPDATE settings SET v = '32' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

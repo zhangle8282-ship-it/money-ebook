@@ -42,6 +42,13 @@ const AUTO_MAX_TEXT = 3000;      // … 최대
 const AUTO_KEYWORD_MAX = 6;      // 대표 키워드(제목 + 본문) 최대 횟수
 const AUTO_SIMILAR_MAX = 0.35;   // 최근 글 30개와 겹치는 정도(새 글 기준) 최대
 const AUTO_BANNED = array('최고', '1위', '100%', '99.9%', '무조건', '최저가', '완벽', '업계 최초', '국내 최초', '전국 최초', '보장합니다', '책임집니다');
+// 자동 글은 clean-user-facing-text 스킬로 다듬은 글만 받음. 스킬 파일 지문(SKILL.md + scripts/clean_text.py + scripts/text_unicode.py 를
+// 이어 붙인 sha256)이 이 목록에 있어야 함. 저장소의 스킬을 바꾸면 여기에 새 지문을 더할 것
+const AUTO_SKILL_NAME = 'clean-user-facing-text';
+const AUTO_SKILL_SHA = array('bd4b60c7b8f0dc3c4fe20e44250adaed203eb892a5b2e8c014e14966b0c90c6e');
+// remove-ai-marks 스킬(고쳐 쓰기 방법 · 규칙)도 함께 써야 함. 지문은 SKILL.md 의 sha256
+const AUTO_MARKS_NAME = 'remove-ai-marks';
+const AUTO_MARKS_SHA = array('b83e5d953c9cab48230b3b6969498285403185b8c4feddd757b319a02b5a749c');
 
 /** 요청에 온 열쇠들(X-Auto-Token 헤더, Authorization: Bearer …). 반환: [[헤더 이름, 값]…] */
 function auto_token_given()
@@ -163,6 +170,151 @@ function note_pick($kind)
 function note_left()
 {
     return (int) q_value('SELECT COUNT(*) FROM experience_notes WHERE used_post_id IS NULL');
+}
+
+/**
+ * 보이지 않는 문자(워터마크 · 숨은 표시로 쓰일 수 있는 문자) 세기. clean-user-facing-text 스킬의 clean_text.py
+ * (--no-normalize-spaces --strip-bidi)가 지우는 것과 같은 기준: 이모지 · 국기 · 한글 채움 문자처럼 앞 글자에 붙어
+ * 모양을 만드는 것은 그대로 둠. 반환: ['U+200B' => 개수, …]
+ */
+function auto_hidden_chars($text)
+{
+    $cps = preg_split('//u', (string) $text, -1, PREG_SPLIT_NO_EMPTY);
+    if (!$cps) {
+        return array();
+    }
+    $cps = array_map('mb_ord', $cps);
+    $emoji = function ($cp) {
+        return ($cp >= 0x1F000 && $cp <= 0x1FAFF) || ($cp >= 0x2190 && $cp <= 0x27BF) || ($cp >= 0x2B00 && $cp <= 0x2BFF)
+            || in_array($cp, array(0x203C, 0x2049, 0x2139, 0x2934, 0x2935, 0x00A9, 0x00AE, 0x2122, 0x3030, 0x303D, 0x3297, 0x3299, 0x23, 0x2A), true)
+            || ($cp >= 0x30 && $cp <= 0x39);
+    };
+    $cjk = function ($cp) {
+        return ($cp >= 0x3400 && $cp <= 0x4DBF) || ($cp >= 0x4E00 && $cp <= 0x9FFF) || ($cp >= 0xF900 && $cp <= 0xFAFF) || ($cp >= 0x20000 && $cp <= 0x323AF);
+    };
+    $joining = function ($cp) {
+        foreach (array(array(0x0600, 0x08FF), array(0x0900, 0x0DFF), array(0x0F00, 0x109F), array(0x1780, 0x17FF), array(0x1800, 0x18AF)) as $i => $r) {
+            if ($cp >= $r[0] && $cp <= $r[1]) {
+                return $i;
+            }
+        }
+        return null;
+    };
+    $strip = array_flip(array(0x00AD, 0x034F, 0x061C, 0x115F, 0x1160, 0x17B4, 0x17B5, 0x180B, 0x180C, 0x180D, 0x180E, 0x180F,
+        0x200B, 0x200C, 0x200D, 0x200E, 0x200F, 0x202A, 0x202B, 0x202C, 0x202D, 0x202E, 0x2060, 0x2061, 0x2062, 0x2063, 0x2064, 0x2065,
+        0x2066, 0x2067, 0x2068, 0x2069, 0x206A, 0x206B, 0x206C, 0x206D, 0x206E, 0x206F, 0xFEFF, 0x3164, 0xFFA0, 0xFFF9, 0xFFFA, 0xFFFB, 0xE0000));
+    // 완전한 지역 국기(🏴 + 태그 문자 + 끝 태그)는 그대로
+    $flag = array();
+    for ($i = 0, $n = count($cps); $i < $n; $i++) {
+        if ($cps[$i] !== 0x1F3F4) {
+            continue;
+        }
+        for ($j = $i + 1; $j < $n && $cps[$j] >= 0xE0020 && $cps[$j] <= 0xE007E; $j++) {
+        }
+        if ($j > $i + 1 && $j < $n && $cps[$j] === 0xE007F) {
+            for ($k = $i + 1; $k <= $j; $k++) {
+                $flag[$k] = true;
+            }
+        }
+    }
+    $out = array();
+    $prevKept = null;
+    foreach ($cps as $i => $cp) {
+        $prev = $i > 0 ? $cps[$i - 1] : null;
+        $next = $cps[$i + 1] ?? null;
+        $keep = false;
+        if (($cp === 0xFE0E || $cp === 0xFE0F) && $prev !== null && $emoji($prev)) {
+            $keep = true; // 이모지 모양 고르기(✔️)
+        } elseif ($cp === 0x200D && $prevKept !== null && $next !== null && $emoji($prevKept) && $emoji($next)) {
+            $keep = true; // 이모지 잇기(👨‍👩‍👧)
+        } elseif (($cp === 0x200C || $cp === 0x200D) && $prev !== null && $next !== null && $joining($prev) !== null && $joining($prev) === $joining($next)) {
+            $keep = true;
+        } elseif ((($cp >= 0xE0100 && $cp <= 0xE01EF) || ($cp >= 0xFE00 && $cp <= 0xFE0D)) && $prev !== null && $cjk($prev)) {
+            $keep = true;
+        } elseif (isset($flag[$i])) {
+            $keep = true;
+        } elseif (in_array($cp, array(0x115F, 0x1160, 0x3164, 0xFFA0), true) && $prevKept !== null
+            && (($prevKept >= 0x1100 && $prevKept <= 0x11FF) || ($prevKept >= 0x3131 && $prevKept <= 0x318E) || ($prevKept >= 0xA960 && $prevKept <= 0xA97C) || ($prevKept >= 0xD7B0 && $prevKept <= 0xD7C6) || ($prevKept >= 0xFFA1 && $prevKept <= 0xFFDC))) {
+            $keep = true;
+        }
+        $hidden = !$keep && (isset($strip[$cp])
+            || ($cp >= 0xFE00 && $cp <= 0xFE0F) || ($cp >= 0xE0100 && $cp <= 0xE01EF) || ($cp >= 0xE0001 && $cp <= 0xE007F) || ($cp >= 0xE0080 && $cp <= 0xE0FFF)
+            || ($cp >= 0xFDD0 && $cp <= 0xFDEF) || ($cp & 0xFFFE) === 0xFFFE || ($cp >= 0xFFF0 && $cp <= 0xFFF8)
+            || ($cp >= 0xE000 && $cp <= 0xF8FF) || $cp >= 0xF0000);
+        if ($hidden) {
+            $key = sprintf('U+%04X', $cp);
+            $out[$key] = ($out[$key] ?? 0) + 1;
+        } elseif (!in_array($cp, array(0x200D, 0xFE0E, 0xFE0F, 0x200C), true) && !($cp >= 0xE0020 && $cp <= 0xE007F) && !($cp >= 0xFE00 && $cp <= 0xFE0F) && !($cp >= 0xE0100 && $cp <= 0xE01EF)
+            && !in_array($cp, array(0x115F, 0x1160, 0x3164, 0xFFA0, 0x180B, 0x180C, 0x180D, 0x180F, 0x17B4, 0x17B5), true)) {
+            $prevKept = $cp; // 붙는 문자(이모지 잇기 등)는 ‘앞 글자’로 치지 않음
+        }
+    }
+    return $out;
+}
+
+/**
+ * 스킬 검증 기록 확인. 보낸 clean 칸(스킬 이름 · 지문 · 지운 수 · 점수)과 서버가 직접 센 보이지 않는 문자 수를 봄.
+ * 반환: [오류 목록, 저장할 기록]
+ */
+function auto_clean_check($clean, $texts)
+{
+    $errors = array();
+    $hidden = array();
+    foreach ($texts as $t) {
+        foreach (auto_hidden_chars($t) as $k => $n) {
+            $hidden[$k] = ($hidden[$k] ?? 0) + $n;
+        }
+    }
+    if ($hidden) {
+        $list = array();
+        foreach ($hidden as $k => $n) {
+            $list[] = $k . ' ' . $n . '개';
+        }
+        $errors[] = '보이지 않는 문자가 ' . array_sum($hidden) . '개 남아 있어요(' . implode(', ', array_slice($list, 0, 5)) . '). clean-user-facing-text 스킬의 clean_text.py 로 지운 뒤 다시 보내 주세요.';
+    }
+    if (!is_array($clean) || ($clean['skill'] ?? '') !== AUTO_SKILL_NAME) {
+        $errors[] = 'clean-user-facing-text 스킬 검증 기록(clean)이 없어요. 스킬로 다듬고 검증한 글만 받아요.';
+        return array($errors, null);
+    }
+    if (!in_array(strtolower((string) ($clean['skill_sha'] ?? '')), AUTO_SKILL_SHA, true)) {
+        $errors[] = '스킬 지문(skill_sha)이 맞지 않아요. 저장소의 clean-user-facing-text 스킬(SKILL.md · clean_text.py · text_unicode.py)로 다듬어 주세요.';
+    }
+    if (!in_array(strtolower((string) ($clean['marks_sha'] ?? '')), AUTO_MARKS_SHA, true)) {
+        $errors[] = 'remove-ai-marks 스킬 지문(marks_sha)이 없거나 맞지 않아요. 저장소의 remove-ai-marks 스킬(SKILL.md)을 읽고 그 고쳐 쓰기 방법으로 다듬어 주세요.';
+    }
+    if (!isset($clean['hidden_after']) || (int) $clean['hidden_after'] !== 0) {
+        $errors[] = '스킬 검증 기록에서 다듬은 뒤 보이지 않는 문자(hidden_after)가 0이 아니에요.';
+    }
+    if (($clean['rewritten'] ?? null) !== true) {
+        $errors[] = '스킬로 한 번 고쳐 쓰기(Layer B)를 했다는 기록(rewritten: true)이 없어요.';
+    }
+    $num = function ($v) {
+        return is_numeric($v) ? round((float) $v, 4) : null;
+    };
+    $tier = function ($v) {
+        return in_array($v, array('low', 'medium', 'high', 'uncalibrated'), true) ? $v : '';
+    };
+    $record = array(
+        'skill' => AUTO_SKILL_NAME, 'sha' => substr(strtolower((string) ($clean['skill_sha'] ?? '')), 0, 12),
+        'how' => ($clean['how'] ?? '') === 'SKILL.md' ? 'SKILL.md' : 'Skill',
+        'hidden_before' => max(0, (int) ($clean['hidden_before'] ?? 0)), 'removed' => max(0, (int) ($clean['removed'] ?? 0)), 'hidden_after' => 0,
+        'score_before' => $num($clean['score_before'] ?? null), 'score_after' => $num($clean['score_after'] ?? null),
+        'tier_before' => $tier($clean['tier_before'] ?? ''), 'tier_after' => $tier($clean['tier_after'] ?? ''),
+        'marks' => AUTO_MARKS_NAME, 'marks_service' => ($clean['marks_service'] ?? '') === 'ok' ? 'ok' : 'none',
+        'server_hidden' => 0, 'at' => now(),
+    );
+    return array($errors, $record);
+}
+
+/** 관리 화면용 한 줄: 스킬 검증 기록 */
+function auto_check_text($json)
+{
+    $c = json_decode((string) $json, true);
+    if (!is_array($c)) {
+        return '';
+    }
+    $score = $c['score_before'] !== null && $c['score_after'] !== null ? ' · 점수 ' . $c['score_before'] . '→' . $c['score_after'] : '';
+    return '스킬 검증 통과(clean-user-facing-text' . (!empty($c['marks']) ? ' + remove-ai-marks' : '') . ') · 숨은 문자 ' . (int) $c['hidden_before'] . '→0' . $score;
 }
 
 /** 사진 창고에 있는 사진인지(자동 글의 대표 사진은 창고 사진 파일을 그대로 씀) */
@@ -294,6 +446,9 @@ function auto_plan()
             'similar_max' => AUTO_SIMILAR_MAX,
             'banned_words' => AUTO_BANNED,
             'text_length' => array(AUTO_MIN_TEXT, AUTO_MAX_TEXT),
+            // 스킬 검증 기록 없이는 받지 않음. 보이지 않는 문자는 서버가 직접 다시 셈
+            'clean_required' => array('skill' => AUTO_SKILL_NAME, 'also' => AUTO_MARKS_NAME, 'hidden_chars' => 0,
+                'fields' => 'skill, skill_sha, marks_sha, marks_service(ok|none), how(Skill|SKILL.md), hidden_before, removed, hidden_after(0), score_before, score_after, tier_before, tier_after, rewritten(true)'),
         ),
     );
 }
@@ -376,6 +531,11 @@ function auto_receive($in)
     if (!$note && gc('auto_need_note') === '1') {
         $errors[] = '경험 노트가 있을 때만 받도록 정해져 있어요(남은 노트 없음). 오늘은 쉬어요.';
     }
+    // 5: clean-user-facing-text 스킬로 다듬고 검증한 글만(보이지 않는 문자는 서버가 직접 다시 셈)
+    list($cleanErrors, $check) = auto_clean_check($in['clean'] ?? null, array_map(function ($k) use ($in) {
+        return is_string($in[$k] ?? null) ? $in[$k] : '';
+    }, array('title', 'summary', 'keywords', 'body')));
+    $errors = array_merge($errors, $cleanErrors);
     if ($errors) {
         // 관리 화면에서 볼 수 있게 최근 거절 10개를 남김
         $log = json_decode((string) gc('auto_rejects'), true);
@@ -388,7 +548,7 @@ function auto_receive($in)
         'title' => $title, 'slug' => blog_slugify($title), 'summary' => $summary, 'body' => $body, 'format' => 'html',
         'cover' => $photo ? $photo['path'] : '', 'seo_title' => '', 'keywords' => $keywords,
         'status' => 'published', 'published_at' => $at, 'views' => 0, 'auto' => 1,
-        'created_at' => now(), 'updated_at' => $at,
+        'created_at' => now(), 'updated_at' => $at, 'auto_check' => json_encode($check, JSON_UNESCAPED_UNICODE),
     ));
     if ($photo) {
         q('UPDATE photo_stock SET used_post_id = ?, used_at = ? WHERE id = ?', array($id, now(), (int) $photo['id']));
