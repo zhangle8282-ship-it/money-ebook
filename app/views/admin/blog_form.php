@@ -112,8 +112,10 @@ $host = base_url();
         <div class="photo-preview"><?= $form['cover'] !== '' ? '<img src="' . e($form['cover']) . '" alt="">' : '<span>사진 없음</span>' ?></div>
         <input name="cover" type="file" accept="image/jpeg,image/png,image/webp" class="file-input" data-resize aria-label="대표 사진 올리기">
 <?php if ($form['cover'] !== ''): ?>        <label class="check-row small-check"><input type="checkbox" name="remove_cover" value="1"> <span>대표 사진 지우기</span></label>
+<?php if (($coverInfo = public_image_info($form['cover'])) !== ''): ?>        <p class="cover-info">지금 대표 사진: <b><?= e($coverInfo) ?></b></p>
 <?php endif; ?>
-        <p class="field-help">블로그 목록과 카카오톡·검색 공유 이미지에 쓰여요.</p>
+<?php endif; ?>
+        <p class="field-help">블로그 목록과 카카오톡·검색 공유 이미지에 쓰여요. 휴대폰 원본을 그대로 올려도 <b>화질과 용량의 균형을 맞춰</b>(긴 변 <?= IMAGE_MAX_SIDE['blog'] ?>px · 품질 <?= IMAGE_JPEG_QUALITY ?>) 저장하고, 저장하면 얼마나 줄었는지 알려 드려요.</p>
       </div>
     </section>
 

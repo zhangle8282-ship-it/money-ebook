@@ -372,22 +372,29 @@
 (function () {
   var inputs = document.querySelectorAll('input[type="file"][data-resize]');
   if (!inputs.length || !window.DataTransfer || !window.URL) return;
-  var MAX = 1600;
+  // 사진은 서버가 화질을 지키며 줄여요(색 정보 · 투명 배경 유지). 브라우저에서 먼저 줄이는 건
+  // 서버가 받는 한도(10MB)에 가까운 아주 큰 사진만이고, 그때도 원본 용량 · 크기를 함께 보내 안내에 써요.
+  var BIG = 9 * 1024 * 1024;
+  var MAX = 2400;
   inputs.forEach(function (input) {
     input.addEventListener('change', function () {
       var file = input.files && input.files[0];
+      var orig = input.form && input.form.querySelector('input[name="photo_orig"]');
+      if (orig) orig.value = '';
       if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
       var url = URL.createObjectURL(file);
       var img = new Image();
       img.onload = function () {
         var preview = input.closest('.photo-slot') && input.closest('.photo-slot').querySelector('.photo-preview');
         if (preview) preview.innerHTML = '<img alt="" src="' + url + '">';
+        if (file.size < BIG) return;
         var scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
-        if (scale === 1 && file.size < 900 * 1024) return;
         var canvas = document.createElement('canvas');
         canvas.width = Math.round(img.naturalWidth * scale);
         canvas.height = Math.round(img.naturalHeight * scale);
         var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -396,7 +403,14 @@
           var dt = new DataTransfer();
           dt.items.add(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
           input.files = dt.files;
-        }, 'image/jpeg', 0.85);
+          if (!orig && input.form) {
+            orig = document.createElement('input');
+            orig.type = 'hidden';
+            orig.name = 'photo_orig';
+            input.form.appendChild(orig);
+          }
+          if (orig) orig.value = file.size + ',' + img.naturalWidth + ',' + img.naturalHeight;
+        }, 'image/jpeg', 0.92);
       };
       img.src = url;
     });

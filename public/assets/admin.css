@@ -847,6 +847,9 @@ select { max-width: 100%; }
 .g-index-btns { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
 .g-more-links { display: flex; gap: 8px; flex-wrap: wrap; }
 
+.cover-info { margin: 6px 0 0; font-size: 13px; color: var(--sub); }
+.cover-info b { color: var(--ink); font-weight: 600; }
+
 /* 유입 경로 */
 .visit-tabs { margin: -8px 0 0; }
 .visit-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }

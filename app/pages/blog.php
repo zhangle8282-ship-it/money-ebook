@@ -173,6 +173,7 @@ function admin_blog_form($id = null)
                     $path = store_image($_FILES['cover'], 'blog');
                     delete_public_file($form['cover']);
                     $form['cover'] = $path;
+                    $coverNote = image_report_text('대표 사진');
                 }
             } catch (RuntimeException $e) {
                 $errors[] = '대표 사진: ' . $e->getMessage();
@@ -201,12 +202,13 @@ function admin_blog_form($id = null)
             }
             indexnow_schedule();
             $pinged = $paths ? indexnow_ping(array_merge($paths, array('/blog', '/')), $isPublic ? ($post ? '블로그 글 수정' : '블로그 글 공개') : '블로그 글 내림') : null;
+            $coverNote = $coverNote ?? '';
             if ($isPublic) {
-                flash('글을 저장하고 공개했어요.' . ($pinged ? indexnow_result_text($pinged) : '') . ' 검색 결과에는 보통 며칠 안에 반영돼요.');
+                flash('글을 저장하고 공개했어요.' . ($pinged ? indexnow_result_text($pinged) : '') . ' 검색 결과에는 보통 며칠 안에 반영돼요.' . $coverNote);
             } elseif ($status === 'published') {
-                flash(date('Y.m.d', strtotime($saved['published_at'])) . '에 공개되도록 예약했어요. 공개되면 검색 사이트에 자동으로 알려요.');
+                flash(date('Y.m.d', strtotime($saved['published_at'])) . '에 공개되도록 예약했어요. 공개되면 검색 사이트에 자동으로 알려요.' . $coverNote);
             } else {
-                flash('임시저장했어요. 공개하려면 ‘공개’로 바꿔 저장하세요.');
+                flash('임시저장했어요. 공개하려면 ‘공개’로 바꿔 저장하세요.' . $coverNote);
             }
             redirect('/admin/blog/' . $newId . '/edit');
         }

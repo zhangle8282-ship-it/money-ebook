@@ -51,17 +51,18 @@ function random_name($ext)
     return date('Ymd') . '-' . bin2hex(random_bytes(8)) . '.' . $ext;
 }
 
-// 사진 줄이기(그린청소 블로그 · 홈페이지 사진): 화질은 지키고 용량만 줄입니다.
-// 긴 변 최대 크기(px): 블로그 글 폭(760px)을 선명한 화면(2배)에서도 또렷하게, 홈페이지 큰 사진은 더 크게.
-const IMAGE_MAX_SIDE = array('blog' => 1600, 'site' => 1920);
-const IMAGE_JPEG_QUALITY = 85;   // 눈으로 원본과 차이를 알기 어려운 품질
-const IMAGE_PNG_KEEP = 409600;   // 투명하지 않은 PNG(글자 캡처 등)는 400KB까지 PNG 그대로, 넘으면 JPG(품질 88)
-const IMAGE_HEAVY = 512000;      // 크기는 알맞아도 500KB 넘는 JPG는 다시 압축해서 30% 넘게 줄 때만 바꿈
+// 사진 줄이기(그린청소 블로그 · 홈페이지 사진): ‘균형’ 기준 — 화질과 용량의 중간.
+// 긴 변 최대 크기(px): 블로그 글 폭(760px)에서 대부분 화면에 선명하게, 홈페이지 큰 사진은 조금 더 크게.
+const IMAGE_MAX_SIDE = array('blog' => 1280, 'site' => 1600);
+const IMAGE_JPEG_QUALITY = 80;   // 균형: 대부분 화면에서 원본과 차이를 느끼기 어려운 품질
+const IMAGE_PNG_JPEG_QUALITY = 85; // 무거운 캡처 PNG를 JPG로 바꿀 때(글자가 뭉개지지 않게 조금 높게)
+const IMAGE_PNG_KEEP = 307200;   // 투명하지 않은 PNG(글자 캡처 등)는 300KB까지 PNG 그대로
+const IMAGE_HEAVY = 307200;      // 크기는 알맞아도 300KB 넘는 JPG는 다시 압축해서 30% 넘게 줄 때만 바꿈
 
 /**
  * 저장한 사진을 가볍게 하되 화질은 지킵니다.
  * - 크기가 알맞은 JPG: 다시 압축하지 않고 촬영 정보 · 위치(GPS) · 미리보기 그림만 떼어 냄(화질 변화 없음)
- * - 큰 사진: 긴 변을 줄이고 품질 85로 저장, 휴대폰 회전 정보 반영, 색 프로필(아이폰 등) 그대로 붙임
+ * - 큰 사진: 긴 변을 줄이고 품질 80으로 저장, 휴대폰 회전 정보 반영, 색 프로필(아이폰 등) 그대로 붙임
  * - 투명 PNG는 투명 유지, 움직이는 GIF · CMYK 사진은 그대로. 사진 기능(GD)이 없거나 메모리가 모자라거나 결과가 더 크면 원본.
  * 반환: 최종 파일 경로(PNG가 JPG로 바뀌면 확장자도 바뀜)
  */
@@ -124,7 +125,7 @@ function image_shrink($file, $maxSide)
         $ok = true;
     } else {
         imageinterlace($dst, true);
-        $ok = imagejpeg($dst, $tmp, $type === IMAGETYPE_PNG ? 88 : IMAGE_JPEG_QUALITY);
+        $ok = imagejpeg($dst, $tmp, $type === IMAGETYPE_PNG ? IMAGE_PNG_JPEG_QUALITY : IMAGE_JPEG_QUALITY);
         if ($ok && $jpeg) {
             jpeg_copy_icc($file, $tmp); // 색 프로필(아이폰 Display P3 등) 그대로
         }
@@ -343,6 +344,57 @@ function image_orient($img, $o)
     return $img;
 }
 
+/** 방금 줄인 사진 결과(원본 · 저장 [용량, 가로, 세로]). $set 이 있으면 기록 */
+function image_report($set = null)
+{
+    static $last = null;
+    if ($set !== null) {
+        $last = $set;
+    }
+    return $last;
+}
+
+/**
+ * 사진 줄인 결과를 한 문장으로(예: 대표 사진을 가볍게 줄였어요: 4.2MB (4032×3024) → 312KB (1600×1200)).
+ * 브라우저가 너무 큰 사진(9MB 넘음)을 먼저 줄였으면 함께 보낸 photo_orig(원본 용량,가로,세로)를 원본으로 씁니다.
+ */
+function image_report_text($label)
+{
+    $r = image_report();
+    if (!$r || !$r['after'][0]) {
+        return '';
+    }
+    list($bb, $bw, $bh) = $r['before'];
+    if (preg_match('/^(\d+),(\d+),(\d+)$/', (string) input('photo_orig'), $m) && (int) $m[1] > $bb) {
+        list(, $bb, $bw, $bh) = array_map('intval', $m);
+    }
+    list($ab, $aw, $ah) = $r['after'];
+    $dim = function ($w, $h) {
+        return $w . '×' . $h;
+    };
+    if ($aw !== $bw || $ah !== $bh) {
+        return ' ' . $label . '을 가볍게 줄였어요: ' . fmt_bytes($bb) . ' (' . $dim($bw, $bh) . ') → ' . fmt_bytes($ab) . ' (' . $dim($aw, $ah) . '). 화면에서는 원본과 거의 같게 보여요.';
+    }
+    if ($ab < $bb * 0.7) {
+        return ' ' . $label . '은 크기(' . $dim($aw, $ah) . ')는 그대로 두고 품질 ' . IMAGE_JPEG_QUALITY . '으로 다시 저장해 ' . fmt_bytes($bb) . ' → ' . fmt_bytes($ab) . '로 줄였어요.';
+    }
+    if ($ab < $bb) {
+        return ' ' . $label . '은 화질 그대로 두고 촬영 정보 · 위치만 떼어 ' . fmt_bytes($bb) . ' → ' . fmt_bytes($ab) . '로 줄였어요 (' . $dim($aw, $ah) . ').';
+    }
+    return ' ' . $label . '은 이미 가벼워서 그대로 올렸어요 (' . fmt_bytes($ab) . ', ' . $dim($aw, $ah) . ').';
+}
+
+/** 공개 폴더 안 사진의 크기 · 용량(관리자 화면 표시용). 반환: '1600×1067 · 180KB' 또는 '' */
+function public_image_info($path)
+{
+    if (!preg_match('~^/uploads/[A-Za-z0-9/_.-]+$~', (string) $path) || strpos($path, '..') !== false) {
+        return '';
+    }
+    $file = PUBLIC_DIR . $path;
+    $info = is_file($file) ? @getimagesize($file) : false;
+    return $info ? $info[0] . '×' . $info[1] . ' · ' . fmt_bytes(filesize($file)) : '';
+}
+
 /** 이미지 검사 후 저장. 성공하면 공개 경로(/uploads/...), 실패하면 예외. */
 function store_image($file, $subdir, $name = null, $gif = false)
 {
@@ -367,7 +419,11 @@ function store_image($file, $subdir, $name = null, $gif = false)
         throw new RuntimeException('이미지를 저장하지 못했어요. 폴더 권한을 확인해 주세요.');
     }
     if (isset(IMAGE_MAX_SIDE[$subdir])) {
+        $before = array((int) $file['size'], (int) $info[0], (int) $info[1]);
         $filename = basename(image_shrink($dir . '/' . $filename, IMAGE_MAX_SIDE[$subdir]));
+        clearstatcache();
+        $after = @getimagesize($dir . '/' . $filename);
+        image_report(array('before' => $before, 'after' => array((int) @filesize($dir . '/' . $filename), (int) ($after[0] ?? 0), (int) ($after[1] ?? 0))));
     }
     return '/uploads/' . $subdir . '/' . $filename;
 }
