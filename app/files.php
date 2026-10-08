@@ -51,34 +51,43 @@ function random_name($ext)
     return date('Ymd') . '-' . bin2hex(random_bytes(8)) . '.' . $ext;
 }
 
-// 사진 줄이기(그린청소 블로그 · 홈페이지 사진): 긴 변 최대 크기(px). 1MB 넘는 휴대폰 사진도 보통 150~250KB로 줄어요.
-const IMAGE_MAX_SIDE = array('blog' => 1280, 'site' => 1600);
-const IMAGE_JPEG_QUALITY = 80;
-const IMAGE_PNG_KEEP = 307200; // 투명하지 않은 PNG는 줄인 뒤 300KB 넘으면 JPG로
+// 사진 줄이기(그린청소 블로그 · 홈페이지 사진): 화질은 지키고 용량만 줄입니다.
+// 긴 변 최대 크기(px): 블로그 글 폭(760px)을 선명한 화면(2배)에서도 또렷하게, 홈페이지 큰 사진은 더 크게.
+const IMAGE_MAX_SIDE = array('blog' => 1600, 'site' => 1920);
+const IMAGE_JPEG_QUALITY = 85;   // 눈으로 원본과 차이를 알기 어려운 품질
+const IMAGE_PNG_KEEP = 409600;   // 투명하지 않은 PNG(글자 캡처 등)는 400KB까지 PNG 그대로, 넘으면 JPG(품질 88)
+const IMAGE_HEAVY = 512000;      // 크기는 알맞아도 500KB 넘는 JPG는 다시 압축해서 30% 넘게 줄 때만 바꿈
 
 /**
- * 저장한 사진을 가볍게: 긴 변을 줄이고 다시 압축합니다. 휴대폰 사진의 회전 정보도 반영합니다.
- * 움직이는 GIF, 사진 기능(GD)이 없거나 메모리가 모자랄 때, 줄인 결과가 오히려 클 때는 원본 그대로.
+ * 저장한 사진을 가볍게 하되 화질은 지킵니다.
+ * - 크기가 알맞은 JPG: 다시 압축하지 않고 촬영 정보 · 위치(GPS) · 미리보기 그림만 떼어 냄(화질 변화 없음)
+ * - 큰 사진: 긴 변을 줄이고 품질 85로 저장, 휴대폰 회전 정보 반영, 색 프로필(아이폰 등) 그대로 붙임
+ * - 투명 PNG는 투명 유지, 움직이는 GIF · CMYK 사진은 그대로. 사진 기능(GD)이 없거나 메모리가 모자라거나 결과가 더 크면 원본.
  * 반환: 최종 파일 경로(PNG가 JPG로 바뀌면 확장자도 바뀜)
  */
 function image_shrink($file, $maxSide)
 {
-    if (!function_exists('imagecreatetruecolor')) {
-        return $file;
-    }
     $info = @getimagesize($file);
     if (!$info) {
         return $file;
     }
     list($w, $h, $type) = $info;
-    $open = array(IMAGETYPE_JPEG => 'imagecreatefromjpeg', IMAGETYPE_PNG => 'imagecreatefrompng', IMAGETYPE_WEBP => 'imagecreatefromwebp');
-    if (!isset($open[$type]) || !function_exists($open[$type])) {
-        return $file;
-    }
-    $orient = $type === IMAGETYPE_JPEG ? jpeg_orientation($file) : 1;
+    $jpeg = $type === IMAGETYPE_JPEG;
+    $orient = $jpeg ? jpeg_orientation($file) : 1;
     $scale = min(1, $maxSide / max(1, $w, $h));
-    if ($scale >= 1 && $orient === 1 && filesize($file) <= 153600) {
-        return $file; // 이미 작고 가벼운 사진
+    if ($jpeg && $scale >= 1 && $orient === 1) {
+        // 크기가 알맞은 JPG: 화질 손실 없이 숨은 정보만 떼고, 아주 무거울 때만 다시 압축
+        jpeg_strip_meta($file);
+        clearstatcache();
+        if (filesize($file) <= IMAGE_HEAVY || ($info['channels'] ?? 3) === 4) {
+            return $file;
+        }
+    } elseif ($scale >= 1 && $orient === 1 && filesize($file) <= 153600) {
+        return $file; // 이미 작고 가벼운 PNG · WEBP
+    }
+    $open = array(IMAGETYPE_JPEG => 'imagecreatefromjpeg', IMAGETYPE_PNG => 'imagecreatefrompng', IMAGETYPE_WEBP => 'imagecreatefromwebp');
+    if (!function_exists('imagecreatetruecolor') || !isset($open[$type]) || !function_exists($open[$type]) || ($info['channels'] ?? 3) === 4) {
+        return $file; // GD 없음 · GIF · CMYK
     }
     $nw = max(1, (int) round($w * $scale));
     $nh = max(1, (int) round($h * $scale));
@@ -89,14 +98,18 @@ function image_shrink($file, $maxSide)
     if (!$src) {
         return $file;
     }
-    $alpha = $type !== IMAGETYPE_JPEG && image_has_alpha($src);
-    $dst = imagecreatetruecolor($nw, $nh);
-    if ($alpha) {
-        imagealphablending($dst, false);
-        imagesavealpha($dst, true);
+    $alpha = !$jpeg && image_has_alpha($src);
+    if ($scale < 1) {
+        $dst = imagecreatetruecolor($nw, $nh);
+        if ($alpha) {
+            imagealphablending($dst, false);
+            imagesavealpha($dst, true);
+        }
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+        image_free($src);
+    } else {
+        $dst = $src;
     }
-    imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
-    image_free($src);
     if ($orient > 1) {
         $dst = image_orient($dst, $orient);
     }
@@ -104,18 +117,24 @@ function image_shrink($file, $maxSide)
     $ext = 'jpg';
     if ($alpha) {
         $ext = $type === IMAGETYPE_WEBP ? 'webp' : 'png';
-        $ok = $ext === 'webp' ? imagewebp($dst, $tmp, 82) : imagepng($dst, $tmp, 9);
+        $ok = $ext === 'webp' ? imagewebp($dst, $tmp, 88) : imagepng($dst, $tmp, 9);
     } elseif ($type === IMAGETYPE_PNG && imagepng($dst, $tmp, 9) && filesize($tmp) <= IMAGE_PNG_KEEP) {
         // 글자 많은 캡처 화면처럼 PNG가 더 깨끗하고 충분히 가벼우면 PNG 그대로
         $ext = 'png';
         $ok = true;
     } else {
         imageinterlace($dst, true);
-        $ok = imagejpeg($dst, $tmp, IMAGE_JPEG_QUALITY);
+        $ok = imagejpeg($dst, $tmp, $type === IMAGETYPE_PNG ? 88 : IMAGE_JPEG_QUALITY);
+        if ($ok && $jpeg) {
+            jpeg_copy_icc($file, $tmp); // 색 프로필(아이폰 Display P3 등) 그대로
+        }
     }
     image_free($dst);
     clearstatcache();
-    if (!$ok || !is_file($tmp) || ($orient === 1 && filesize($tmp) >= filesize($file))) {
+    $before = filesize($file);
+    $after = $ok && is_file($tmp) ? filesize($tmp) : 0;
+    // 원본 그대로 두는 경우: 저장 실패 / 돌리지 않았는데 오히려 커짐 / 크기 그대로 다시 압축했는데 30% 넘게 줄지 않음
+    if (!$after || ($orient === 1 && $after >= $before) || ($scale >= 1 && $orient === 1 && $after > $before * 0.7)) {
         @unlink($tmp);
         return $file;
     }
@@ -128,6 +147,92 @@ function image_shrink($file, $maxSide)
         @unlink($file);
     }
     return $new;
+}
+
+/** JPG를 조각(마커)으로 나눔. 반환: [[마커, 조각 바이트]…, 그림 데이터(SOS부터 끝까지)] 또는 null */
+function jpeg_segments($bytes)
+{
+    if (substr($bytes, 0, 2) !== "\xFF\xD8") {
+        return null;
+    }
+    $pos = 2;
+    $len = strlen($bytes);
+    $segs = array();
+    while ($pos + 4 <= $len) {
+        if ($bytes[$pos] !== "\xFF") {
+            return null;
+        }
+        $m = ord($bytes[$pos + 1]);
+        if ($m === 0xFF) {
+            $pos++;
+            continue;
+        }
+        if ($m === 0xDA) {
+            return array($segs, substr($bytes, $pos));
+        }
+        if ($m === 0x01 || ($m >= 0xD0 && $m <= 0xD8)) {
+            $pos += 2;
+            continue;
+        }
+        $l = unpack('n', substr($bytes, $pos + 2, 2))[1];
+        if ($l < 2 || $pos + 2 + $l > $len) {
+            return null;
+        }
+        $segs[] = array($m, substr($bytes, $pos, 2 + $l));
+        $pos += 2 + $l;
+    }
+    return null;
+}
+
+/** 화질 손실 없이 JPG의 숨은 정보(촬영 정보 · 위치 · 미리보기 그림 · 메모)만 떼어 냄. 색 프로필 · 회전에 필요 없는 건 남김 */
+function jpeg_strip_meta($file)
+{
+    $bytes = (string) @file_get_contents($file);
+    $parts = jpeg_segments($bytes);
+    if (!$parts) {
+        return;
+    }
+    $out = "\xFF\xD8";
+    foreach ($parts[0] as $seg) {
+        // APP1(Exif · XMP) · APP13(포토샵 · IPTC) · COM(메모)만 뺌. APP0 · APP2(색 프로필) · APP14(색 방식)는 그대로
+        if (!in_array($seg[0], array(0xE1, 0xED, 0xFE), true)) {
+            $out .= $seg[1];
+        }
+    }
+    $out .= $parts[1];
+    if (strlen($out) < strlen($bytes) && @file_put_contents($file . '.tmp', $out) === strlen($out)) {
+        @rename($file . '.tmp', $file);
+    }
+}
+
+/** 원본 JPG의 색 프로필(ICC)을 새로 만든 JPG에 그대로 붙임 */
+function jpeg_copy_icc($from, $to)
+{
+    $src = jpeg_segments((string) @file_get_contents($from));
+    $dst = jpeg_segments((string) @file_get_contents($to));
+    if (!$src || !$dst) {
+        return;
+    }
+    $icc = '';
+    foreach ($src[0] as $seg) {
+        if ($seg[0] === 0xE2 && substr($seg[1], 4, 12) === "ICC_PROFILE\0") {
+            $icc .= $seg[1];
+        }
+    }
+    if ($icc === '') {
+        return;
+    }
+    $out = "\xFF\xD8";
+    $done = false;
+    foreach ($dst[0] as $seg) {
+        $out .= $seg[1];
+        if (!$done && $seg[0] === 0xE0) {
+            $out .= $icc; // JFIF(APP0) 바로 다음
+            $done = true;
+        }
+    }
+    $out = $done ? $out . $dst[1] : "\xFF\xD8" . $icc . substr($out, 2) . $dst[1];
+    @file_put_contents($to, $out);
 }
 
 /** 다 쓴 사진 메모리 돌려주기(PHP 8부터는 저절로 풀려서 부르지 않음) */
