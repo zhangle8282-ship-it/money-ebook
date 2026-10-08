@@ -5,4 +5,6 @@ app.bak-*/
 app.new-*/
 dist/
 .DS_Store
-.claude/
+.claude/*
+# 클라우드 예약 작업(블로그 자동 글쓰기)이 쓰는 스킬은 저장소에 함께 올림
+!.claude/skills/
