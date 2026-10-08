@@ -165,13 +165,14 @@ function admin_blog_form($id = null)
         }
         if (!$errors) {
             try {
+                // 사진 창고 사진(자동 글의 대표 사진)은 파일을 지우지 않고 창고로 되돌림
                 if (input('remove_cover') === '1') {
-                    delete_public_file($form['cover']);
+                    cover_discard($form['cover']);
                     $form['cover'] = '';
                 }
                 if (has_upload('cover')) {
                     $path = store_image($_FILES['cover'], 'blog');
-                    delete_public_file($form['cover']);
+                    cover_discard($form['cover']);
                     $form['cover'] = $path;
                     $coverNote = image_report_text('대표 사진');
                 }
@@ -225,12 +226,41 @@ function admin_blog_delete($id)
         not_found();
     }
     q('DELETE FROM blog_posts WHERE id = ?', array((int) $post['id']));
-    delete_public_file($post['cover']);
+    // 자동 글이면 쓴 사진 창고 사진(파일은 그대로) · 경험 노트를 다음 자동 글에 다시 쓰게 되돌림
+    list($photos, $notes) = auto_release((int) $post['id']);
+    cover_discard($post['cover']);
     indexnow_schedule();
     // 공개돼 있던 글이면 사라진 주소를 검색 사이트에 알려 검색 결과에서도 빨리 빠지게
     $pinged = blog_is_public($post) ? indexnow_ping(array(blog_url($post), '/blog', '/'), '블로그 글 삭제') : null;
-    flash('‘' . $post['title'] . '’ 글을 지웠어요.' . ($pinged ? indexnow_result_text($pinged) : ''));
+    $freed = array_filter(array($photos ? '사진 창고 사진 ' . $photos . '장' : '', $notes ? '경험 노트 ' . $notes . '개' : ''));
+    flash('‘' . $post['title'] . '’ 글을 지웠어요.' . ($freed ? ' 이 글에 썼던 ' . implode(' · ', $freed) . ', 다음 자동 글에 다시 쓸 수 있게 돌려놨어요.' : '') . ($pinged ? indexnow_result_text($pinged) : ''));
     redirect('/admin/blog');
+}
+
+/** 예약된 글을 지금 바로 공개(글 목록 · 글 고치기 · 자동 글쓰기 화면의 ‘지금 공개’) */
+function admin_blog_publish($id)
+{
+    require_admin();
+    $back = in_array(input('back'), array('/admin/blog', '/admin/blog/auto'), true) ? input('back') : '/admin/blog/' . (int) $id . '/edit';
+    require_csrf($back);
+    $post = find_blog_post($id);
+    if (!$post) {
+        not_found();
+    }
+    if (blog_is_public($post)) {
+        flash('이미 공개된 글이에요.');
+        redirect($back);
+    }
+    if ($post['status'] !== 'published') {
+        flash('임시저장 글은 글 고치기에서 ‘공개’로 바꿔 저장해 주세요.', 'error');
+        redirect($back);
+    }
+    q_update('blog_posts', (int) $post['id'], array('published_at' => now(), 'updated_at' => now()));
+    $saved = find_blog_post($post['id']);
+    indexnow_schedule();
+    $pinged = indexnow_ping(array(blog_url($saved), '/blog', '/'), '블로그 글 공개');
+    flash('‘' . $post['title'] . '’ 글을 지금 공개했어요.' . ($pinged ? indexnow_result_text($pinged) : '') . ' 검색 결과에는 보통 며칠 안에 반영돼요.');
+    redirect($back);
 }
 
 /** 본문에 넣을 사진 올리기(글쓰기 화면의 ‘사진 넣기’). 반환: {"ok":true,"path":"/uploads/blog/…"} */

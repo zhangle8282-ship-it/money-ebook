@@ -31,6 +31,7 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/blog/new$~', 'admin_blog_form'),
         array('GET|POST', '~^/admin/blog/(\d+)/edit$~', 'admin_blog_form'),
         array('POST', '~^/admin/blog/(\d+)/delete$~', 'admin_blog_delete'),
+        array('POST', '~^/admin/blog/(\d+)/publish$~', 'admin_blog_publish'),
         array('POST', '~^/admin/blog/upload$~', 'admin_blog_upload'),
         array('POST', '~^/admin/blog/paste$~', 'admin_blog_paste'),
         array('GET|POST', '~^/admin/blog/auto$~', 'admin_autoblog'),

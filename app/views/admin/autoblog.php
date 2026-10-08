@@ -105,7 +105,7 @@ $cnt = $plan['photos'];
 <?php if ($posts): ?>
   <div class="table-wrap">
   <table class="table auto-posts">
-    <thead><tr><th scope="col">대표 사진</th><th scope="col">제목</th><th scope="col">공개</th><th scope="col">상태</th></tr></thead>
+    <thead><tr><th scope="col">대표 사진</th><th scope="col">제목</th><th scope="col">공개</th><th scope="col">상태</th><th scope="col"><span class="sr-only">지금 공개</span></th></tr></thead>
     <tbody>
 <?php foreach ($posts as $p): $public = blog_is_public($p); ?>
       <tr>
@@ -113,6 +113,7 @@ $cnt = $plan['photos'];
         <td><a class="strong" href="/admin/blog/<?= (int) $p['id'] ?>/edit"><?= e($p['title']) ?></a><div class="sub"><?= e(str_cut($p['keywords'], 60)) ?></div></td>
         <td class="nowrap"><?= e(fmt_date($p['published_at'], 'm.d H:i')) ?></td>
         <td><span class="status <?= $public ? 'status-paid' : 'status-pending' ?>"><?= $public ? '공개됨' : '예약' ?></span></td>
+        <td class="actions"><?php if (!$public && $p['status'] === 'published'): ?><form method="post" action="/admin/blog/<?= (int) $p['id'] ?>/publish" data-confirm="예약 시각을 기다리지 않고 지금 공개할까요?"><?= csrf_field() ?><input type="hidden" name="back" value="/admin/blog/auto"><button type="submit" class="btn btn-primary btn-sm">지금 공개</button></form><?php endif; ?></td>
       </tr>
 <?php endforeach; ?>
     </tbody>

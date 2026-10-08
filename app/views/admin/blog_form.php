@@ -11,6 +11,9 @@ $host = base_url();
   <div class="head-actions">
 <?php if ($post): ?>    <a class="btn btn-outline" href="<?= e(blog_url($post)) ?>" target="_blank" rel="noopener"><?= blog_is_public($post) ? '글 보기 ↗' : '미리보기 ↗' ?></a>
 <?php endif; ?>
+<?php if ($post && !blog_is_public($post) && $post['status'] === 'published'): ?>    <span class="sub"><?= e(fmt_date($post['published_at'], 'm.d H:i')) ?> 공개 예정</span>
+    <button type="submit" form="blog-publish" class="btn btn-outline">지금 공개</button>
+<?php endif; ?>
     <button type="submit" form="blog-form" class="btn btn-primary">저장하기</button>
   </div>
 </div>
@@ -147,4 +150,5 @@ $host = base_url();
 </form>
 <?php if ($post): ?>
 <form method="post" action="/admin/blog/<?= (int) $post['id'] ?>/delete" id="blog-delete" data-confirm="‘<?= e($post['title']) ?>’ 글을 지울까요? 되돌릴 수 없어요."><?= csrf_field() ?></form>
+<form method="post" action="/admin/blog/<?= (int) $post['id'] ?>/publish" id="blog-publish" data-confirm="예약 시각을 기다리지 않고 지금 공개할까요? 고친 내용이 있으면 먼저 ‘저장하기’를 눌러 주세요."><?= csrf_field() ?></form>
 <?php endif; ?>

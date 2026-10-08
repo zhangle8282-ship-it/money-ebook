@@ -165,6 +165,43 @@ function note_left()
     return (int) q_value('SELECT COUNT(*) FROM experience_notes WHERE used_post_id IS NULL');
 }
 
+/** 사진 창고에 있는 사진인지(자동 글의 대표 사진은 창고 사진 파일을 그대로 씀) */
+function stock_owns($path)
+{
+    return is_string($path) && $path !== '' && (bool) q_value('SELECT COUNT(*) FROM photo_stock WHERE path = ?', array($path));
+}
+
+/** 대표 사진을 빼거나 바꿀 때: 창고 사진이면 파일은 남기고 다시 ‘안 씀’으로, 아니면 파일을 지움 */
+function cover_discard($path)
+{
+    if (stock_owns($path)) {
+        q('UPDATE photo_stock SET used_post_id = NULL, used_at = NULL WHERE path = ?', array($path));
+    } else {
+        delete_public_file($path);
+    }
+}
+
+/**
+ * 지운 글에 쓴 사진 창고 사진 · 경험 노트를 다시 ‘안 씀’으로 되돌려 다음 자동 글에 쓰게 함.
+ * $postId 없이 부르면 이미 없는 글을 가리키는 것들을 정리(사진 파일이 없어졌으면 창고에서도 뺌).
+ * 반환: [되돌린 사진 수, 되돌린 노트 수]
+ */
+function auto_release($postId = 0)
+{
+    $where = $postId ? 'used_post_id = ' . (int) $postId : 'used_post_id IS NOT NULL AND used_post_id NOT IN (SELECT id FROM blog_posts)';
+    $photos = 0;
+    foreach (q_all('SELECT id, path FROM photo_stock WHERE ' . $where) as $p) {
+        if (is_file(PUBLIC_DIR . $p['path'])) {
+            q('UPDATE photo_stock SET used_post_id = NULL, used_at = NULL WHERE id = ?', array((int) $p['id']));
+            $photos++;
+        } else {
+            q('DELETE FROM photo_stock WHERE id = ?', array((int) $p['id']));
+        }
+    }
+    $notes = q('UPDATE experience_notes SET used_post_id = NULL, used_at = NULL WHERE ' . $where)->rowCount();
+    return array($photos, $notes);
+}
+
 /** 글자만(태그 빼고, 띄어쓰기 하나로) */
 function auto_plain($html)
 {
@@ -207,6 +244,7 @@ function auto_similar($text)
 /** 다음에 쓸 글 계획 */
 function auto_plan()
 {
+    auto_release(); // 지워진 글에 묶인 노트 · 사진은 다시 쓸 수 있게
     $n = auto_count();
     $kind = AUTO_KIND_CYCLE[$n % count(AUTO_KIND_CYCLE)];
     $region = AUTO_REGIONS[$n % count(AUTO_REGIONS)];
@@ -266,6 +304,7 @@ function auto_plan()
  */
 function auto_receive($in)
 {
+    auto_release();
     $errors = array();
     $kind = isset(AUTO_KINDS[$in['kind'] ?? '']) ? $in['kind'] : '';
     $title = str_cut(trim(preg_replace('/\s+/u', ' ', (string) ($in['title'] ?? ''))), 200, '');

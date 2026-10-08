@@ -22,7 +22,7 @@
         <td><span class="status <?= $public ? 'status-paid' : 'status-pending' ?>"><?= $public ? '공개' : ($p['status'] === 'published' ? '예약' : '임시저장') ?></span></td>
         <td class="nowrap"><?= e(fmt_date($p['published_at'] ?: $p['created_at'], 'Y.m.d')) ?></td>
         <td class="num"><?= number_format((int) $p['views']) ?></td>
-        <td class="actions"><a class="btn btn-outline btn-sm" href="<?= e(blog_url($p)) ?>" target="_blank" rel="noopener"><?= $public ? '보기 ↗' : '미리보기 ↗' ?></a></td>
+        <td class="actions"><a class="btn btn-outline btn-sm" href="<?= e(blog_url($p)) ?>" target="_blank" rel="noopener"><?= $public ? '보기 ↗' : '미리보기 ↗' ?></a><?php if (!$public && $p['status'] === 'published'): ?><form method="post" action="/admin/blog/<?= (int) $p['id'] ?>/publish" data-confirm="‘<?= e($p['title']) ?>’ 글을 예약 시각을 기다리지 않고 지금 공개할까요?"><?= csrf_field() ?><input type="hidden" name="back" value="/admin/blog"><button type="submit" class="btn btn-primary btn-sm">지금 공개</button></form><?php endif; ?></td>
       </tr>
 <?php endforeach; ?>
     </tbody>
