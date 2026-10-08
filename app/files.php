@@ -51,6 +51,193 @@ function random_name($ext)
     return date('Ymd') . '-' . bin2hex(random_bytes(8)) . '.' . $ext;
 }
 
+// 사진 줄이기(그린청소 블로그 · 홈페이지 사진): 긴 변 최대 크기(px). 1MB 넘는 휴대폰 사진도 보통 150~250KB로 줄어요.
+const IMAGE_MAX_SIDE = array('blog' => 1280, 'site' => 1600);
+const IMAGE_JPEG_QUALITY = 80;
+const IMAGE_PNG_KEEP = 307200; // 투명하지 않은 PNG는 줄인 뒤 300KB 넘으면 JPG로
+
+/**
+ * 저장한 사진을 가볍게: 긴 변을 줄이고 다시 압축합니다. 휴대폰 사진의 회전 정보도 반영합니다.
+ * 움직이는 GIF, 사진 기능(GD)이 없거나 메모리가 모자랄 때, 줄인 결과가 오히려 클 때는 원본 그대로.
+ * 반환: 최종 파일 경로(PNG가 JPG로 바뀌면 확장자도 바뀜)
+ */
+function image_shrink($file, $maxSide)
+{
+    if (!function_exists('imagecreatetruecolor')) {
+        return $file;
+    }
+    $info = @getimagesize($file);
+    if (!$info) {
+        return $file;
+    }
+    list($w, $h, $type) = $info;
+    $open = array(IMAGETYPE_JPEG => 'imagecreatefromjpeg', IMAGETYPE_PNG => 'imagecreatefrompng', IMAGETYPE_WEBP => 'imagecreatefromwebp');
+    if (!isset($open[$type]) || !function_exists($open[$type])) {
+        return $file;
+    }
+    $orient = $type === IMAGETYPE_JPEG ? jpeg_orientation($file) : 1;
+    $scale = min(1, $maxSide / max(1, $w, $h));
+    if ($scale >= 1 && $orient === 1 && filesize($file) <= 153600) {
+        return $file; // 이미 작고 가벼운 사진
+    }
+    $nw = max(1, (int) round($w * $scale));
+    $nh = max(1, (int) round($h * $scale));
+    if (!image_memory_ok(($w * $h * ($orient > 1 ? 2 : 1) + $nw * $nh) * 5)) {
+        return $file;
+    }
+    $src = @$open[$type]($file);
+    if (!$src) {
+        return $file;
+    }
+    $alpha = $type !== IMAGETYPE_JPEG && image_has_alpha($src);
+    $dst = imagecreatetruecolor($nw, $nh);
+    if ($alpha) {
+        imagealphablending($dst, false);
+        imagesavealpha($dst, true);
+    }
+    imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+    image_free($src);
+    if ($orient > 1) {
+        $dst = image_orient($dst, $orient);
+    }
+    $tmp = $file . '.tmp';
+    $ext = 'jpg';
+    if ($alpha) {
+        $ext = $type === IMAGETYPE_WEBP ? 'webp' : 'png';
+        $ok = $ext === 'webp' ? imagewebp($dst, $tmp, 82) : imagepng($dst, $tmp, 9);
+    } elseif ($type === IMAGETYPE_PNG && imagepng($dst, $tmp, 9) && filesize($tmp) <= IMAGE_PNG_KEEP) {
+        // 글자 많은 캡처 화면처럼 PNG가 더 깨끗하고 충분히 가벼우면 PNG 그대로
+        $ext = 'png';
+        $ok = true;
+    } else {
+        imageinterlace($dst, true);
+        $ok = imagejpeg($dst, $tmp, IMAGE_JPEG_QUALITY);
+    }
+    image_free($dst);
+    clearstatcache();
+    if (!$ok || !is_file($tmp) || ($orient === 1 && filesize($tmp) >= filesize($file))) {
+        @unlink($tmp);
+        return $file;
+    }
+    $new = preg_replace('/\.[A-Za-z0-9]+$/', '.' . $ext, $file);
+    if (!@rename($tmp, $new)) {
+        @unlink($tmp);
+        return $file;
+    }
+    if ($new !== $file) {
+        @unlink($file);
+    }
+    return $new;
+}
+
+/** 다 쓴 사진 메모리 돌려주기(PHP 8부터는 저절로 풀려서 부르지 않음) */
+function image_free($img)
+{
+    if (PHP_VERSION_ID < 80000 && $img) {
+        imagedestroy($img);
+    }
+}
+
+/** 사진을 펼칠 메모리가 있는지(모자라면 한 번 늘려 봄, 최대 512MB) */
+function image_memory_ok($need)
+{
+    $limit = ini_get('memory_limit');
+    if ($limit === '-1') {
+        return true;
+    }
+    $bytes = function ($v) {
+        $v = trim((string) $v);
+        $n = (float) $v;
+        switch (strtolower(substr($v, -1))) {
+            case 'g': return $n * 1073741824;
+            case 'm': return $n * 1048576;
+            case 'k': return $n * 1024;
+        }
+        return $n;
+    };
+    $want = memory_get_usage() + $need * 1.3 + 8388608;
+    if ($bytes($limit) >= $want) {
+        return true;
+    }
+    if ($want > 536870912) {
+        return false;
+    }
+    return @ini_set('memory_limit', (string) ceil($want / 1048576) . 'M') !== false && $bytes(ini_get('memory_limit')) >= $want;
+}
+
+/** 투명한 곳이 있는지(팔레트 투명색 또는 반투명 점을 고르게 살펴봄) */
+function image_has_alpha($img)
+{
+    if (!imageistruecolor($img)) {
+        return imagecolortransparent($img) >= 0;
+    }
+    $w = imagesx($img);
+    $h = imagesy($img);
+    $sx = max(1, (int) ($w / 60));
+    $sy = max(1, (int) ($h / 60));
+    for ($y = 0; $y < $h; $y += $sy) {
+        for ($x = 0; $x < $w; $x += $sx) {
+            if ((imagecolorat($img, $x, $y) >> 24) & 0x7F) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/** JPG 회전 정보(1~8). exif 기능이 없어도 파일 앞부분에서 직접 읽음 */
+function jpeg_orientation($file)
+{
+    if (function_exists('exif_read_data')) {
+        $exif = @exif_read_data($file, 'IFD0');
+        return isset($exif['Orientation']) && $exif['Orientation'] >= 1 && $exif['Orientation'] <= 8 ? (int) $exif['Orientation'] : 1;
+    }
+    $data = (string) @file_get_contents($file, false, null, 0, 131072);
+    $pos = strpos($data, "Exif\0\0");
+    if ($pos === false) {
+        return 1;
+    }
+    $tiff = $pos + 6;
+    $le = substr($data, $tiff, 2) === 'II';
+    $u16 = function ($o) use ($data, $le) {
+        $v = unpack($le ? 'v' : 'n', substr($data, $o, 2));
+        return $v ? $v[1] : 0;
+    };
+    $u32 = function ($o) use ($data, $le) {
+        $v = unpack($le ? 'V' : 'N', substr($data, $o, 4));
+        return $v ? $v[1] : 0;
+    };
+    $ifd = $tiff + $u32($tiff + 4);
+    $count = $u16($ifd);
+    for ($i = 0; $i < $count && $i < 200; $i++) {
+        $e = $ifd + 2 + $i * 12;
+        if ($u16($e) === 0x0112) {
+            $o = $u16($e + 8);
+            return $o >= 1 && $o <= 8 ? $o : 1;
+        }
+    }
+    return 1;
+}
+
+/** 회전 정보대로 바로 세우기 */
+function image_orient($img, $o)
+{
+    if (in_array($o, array(2, 7), true)) {
+        imageflip($img, IMG_FLIP_HORIZONTAL);
+    } elseif (in_array($o, array(4, 5), true)) {
+        imageflip($img, IMG_FLIP_VERTICAL);
+    }
+    $angle = array(3 => 180, 5 => -90, 6 => -90, 7 => -90, 8 => 90)[$o] ?? 0;
+    if ($angle) {
+        $r = imagerotate($img, $angle, 0);
+        if ($r) {
+            image_free($img);
+            $img = $r;
+        }
+    }
+    return $img;
+}
+
 /** 이미지 검사 후 저장. 성공하면 공개 경로(/uploads/...), 실패하면 예외. */
 function store_image($file, $subdir, $name = null, $gif = false)
 {
@@ -73,6 +260,9 @@ function store_image($file, $subdir, $name = null, $gif = false)
     $filename = ($name ?? pathinfo(random_name('x'), PATHINFO_FILENAME)) . '.' . $types[$info[2]];
     if (!move_uploaded_file($file['tmp_name'], $dir . '/' . $filename)) {
         throw new RuntimeException('이미지를 저장하지 못했어요. 폴더 권한을 확인해 주세요.');
+    }
+    if (isset(IMAGE_MAX_SIDE[$subdir])) {
+        $filename = basename(image_shrink($dir . '/' . $filename, IMAGE_MAX_SIDE[$subdir]));
     }
     return '/uploads/' . $subdir . '/' . $filename;
 }

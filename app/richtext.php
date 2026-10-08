@@ -588,5 +588,9 @@ function rich_store_image_bytes($bytes)
         mkdir($dir, 0755, true);
     }
     $name = pathinfo(random_name('x'), PATHINFO_FILENAME) . '.' . $types[$info[2]];
-    return file_put_contents($dir . '/' . $name, $bytes) === strlen($bytes) ? '/uploads/blog/' . $name : '';
+    if (file_put_contents($dir . '/' . $name, $bytes) !== strlen($bytes)) {
+        return '';
+    }
+    // 블로그에서 붙여 온 사진도 가볍게(움직이는 GIF는 그대로)
+    return '/uploads/blog/' . basename(image_shrink($dir . '/' . $name, IMAGE_MAX_SIDE['blog']));
 }

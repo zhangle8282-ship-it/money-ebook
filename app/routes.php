@@ -113,7 +113,10 @@ function page_health()
     } catch (Throwable $e) {
         $checks['db'] = false;
     }
-    json_out(array('ok' => !in_array(false, $checks, true), 'checks' => $checks), in_array(false, $checks, true) ? 500 : 200);
+    // 사진 줄이기에 쓰는 기능(없어도 사진은 원본으로 올라가서 ok 에는 넣지 않음)
+    $image = array('gd' => function_exists('imagecreatetruecolor'), 'webp' => function_exists('imagewebp'), 'exif' => function_exists('exif_read_data'),
+        'max_upload' => (string) ini_get('upload_max_filesize'), 'memory' => (string) ini_get('memory_limit'));
+    json_out(array('ok' => !in_array(false, $checks, true), 'checks' => $checks, 'image' => $image), in_array(false, $checks, true) ? 500 : 200);
 }
 
 function dispatch()
