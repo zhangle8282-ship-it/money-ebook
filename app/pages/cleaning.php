@@ -49,6 +49,7 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/code$~', 'admin_custom_code'),
         array('GET|POST', '~^/admin/search$~', 'admin_search_submit'),
         array('GET', '~^/admin/visits$~', 'admin_visits'),
+        array('GET|POST', '~^/admin/usage$~', 'admin_usage'),
         // 일회성 정산
         array('GET', '~^/admin/onetime$~', 'admin_onetime_list'),
         array('GET', '~^/admin/onetime/jobs$~', 'admin_onetime_jobs'),
@@ -484,6 +485,38 @@ function admin_account()
     render_admin('cleaning_account', array(
         'title' => '계정', 'nav' => 'account', 'errors' => $errors, 'form' => $form, 'created' => $created,
         'admins' => q_all('SELECT id, username, access, created_at FROM admins ORDER BY id'), 'full' => $full,
+    ));
+}
+
+/** 용량 · 트래픽: 서버 공간을 종류별로(색 · 퍼센트), 첫 화면 무게 · 추정 트래픽, 무거운 파일 */
+function admin_usage()
+{
+    require_admin();
+    if (is_post()) {
+        require_csrf('/admin/usage');
+        $num = function ($k) {
+            return min(100000000, (int) preg_replace('/[^0-9]/', '', input($k)));
+        };
+        save_settings(array(
+            'gc_host_plan' => str_cut(trim(input('plan')), 40, ''),
+            'gc_host_quota_mb' => (string) $num('quota_mb'),
+            'gc_host_traffic_mb' => (string) $num('traffic_mb'),
+        ));
+        flash('카페24 상품 정보를 저장했어요.');
+        redirect('/admin/usage');
+    }
+    $visits = (int) q_value('SELECT SUM(hits) FROM visit_sources WHERE day >= ?', array(date('Y-m-d', strtotime('-29 days'))));
+    render_admin('usage', array(
+        'title' => '용량 · 트래픽', 'nav' => 'usage',
+        'u' => usage_cached(input('fresh') === '1'),
+        'plan' => gc('host_plan'),
+        'quota' => (int) gc('host_quota_mb'),
+        'trafficQuota' => (int) gc('host_traffic_mb'),
+        'home' => traffic_home_weight(),
+        'visits' => $visits,
+        'heavy' => usage_heaviest(),
+        'today' => server_stat_report(date('Y-m-d')),
+        'month' => server_stat_report(date('Y-m-d', strtotime('-29 days'))),
     ));
 }
 

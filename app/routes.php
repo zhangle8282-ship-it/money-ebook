@@ -123,6 +123,7 @@ function dispatch()
 {
     if (SITE_MODE === 'cleaning') {
         canonical_host_redirect();
+        server_stat_begin(); // 용량 · 트래픽 › 서버 사용 통계
     }
     capture_referral();
     $path = rawurldecode(current_path());
@@ -141,6 +142,7 @@ function dispatch()
             continue;
         }
         array_shift($m);
+        $GLOBALS['stat_handler'] = $handler;
         call_user_func_array($handler, $m);
         return;
     }

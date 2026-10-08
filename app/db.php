@@ -372,6 +372,24 @@ function migrate(PDO $pdo)
         $pdo->exec('CREATE UNIQUE INDEX ' . ($sqlite ? 'IF NOT EXISTS ' : '') . 'idx_visit_day ON visit_sources (day, source, keyword)');
         $pdo->prepare("UPDATE settings SET v = '27' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 28) {
+        // 28: 이미 올라가 있는 블로그 · 홈페이지 사진도 ‘균형’ 기준으로 가볍게(이름 · 형식 그대로, 원본은 storage/photo-backup)
+        if (defined('SITE_MODE') && SITE_MODE === 'cleaning' && function_exists('photos_shrink_existing')) {
+            $r = photos_shrink_existing();
+            $pdo->prepare('DELETE FROM settings WHERE k = ?')->execute(array('gc_photo_existing'));
+            $pdo->prepare('INSERT INTO settings (k, v) VALUES (?, ?)')->execute(array('gc_photo_existing',
+                json_encode(array('at' => date('Y-m-d H:i:s'), 'count' => $r[0], 'changed' => $r[1], 'before' => $r[2], 'after' => $r[3]))));
+        }
+        $pdo->prepare("UPDATE settings SET v = '28' WHERE k = 'schema_version'")->execute();
+    }
+    if ($version < 29) {
+        // 29: 서버 사용 통계(하루 · 곳 · 사람/로봇마다 요청 수 · 보낸 양만)
+        $pdo->exec("CREATE TABLE IF NOT EXISTS server_stats (
+            id $id, day VARCHAR(10) NOT NULL, section VARCHAR(20) NOT NULL, bot INT NOT NULL DEFAULT 0,
+            hits INT NOT NULL DEFAULT 0, page_bytes BIGINT NOT NULL DEFAULT 0, file_bytes BIGINT NOT NULL DEFAULT 0)" . $tail);
+        $pdo->exec('CREATE UNIQUE INDEX ' . ($sqlite ? 'IF NOT EXISTS ' : '') . 'idx_server_stats ON server_stats (day, section, bot)');
+        $pdo->prepare("UPDATE settings SET v = '29' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

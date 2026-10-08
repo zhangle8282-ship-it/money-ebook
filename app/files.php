@@ -64,10 +64,13 @@ const IMAGE_HEAVY = 307200;      // 크기는 알맞아도 300KB 넘는 JPG는 �
  * - 크기가 알맞은 JPG: 다시 압축하지 않고 촬영 정보 · 위치(GPS) · 미리보기 그림만 떼어 냄(화질 변화 없음)
  * - 큰 사진: 긴 변을 줄이고 품질 80으로 저장, 휴대폰 회전 정보 반영, 색 프로필(아이폰 등) 그대로 붙임
  * - 투명 PNG는 투명 유지, 움직이는 GIF · CMYK 사진은 그대로. 사진 기능(GD)이 없거나 메모리가 모자라거나 결과가 더 크면 원본.
+ * $opts: keep_ext(true면 형식 · 이름 그대로 — 이미 글에 들어간 사진), heavy(이 용량 넘는 알맞은 크기 JPG는 다시 압축 시도)
  * 반환: 최종 파일 경로(PNG가 JPG로 바뀌면 확장자도 바뀜)
  */
-function image_shrink($file, $maxSide)
+function image_shrink($file, $maxSide, $opts = array())
 {
+    $keepExt = !empty($opts['keep_ext']);
+    $heavy = isset($opts['heavy']) ? (int) $opts['heavy'] : IMAGE_HEAVY;
     $info = @getimagesize($file);
     if (!$info) {
         return $file;
@@ -80,7 +83,7 @@ function image_shrink($file, $maxSide)
         // 크기가 알맞은 JPG: 화질 손실 없이 숨은 정보만 떼고, 아주 무거울 때만 다시 압축
         jpeg_strip_meta($file);
         clearstatcache();
-        if (filesize($file) <= IMAGE_HEAVY || ($info['channels'] ?? 3) === 4) {
+        if (filesize($file) <= $heavy || ($info['channels'] ?? 3) === 4) {
             return $file;
         }
     } elseif ($scale >= 1 && $orient === 1 && filesize($file) <= 153600) {
@@ -119,10 +122,13 @@ function image_shrink($file, $maxSide)
     if ($alpha) {
         $ext = $type === IMAGETYPE_WEBP ? 'webp' : 'png';
         $ok = $ext === 'webp' ? imagewebp($dst, $tmp, 88) : imagepng($dst, $tmp, 9);
-    } elseif ($type === IMAGETYPE_PNG && imagepng($dst, $tmp, 9) && filesize($tmp) <= IMAGE_PNG_KEEP) {
+    } elseif ($type === IMAGETYPE_PNG && imagepng($dst, $tmp, 9) && ($keepExt || filesize($tmp) <= IMAGE_PNG_KEEP)) {
         // 글자 많은 캡처 화면처럼 PNG가 더 깨끗하고 충분히 가벼우면 PNG 그대로
         $ext = 'png';
         $ok = true;
+    } elseif ($type === IMAGETYPE_WEBP && $keepExt) {
+        $ext = 'webp';
+        $ok = imagewebp($dst, $tmp, IMAGE_JPEG_QUALITY);
     } else {
         imageinterlace($dst, true);
         $ok = imagejpeg($dst, $tmp, $type === IMAGETYPE_PNG ? IMAGE_PNG_JPEG_QUALITY : IMAGE_JPEG_QUALITY);
@@ -234,6 +240,46 @@ function jpeg_copy_icc($from, $to)
     }
     $out = $done ? $out . $dst[1] : "\xFF\xD8" . $icc . substr($out, 2) . $dst[1];
     @file_put_contents($to, $out);
+}
+
+/**
+ * 이미 올라가 있는 블로그 · 홈페이지 사진을 같은 기준으로 가볍게(한 번만, DB 28).
+ * 이미 글에 들어간 주소라 이름 · 형식은 그대로 두고, 바뀌는 사진은 원본을 비공개 폴더(storage/photo-backup)에 보관합니다.
+ * 크기가 알맞아도 다시 압축해서 30% 넘게 줄면 바꿉니다. 반환: [사진 수, 줄인 수, 전 용량, 후 용량]
+ */
+function photos_shrink_existing($seconds = 15)
+{
+    $start = microtime(true);
+    $stat = array(0, 0, 0, 0);
+    foreach (IMAGE_MAX_SIDE as $sub => $max) {
+        foreach ((array) glob(UPLOAD_DIR . '/' . $sub . '/*') as $file) {
+            if (!is_file($file) || !preg_match('/\.(jpe?g|png|webp)$/i', $file)) {
+                continue;
+            }
+            if (microtime(true) - $start > $seconds) {
+                return $stat;
+            }
+            clearstatcache();
+            $before = filesize($file);
+            $backup = STORAGE_DIR . '/photo-backup/' . $sub . '/' . basename($file);
+            if (!is_file($backup)) {
+                @mkdir(dirname($backup), 0755, true);
+                @copy($file, $backup);
+            }
+            $out = image_shrink($file, $max, array('keep_ext' => true, 'heavy' => 0));
+            clearstatcache();
+            $after = filesize($out);
+            $stat[0]++;
+            $stat[2] += $before;
+            $stat[3] += $after;
+            if ($after < $before) {
+                $stat[1]++;
+            } else {
+                @unlink($backup); // 바뀌지 않았으면 보관할 필요 없음
+            }
+        }
+    }
+    return $stat;
 }
 
 /** 다 쓴 사진 메모리 돌려주기(PHP 8부터는 저절로 풀려서 부르지 않음) */

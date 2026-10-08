@@ -24,6 +24,7 @@ $menu = $cleaning ? array(
     'pages' => array('/admin/pages', '검색어 페이지', '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle>'),
     'search' => array('/admin/search', '검색 등록', '<circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4.2-4.2"></path><path d="M8 11h6M11 8v6"></path>'),
     'visits' => array('/admin/visits', '유입 경로', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path>'),
+    'usage' => array('/admin/usage', '용량 · 트래픽', '<ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path>'),
     'reviews' => array('/admin/reviews', '후기 관리', '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path>'),
     'code' => array('/admin/code', '헤드 코드', '<path d="M8 8l-4 4 4 4"></path><path d="M16 8l4 4-4 4"></path><path d="M13.5 5l-3 14"></path>'),
     'account' => array('/admin/account', '계정', '<circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path>'),

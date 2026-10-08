@@ -850,6 +850,40 @@ select { max-width: 100%; }
 .cover-info { margin: 6px 0 0; font-size: 13px; color: var(--sub); }
 .cover-info b { color: var(--ink); font-weight: 600; }
 
+/* 용량 · 트래픽 */
+.usage-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.usage-head h2 { margin: 0; font-size: 18px; }
+.usage-big { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.usage-big b { font-size: 28px; font-weight: 800; }
+.usage-big span { color: var(--sub); }
+.usage-big em { font-style: normal; font-weight: 600; color: var(--work); }
+.usage-bar { display: flex; height: 18px; border-radius: 9px; overflow: hidden; background: var(--seg); }
+.usage-bar span { display: block; height: 100%; min-width: 3px; }
+.usage-bar span + span { border-left: 2px solid #fff; }
+.usage-bar.is-quota { height: 12px; }
+.usage-bar.is-quota span { background: var(--work); }
+.usage-legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; }
+.usage-legend li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; font-size: 14px; }
+.usage-legend i { width: 12px; height: 12px; border-radius: 3px; }
+.ul-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ul-num { font-weight: 700; }
+.ul-size { color: var(--sub); text-align: right; white-space: nowrap; }
+.usage-est { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.usage-est div { padding: 12px 14px; border-radius: 10px; background: var(--seg); }
+.usage-est dt { font-size: 13px; color: var(--sub); }
+.usage-est dd { margin: 4px 0 0; font-size: 16px; }
+.usage-heavy tr.is-heavy td { background: var(--site-soft); }
+@media (max-width: 860px) { .usage-legend, .usage-est { grid-template-columns: 1fr; } }
+
+.stat-table td, .stat-table th { white-space: nowrap; }
+.stat-table tr.is-zero td { color: var(--sub); }
+.stat-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
+.stat-days { list-style: none; margin: 0; padding: 0; display: flex; gap: 3px; align-items: flex-end; height: 150px; overflow-x: auto; }
+.stat-days li { position: relative; flex: 1 0 12px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 4px; }
+.sd-stack { width: 100%; max-width: 26px; display: flex; flex-direction: column; border-radius: 4px 4px 0 0; overflow: hidden; }
+.sd-stack i { display: block; width: 100%; }
+.sd-day { font-size: 10px; color: var(--sub); }
+
 /* 유입 경로 */
 .visit-tabs { margin: -8px 0 0; }
 .visit-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -868,7 +902,7 @@ select { max-width: 100%; }
 .visit-sites li:first-child { border-top: 0; }
 .visit-sites li b { margin-left: auto; }
 .visit-days { list-style: none; margin: 0; padding: 8px 24px 16px; display: flex; gap: 4px; align-items: flex-end; height: 140px; overflow-x: auto; }
-.visit-days li { flex: 1 0 14px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+.visit-days li { position: relative; flex: 1 0 14px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
 .vd-bar { width: 100%; max-width: 28px; border-radius: 4px 4px 0 0; background: var(--work); }
 .vd-day { font-size: 11px; color: var(--sub); }
 @media (max-width: 860px) { .visit-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .visit-grid { grid-template-columns: 1fr; } }

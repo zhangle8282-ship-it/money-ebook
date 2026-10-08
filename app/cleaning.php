@@ -56,6 +56,12 @@ function cleaning_defaults()
         'gc_canonical_redirect' => '1',
         // 검색어 페이지 기본 5개를 넣었는지(한 번만)
         'gc_landing_seeded' => '',
+        'gc_photo_existing' => '',
+        'gc_usage_cache' => '',
+        // 카페24 상품(10G 자이언트플러스): 웹 용량 10,000MB · 트래픽 500,000MB
+        'gc_host_plan' => '10G 자이언트플러스',
+        'gc_host_quota_mb' => '10000',
+        'gc_host_traffic_mb' => '500000',
         // 텔레그램 알림: 봇 토큰(비밀), 봇 아이디, 대화방 번호 · 이름, 켜기, 마지막 결과
         'gc_tg_token' => '',
         'gc_tg_bot' => '',

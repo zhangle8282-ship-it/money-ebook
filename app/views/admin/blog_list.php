@@ -6,6 +6,9 @@
   </div>
   <a class="btn btn-primary" href="/admin/blog/new">+ 새 글 쓰기</a>
 </div>
+<?php $shrunk = json_decode((string) gc('photo_existing'), true); if (is_array($shrunk) && !empty($shrunk['changed'])): ?>
+<p class="notice-box">기존에 올린 사진 <?= (int) $shrunk['count'] ?>장 중 <?= (int) $shrunk['changed'] ?>장을 화질은 지키며 가볍게 줄였어요: 모두 <?= e(fmt_bytes($shrunk['before'])) ?> → <b><?= e(fmt_bytes($shrunk['after'])) ?></b> (<?= e(fmt_date($shrunk['at'], 'Y.m.d')) ?>). 원본은 서버의 비공개 폴더에 보관해 두었어요.</p>
+<?php endif; ?>
 <section class="card flush">
 <?php if ($posts): ?>
   <div class="table-wrap">
