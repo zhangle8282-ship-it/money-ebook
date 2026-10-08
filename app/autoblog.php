@@ -43,25 +43,43 @@ const AUTO_KEYWORD_MAX = 6;      // 대표 키워드(제목 + 본문) 최대 횟
 const AUTO_SIMILAR_MAX = 0.35;   // 최근 글 30개와 겹치는 정도(새 글 기준) 최대
 const AUTO_BANNED = array('최고', '1위', '100%', '99.9%', '무조건', '최저가', '완벽', '업계 최초', '국내 최초', '전국 최초', '보장합니다', '책임집니다');
 
-/** 열쇠 확인: Authorization: Bearer … 또는 X-Auto-Token */
+/** 요청에 온 열쇠들(X-Auto-Token 헤더, Authorization: Bearer …). 반환: [[헤더 이름, 값]…] */
+function auto_token_given()
+{
+    $out = array();
+    if (isset($_SERVER['HTTP_X_AUTO_TOKEN']) && trim((string) $_SERVER['HTTP_X_AUTO_TOKEN']) !== '') {
+        $out[] = array('X-Auto-Token', trim((string) $_SERVER['HTTP_X_AUTO_TOKEN']));
+    }
+    $auth = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+    if (preg_match('/^Bearer\s+(\S+)$/i', trim($auth), $m)) {
+        $out[] = array('Authorization', $m[1]);
+    }
+    return $out;
+}
+
+/** 열쇠 확인: 온 열쇠 중 하나라도 맞으면 통과 */
 function auto_token_ok()
 {
     $hash = gc('auto_token_hash');
-    $given = '';
-    $auth = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
-    if (preg_match('/^Bearer\s+(\S+)$/i', $auth, $m)) {
-        $given = $m[1];
-    } elseif (!empty($_SERVER['HTTP_X_AUTO_TOKEN'])) {
-        $given = (string) $_SERVER['HTTP_X_AUTO_TOKEN'];
+    foreach (auto_token_given() as $g) {
+        if ($hash !== '' && hash_equals($hash, hash('sha256', $g[1]))) {
+            return true;
+        }
     }
-    return $hash !== '' && $given !== '' && hash_equals($hash, hash('sha256', $given));
+    return false;
+}
+
+/** 열쇠 앞자리(비교용, 4자리만): gc_ab12… */
+function auto_token_hint($token)
+{
+    return substr((string) $token, 0, 7) . '…';
 }
 
 /** 새 열쇠 만들기(화면에 한 번만 보여 주고 해시만 저장). 반환: 열쇠 */
 function auto_token_new()
 {
     $token = 'gc_' . bin2hex(random_bytes(24));
-    save_settings(array('gc_auto_token_hash' => hash('sha256', $token), 'gc_auto_token_at' => now()));
+    save_settings(array('gc_auto_token_hash' => hash('sha256', $token), 'gc_auto_token_at' => now(), 'gc_auto_token_hint' => auto_token_hint($token), 'gc_auto_fail' => ''));
     return $token;
 }
 

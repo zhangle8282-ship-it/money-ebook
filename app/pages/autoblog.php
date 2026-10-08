@@ -175,7 +175,14 @@ function api_auto_guard()
 {
     header('Cache-Control: no-store');
     if (!auto_token_ok()) {
-        json_out(array('ok' => false, 'error' => '열쇠가 맞지 않아요.'), 401);
+        // 진단용: 열쇠가 아예 안 왔는지, 왔는데 다른지(앞자리만) 남겨 관리 화면에서 비교
+        $given = auto_token_given();
+        $fail = array('at' => now(), 'reason' => $given ? 'wrong' : 'none',
+            'header' => $given ? $given[0][0] : '', 'hint' => $given ? auto_token_hint($given[0][1]) : '', 'len' => $given ? strlen($given[0][1]) : 0);
+        save_settings(array('gc_auto_fail' => json_encode($fail)));
+        json_out(array('ok' => false, 'reason' => $fail['reason'], 'error' => $given
+            ? '열쇠가 맞지 않아요(받은 열쇠 앞자리 ' . $fail['hint'] . ', 길이 ' . $fail['len'] . '자). 관리자 › 블로그 › 자동 글쓰기의 지금 열쇠와 비교해 주세요.'
+            : '열쇠가 오지 않았어요(요청에 X-Auto-Token 헤더가 없어요). 네트워크 비밀값의 사이트 · 헤더 이름을 확인해 주세요.'), 401);
     }
 }
 

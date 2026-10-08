@@ -88,7 +88,12 @@ $cnt = $plan['photos'];
     <li><div class="submit-main"><span class="submit-kind">계획 받기</span><span class="submit-url mono">GET <?= e(display_url(base_url())) ?>/api/auto/plan</span></div></li>
     <li><div class="submit-main"><span class="submit-kind">글 보내기</span><span class="submit-url mono">POST <?= e(display_url(base_url())) ?>/api/auto/post</span></div></li>
   </ul>
-  <p class="sub">비밀 열쇠: <?= $hasToken ? '<b>있음</b> (' . e(fmt_date(gc('auto_token_at'), 'Y.m.d H:i')) . ' 만듦)' : '<span class="warn-text">아직 없어요</span>' ?></p>
+  <p class="sub">비밀 열쇠: <?= $hasToken ? '<b>있음</b> (' . e(fmt_date(gc('auto_token_at'), 'Y.m.d H:i')) . ' 만듦' . (gc('auto_token_hint') !== '' ? ' · 앞자리 <b class="mono">' . e(gc('auto_token_hint')) . '</b>, 길이 51자' : '') . ')' : '<span class="warn-text">아직 없어요</span>' ?></p>
+<?php $fail = json_decode((string) gc('auto_fail'), true); if (is_array($fail) && !empty($fail['at'])): ?>
+  <p class="notice-box">마지막으로 열쇠가 틀린 요청: <?= e(fmt_date($fail['at'], 'm.d H:i')) ?> · <?= $fail['reason'] === 'none'
+      ? '<b>열쇠가 아예 오지 않았어요.</b> Claude 환경의 네트워크 비밀값에서 Allowed websites(<span class="mono">xn--2i0b75tqkgu2l.com</span>)와 헤더 이름(<span class="mono">X-Auto-Token</span>)을 확인해 주세요.'
+      : '<b>열쇠는 왔는데 값이 달라요.</b> 받은 열쇠 앞자리 <b class="mono">' . e($fail['hint']) . '</b>, 길이 ' . (int) $fail['len'] . '자(' . e($fail['header']) . ' 헤더). 위의 지금 열쇠 앞자리와 길이가 같은지 비교해 주세요. 앞뒤 빈칸이나 줄바꿈이 들어갔을 수도 있어요.' ?></p>
+<?php endif; ?>
   <form method="post" action="/admin/blog/auto" data-confirm="<?= $hasToken ? '새 열쇠를 만들면 지금 열쇠는 바로 못 써요. Claude 예약 작업의 열쇠도 새것으로 바꿔야 해요. 만들까요?' : '비밀 열쇠를 만들까요?' ?>">
     <?= csrf_field() ?><input type="hidden" name="action" value="token">
     <button type="submit" class="btn btn-outline btn-sm"><?= $hasToken ? '열쇠 새로 만들기' : '비밀 열쇠 만들기' ?></button>

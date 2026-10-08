@@ -68,6 +68,8 @@ function cleaning_defaults()
         'gc_auto_last' => '',
         'gc_auto_rejects' => '',
         'gc_auto_need_note' => '',
+        'gc_auto_token_hint' => '',
+        'gc_auto_fail' => '',
         'gc_host_plan' => '10G 자이언트플러스',
         'gc_host_quota_mb' => '10000',
         'gc_host_traffic_mb' => '500000',
