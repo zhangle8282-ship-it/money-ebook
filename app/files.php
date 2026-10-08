@@ -53,7 +53,7 @@ function random_name($ext)
 
 // 사진 줄이기(그린청소 블로그 · 홈페이지 사진): ‘균형’ 기준 — 화질과 용량의 중간.
 // 긴 변 최대 크기(px): 블로그 글 폭(760px)에서 대부분 화면에 선명하게, 홈페이지 큰 사진은 조금 더 크게.
-const IMAGE_MAX_SIDE = array('blog' => 1280, 'site' => 1600);
+const IMAGE_MAX_SIDE = array('blog' => 1280, 'site' => 1600, 'stock' => 1280);
 const IMAGE_JPEG_QUALITY = 80;   // 균형: 대부분 화면에서 원본과 차이를 느끼기 어려운 품질
 const IMAGE_PNG_JPEG_QUALITY = 85; // 무거운 캡처 PNG를 JPG로 바꿀 때(글자가 뭉개지지 않게 조금 높게)
 const IMAGE_PNG_KEEP = 307200;   // 투명하지 않은 PNG(글자 캡처 등)는 300KB까지 PNG 그대로

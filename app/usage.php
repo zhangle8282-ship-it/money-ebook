@@ -9,7 +9,7 @@
 const USAGE_CACHE_SECONDS = 600;
 // 용량 종류: [이름, 색]
 const USAGE_PARTS = array(
-    'blog' => array('블로그 사진', '#1F7A4C'),
+    'blog' => array('블로그 사진 (사진 창고 포함)', '#1F7A4C'),
     'site' => array('홈페이지 사진', '#2B8C9A'),
     'uploads' => array('그 밖의 올린 파일', '#7FA23A'),
     'backup' => array('원본 보관 사진', '#C9A227'),
@@ -68,9 +68,11 @@ function usage_scan()
 {
     $budget = 300000; // 파일이 아주 많으면 여기까지만 셈
     $parts = array();
-    $parts['blog'] = usage_dir(UPLOAD_DIR . '/blog', array(), $budget);
+    $blog = usage_dir(UPLOAD_DIR . '/blog', array(), $budget);
+    $stock = usage_dir(UPLOAD_DIR . '/stock', array(), $budget);
+    $parts['blog'] = array($blog[0] + $stock[0], $blog[1] + $stock[1]); // 사진 창고 포함
     $parts['site'] = usage_dir(UPLOAD_DIR . '/site', array(), $budget);
-    $parts['uploads'] = usage_dir(UPLOAD_DIR, array(UPLOAD_DIR . '/blog', UPLOAD_DIR . '/site'), $budget);
+    $parts['uploads'] = usage_dir(UPLOAD_DIR, array(UPLOAD_DIR . '/blog', UPLOAD_DIR . '/site', UPLOAD_DIR . '/stock'), $budget);
     $parts['backup'] = usage_dir(STORAGE_DIR . '/photo-backup', array(), $budget);
     $db = array(0, 0);
     foreach ((array) glob(STORAGE_DIR . '/*.sqlite*') as $f) {

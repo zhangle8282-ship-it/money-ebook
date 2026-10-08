@@ -33,6 +33,12 @@ function cleaning_routes()
         array('POST', '~^/admin/blog/(\d+)/delete$~', 'admin_blog_delete'),
         array('POST', '~^/admin/blog/upload$~', 'admin_blog_upload'),
         array('POST', '~^/admin/blog/paste$~', 'admin_blog_paste'),
+        array('GET|POST', '~^/admin/blog/auto$~', 'admin_autoblog'),
+        array('GET|POST', '~^/admin/blog/stock$~', 'admin_stock'),
+        array('GET|POST', '~^/admin/blog/notes$~', 'admin_notes'),
+        // 블로그 자동 글쓰기: Claude 예약 작업이 쓰는 글 받는 통로(비밀 열쇠)
+        array('GET', '~^/api/auto/plan$~', 'api_auto_plan'),
+        array('POST', '~^/api/auto/post$~', 'api_auto_post'),
         // 정기청소 정산
         array('GET', '~^/admin/contracts$~', 'admin_contracts_month'),
         array('POST', '~^/admin/contracts/settle$~', 'admin_contracts_settle'),
@@ -139,7 +145,7 @@ function cleaning_robots()
 {
     header('Content-Type: text/plain; charset=utf-8');
     $base = base_url();
-    $out = "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /inquiry\n\nSitemap: " . $base . "/sitemap.xml\n";
+    $out = "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /inquiry\nDisallow: /api\n" . bot_robots_lines() . "\nSitemap: " . $base . "/sitemap.xml\n";
     if (blog_has_posts()) {
         $out .= 'Sitemap: ' . $base . "/rss.xml\n";
     }
@@ -537,6 +543,18 @@ function admin_search_submit()
     require_admin();
     $errors = array();
     $values = settings();
+    if (is_post() && in_array(input('action'), array('bots', 'bots_recommend'), true)) {
+        require_csrf('/admin/search');
+        $rules = array();
+        foreach (BOTS as $k => $b) {
+            $pick = input('action') === 'bots_recommend' ? $b[5] : (input('bot_' . $k) === 'block' ? 'block' : 'allow');
+            if ($pick === 'block') {
+                $rules[$k] = 'block';
+            }
+        }
+        save_settings(array('gc_bot_rules' => json_encode($rules)));
+        redirect('/admin/search?saved=' . (input('action') === 'bots_recommend' ? 'bots_recommend' : 'bots') . '#bots');
+    }
     if (is_post() && input('action') === 'ping_all') {
         require_csrf('/admin/search');
         $last = null;
@@ -592,6 +610,7 @@ function admin_search_submit()
         'log' => array_slice(indexnow_log(), 0, INDEXNOW_LOG_MAX),
         'local' => !indexnow_public_host(),
         'googleChecks' => google_seo_checks(),
+        'botRules' => bot_rules(),
         'googleTargets' => google_index_targets(),
     ));
 }

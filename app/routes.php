@@ -17,6 +17,7 @@ require APP_DIR . '/pages/cleaning.php';
 require APP_DIR . '/pages/contracts.php';
 require APP_DIR . '/pages/blog.php';
 require APP_DIR . '/pages/landing.php';
+require APP_DIR . '/pages/autoblog.php';
 require APP_DIR . '/pages/workers.php';
 require APP_DIR . '/pages/onetime.php';
 
@@ -124,6 +125,7 @@ function dispatch()
     if (SITE_MODE === 'cleaning') {
         canonical_host_redirect();
         server_stat_begin(); // 용량 · 트래픽 › 서버 사용 통계
+        bot_block_check();   // 검색 등록 › 검색 로봇 허용 · 차단
     }
     capture_referral();
     $path = rawurldecode(current_path());

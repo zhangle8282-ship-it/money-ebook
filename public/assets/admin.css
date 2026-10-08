@@ -835,6 +835,54 @@ select { max-width: 100%; }
 .indexnow-legend dd { margin: 0; color: var(--sub); }
 @media (max-width: 720px) { .indexnow-legend div { grid-template-columns: 1fr; gap: 2px; } }
 
+/* 블로그 › 자동 글쓰기 · 사진 창고 */
+.token-card { border: 2px solid var(--work); }
+.token-value { margin: 0; padding: 12px 14px; border-radius: 8px; background: var(--seg); font-size: 15px; word-break: break-all; }
+.auto-window { display: flex; align-items: center; gap: 8px; max-width: 320px; }
+.auto-window input { flex: 1; }
+.auto-plan { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.auto-plan div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; }
+.auto-plan dt { color: var(--sub); font-size: 14px; }
+.auto-plan dd { margin: 0; }
+.stock-left { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.stock-left li { display: flex; gap: 8px; align-items: baseline; padding: 6px 12px; border-radius: 10px; background: var(--work-soft); color: var(--work); font-size: 14px; }
+.stock-left li.is-low { background: var(--site-soft); color: var(--site); }
+.stock-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.stock-grid li { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
+.stock-img { display: block; aspect-ratio: 4 / 3; background: var(--seg); }
+.stock-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.stock-meta { display: flex; flex-direction: column; gap: 4px; padding: 0 12px 12px; font-size: 13px; }
+.stock-kind { align-self: flex-start; padding: 1px 8px; border-radius: 10px; background: var(--work-soft); color: var(--work); font-weight: 600; font-size: 12px; }
+.stock-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
+.stock-actions select { height: 32px; padding: 0 6px; border: 1px solid var(--field); border-radius: 8px; background: #fff; font-size: 13px; }
+.stock-kinds { flex-wrap: wrap; }
+.auto-checks { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.auto-rejects { list-style: none; margin: 0; padding: 0 0 8px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.note-guide { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: var(--sub); display: flex; flex-direction: column; gap: 2px; }
+.note-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.note-list li { padding: 12px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.note-list li:first-child { border-top: 0; }
+.note-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.note-body { margin: 0; font-size: 14px; color: var(--body); white-space: pre-line; }
+.note-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.auto-thumb { width: 64px; height: 48px; object-fit: cover; border-radius: 6px; display: block; }
+@media (max-width: 720px) { .stock-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .auto-plan div { grid-template-columns: 1fr; gap: 2px; } }
+
+/* 검색 등록 › 검색 로봇 허용 · 차단 */
+.bot-group { margin: 8px 0 0; font-size: 15px; color: var(--sub); }
+.bot-list { list-style: none; margin: 0; padding: 0; }
+.bot-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.bot-list li:first-child { border-top: 0; }
+.bot-list li.is-block .bot-name strong { color: var(--danger); }
+.bot-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bot-name strong { font-size: 15px; }
+.bot-tip { display: inline-block; align-self: flex-start; padding: 1px 8px; border-radius: 10px; background: var(--site-soft); color: var(--site); font-size: 12px; font-weight: 600; }
+.bot-warn { font-size: 13px; }
+.bot-seg { flex-shrink: 0; }
+.bot-seg input[value="block"]:checked + label { color: var(--danger); font-weight: 700; }
+.bot-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 720px) { .bot-list li { flex-direction: column; align-items: stretch; } }
+
 /* 검색 등록 › 구글에 잘 나오게 */
 .g-checks-admin { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .g-checks-admin li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }

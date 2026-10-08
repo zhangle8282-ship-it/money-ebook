@@ -14,6 +14,76 @@ const INDEXNOW_ENDPOINTS = array(
 );
 const INDEXNOW_LOG_MAX = 10;
 const INDEXNOW_ALL_GAP = 21600; // ‘지금 모두 알리기’는 6시간에 한 번
+
+// 검색 로봇 허용 · 차단(검색 등록 화면). 무리 이름
+const BOT_GROUPS = array('search' => '국내 · 주요 검색 사이트', 'ai' => 'AI 검색 · AI 학습', 'abroad' => '해외 검색 사이트', 'seo' => 'SEO 분석 도구');
+// 키 => [이름, 무리, robots.txt 이름들, 서버에서 막을 때 찾을 말(정규식, 비면 robots.txt로만), 설명, 추천(allow | block)]
+const BOTS = array(
+    'naver' => array('네이버 (Yeti)', 'search', array('Yeti'), 'Yeti', '네이버 검색에 나오려면 꼭 허용', 'allow'),
+    'google' => array('구글 (Googlebot)', 'search', array('Googlebot'), 'Googlebot', '구글 검색 · 구글 지도', 'allow'),
+    'bing' => array('빙 (bingbot)', 'search', array('bingbot', 'msnbot'), 'bingbot|msnbot', '빙 · Copilot · 덕덕고 검색', 'allow'),
+    'daum' => array('다음 (Daum)', 'search', array('Daum', 'Daumoa'), 'Daum(oa)?[ /]', '다음 · 카카오 검색', 'allow'),
+    'zum' => array('줌 (ZumBot)', 'search', array('ZumBot'), 'ZumBot', '줌 검색', 'allow'),
+    'chatgpt_search' => array('ChatGPT 검색', 'ai', array('OAI-SearchBot', 'ChatGPT-User'), 'OAI-SearchBot|ChatGPT-User', 'ChatGPT가 답할 때 업체를 찾아 소개해요', 'allow'),
+    'perplexity' => array('Perplexity', 'ai', array('PerplexityBot', 'Perplexity-User'), 'Perplexity(Bot|-User)', 'AI 검색', 'allow'),
+    'claude' => array('Claude', 'ai', array('ClaudeBot', 'Claude-User', 'Claude-SearchBot', 'anthropic-ai'), 'Claude(Bot|-User|-SearchBot)|anthropic-ai', 'AI 검색 · 학습', 'allow'),
+    'gptbot' => array('ChatGPT 학습 (GPTBot)', 'ai', array('GPTBot'), 'GPTBot', 'AI 학습용으로 글을 모아 가요(ChatGPT 검색 노출과는 따로)', 'allow'),
+    'google_ai' => array('구글 AI 학습 (Gemini)', 'ai', array('Google-Extended'), '', '막아도 구글 검색에는 영향 없어요(robots.txt로만)', 'allow'),
+    'ccbot' => array('Common Crawl (CCBot)', 'ai', array('CCBot'), 'CCBot', 'AI 학습 자료를 모으는 곳', 'allow'),
+    'bytespider' => array('바이트댄스 · 틱톡 (Bytespider)', 'ai', array('Bytespider'), 'Bytespider', '자주, 많이 읽어 가서 트래픽을 써요', 'block'),
+    'baidu' => array('바이두 (중국)', 'abroad', array('Baiduspider'), 'Baiduspider', '한국 손님은 거의 없어요', 'block'),
+    'yandex' => array('얀덱스 (러시아)', 'abroad', array('YandexBot', 'Yandex'), 'Yandex(Bot|Images)', '한국 손님은 거의 없어요', 'block'),
+    'seo' => array('SEO 분석 도구 (Ahrefs · Semrush · Majestic 등)', 'seo', array('AhrefsBot', 'SemrushBot', 'MJ12bot', 'DotBot', 'BLEXBot', 'DataForSeoBot'), 'AhrefsBot|SemrushBot|MJ12bot|DotBot|BLEXBot|DataForSeoBot', '다른 회사가 분석용으로 읽어 가요(우리 손님과 무관)', 'block'),
+);
+
+/** 로봇마다 허용(allow) · 차단(block). 저장 안 한 로봇은 허용 */
+function bot_rules()
+{
+    $saved = json_decode((string) gc('bot_rules'), true);
+    $out = array();
+    foreach (BOTS as $k => $b) {
+        $out[$k] = is_array($saved) && ($saved[$k] ?? '') === 'block' ? 'block' : 'allow';
+    }
+    return $out;
+}
+
+/** 서버에서 바로 막을 로봇(브라우저 정보에 이 말이 있으면 403). robots.txt 는 읽게 둠 */
+function bot_block_check()
+{
+    $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    $ua = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+    if ($ua === '' || $path === '/robots.txt' || $path === '/health') {
+        return;
+    }
+    $words = array();
+    foreach (bot_rules() as $k => $rule) {
+        if ($rule === 'block' && BOTS[$k][3] !== '') {
+            $words[] = BOTS[$k][3];
+        }
+    }
+    if ($words && preg_match('~' . implode('|', $words) . '~i', $ua)) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Blocked by robots.txt';
+        exit;
+    }
+}
+
+/** robots.txt 에 넣을 차단 규칙 */
+function bot_robots_lines()
+{
+    $out = '';
+    foreach (bot_rules() as $k => $rule) {
+        if ($rule === 'block') {
+            $out .= "\n# " . BOTS[$k][0] . "\n";
+            foreach (BOTS[$k][2] as $name) {
+                $out .= 'User-agent: ' . $name . "\n";
+            }
+            $out .= "Disallow: /\n";
+        }
+    }
+    return $out;
+}
 const INDEXNOW_GAP = 600; // 같은 주소를 다시 알리기까지 기다리는 시간(초). ‘지금 모두 알리기’는 예외
 
 /** 열쇠(32자리 16진수). 처음 쓸 때 만들어 저장합니다. */

@@ -390,6 +390,31 @@ function migrate(PDO $pdo)
         $pdo->exec('CREATE UNIQUE INDEX ' . ($sqlite ? 'IF NOT EXISTS ' : '') . 'idx_server_stats ON server_stats (day, section, bot)');
         $pdo->prepare("UPDATE settings SET v = '29' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 30) {
+        // 30: 블로그 자동 글쓰기(자동 글 표시) · 사진 창고(현장 사진, 글마다 안 쓴 사진을 대표 사진으로)
+        $cols = $sqlite ? array_column($pdo->query('PRAGMA table_info(blog_posts)')->fetchAll(PDO::FETCH_ASSOC), 'name')
+            : $pdo->query('SHOW COLUMNS FROM blog_posts')->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('auto', $cols, true)) {
+            $pdo->exec('ALTER TABLE blog_posts ADD COLUMN auto INT NOT NULL DEFAULT 0');
+        }
+        $pdo->exec("CREATE TABLE IF NOT EXISTS photo_stock (
+            id $id, path VARCHAR(255) NOT NULL, kind VARCHAR(12) NOT NULL DEFAULT 'etc', memo VARCHAR(100) NOT NULL DEFAULT '',
+            used_post_id INT NULL, used_at VARCHAR(19) NULL, created_at VARCHAR(19) NOT NULL)" . $tail);
+        $pdo->prepare("UPDATE settings SET v = '30' WHERE k = 'schema_version'")->execute();
+    }
+    if ($version < 31) {
+        // 31: 경험 노트(사장님이 직접 겪은 현장 이야기 → 자동 글의 바탕), 사진 창고 사진을 노트에 묶기
+        $pdo->exec("CREATE TABLE IF NOT EXISTS experience_notes (
+            id $id, kind VARCHAR(12) NOT NULL DEFAULT 'office', region VARCHAR(40) NOT NULL DEFAULT '', title VARCHAR(120) NOT NULL DEFAULT '',
+            body $long, work_date VARCHAR(10) NOT NULL DEFAULT '', used_post_id INT NULL, used_at VARCHAR(19) NULL,
+            created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NOT NULL)" . $tail);
+        $cols = $sqlite ? array_column($pdo->query('PRAGMA table_info(photo_stock)')->fetchAll(PDO::FETCH_ASSOC), 'name')
+            : $pdo->query('SHOW COLUMNS FROM photo_stock')->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('note_id', $cols, true)) {
+            $pdo->exec('ALTER TABLE photo_stock ADD COLUMN note_id INT NULL');
+        }
+        $pdo->prepare("UPDATE settings SET v = '31' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

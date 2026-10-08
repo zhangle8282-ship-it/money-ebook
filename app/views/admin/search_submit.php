@@ -1,5 +1,5 @@
 <?php
-/** 그린청소 관리자 › 검색 등록. 변수: $values, $errors, $base, $key, $entries, $posts, $log, $local, $googleChecks, $googleTargets */
+/** 그린청소 관리자 › 검색 등록. 변수: $values, $errors, $base, $key, $entries, $posts, $log, $local, $googleChecks, $googleTargets, $botRules */
 $v = function ($k) use ($values) {
     return e(isset($values[$k]) && is_string($values[$k]) ? $values[$k] : '');
 };
@@ -98,6 +98,44 @@ $on = ($values['gc_indexnow_on'] ?? '1') === '1';
     </div>
     <div><button type="submit" class="btn btn-primary">저장하기</button></div>
   </section>
+</form>
+
+<?php $blocked = array_keys(array_filter($botRules, function ($r) { return $r === 'block'; }));
+$saved = input('saved'); ?>
+<form method="post" action="/admin/search" class="card stack" id="bots" aria-labelledby="s-bots">
+  <?= csrf_field() ?>
+  <div class="card-head submit-head">
+    <div class="card-intro"><h2 id="s-bots">검색 로봇 허용 · 차단</h2>
+      <p class="muted">검색 사이트 · AI가 홈페이지를 읽으러 오는 로봇을 하나씩 허용하거나 막아요. 막으면 <a href="/robots.txt" target="_blank" rel="noopener">robots.txt</a>에 ‘읽지 마세요’를 적고, 그래도 오는 로봇은 서버에서 바로 돌려보내 트래픽을 아껴요.</p>
+    </div>
+    <span class="status <?= $blocked ? 'status-pending' : 'status-paid' ?>"><?= $blocked ? '차단 ' . count($blocked) . '개' : '모두 허용' ?></span>
+  </div>
+<?php if ($saved === 'bots' || $saved === 'bots_recommend'): ?>
+  <p class="notice-box" role="status"><?= $saved === 'bots_recommend' ? '추천대로 맞췄어요.' : '저장했어요.' ?> robots.txt와 서버 차단에 바로 반영됐어요. 검색 사이트가 robots.txt를 다시 읽기까지는 하루쯤 걸릴 수 있어요.</p>
+<?php endif; ?>
+<?php foreach (BOT_GROUPS as $g => $gName): ?>
+  <h3 class="bot-group"><?= e($gName) ?></h3>
+  <ul class="bot-list">
+<?php foreach (BOTS as $k => $b): if ($b[1] !== $g) { continue; } $rule = $botRules[$k]; ?>
+    <li class="<?= $rule === 'block' ? 'is-block' : '' ?>">
+      <div class="bot-name"><strong><?= e($b[0]) ?></strong><?php if ($b[5] === 'block'): ?> <span class="bot-tip">추천: 차단</span><?php endif; ?><span class="sub"><?= e($b[4]) ?></span>
+<?php if ($rule === 'block' && $g === 'search'): ?>        <span class="warn-text bot-warn">막으면 이 검색 사이트에서 홈페이지가 점점 사라져요.</span>
+<?php endif; ?>
+      </div>
+      <fieldset class="segmented bot-seg">
+        <legend class="sr-only"><?= e($b[0]) ?></legend>
+        <input type="radio" id="bot-<?= $k ?>-a" name="bot_<?= $k ?>" value="allow" class="sr-only"<?= $rule === 'allow' ? ' checked' : '' ?>><label for="bot-<?= $k ?>-a">허용</label>
+        <input type="radio" id="bot-<?= $k ?>-b" name="bot_<?= $k ?>" value="block" class="sr-only"<?= $rule === 'block' ? ' checked' : '' ?>><label for="bot-<?= $k ?>-b">차단</label>
+      </fieldset>
+    </li>
+<?php endforeach; ?>
+  </ul>
+<?php endforeach; ?>
+  <div class="bot-actions">
+    <button type="submit" name="action" value="bots" class="btn btn-primary">저장하기</button>
+    <button type="submit" name="action" value="bots_recommend" class="btn btn-outline" data-confirm-click="추천대로 맞출까요? 해외 검색 · SEO 분석 도구 · 바이트댄스 로봇만 막고 나머지는 허용해요.">추천대로 맞추기</button>
+  </div>
+  <p class="sub">네이버 · 구글 · 빙 · 다음은 허용해 두세요. 막으면 그 검색 사이트에서 홈페이지가 사라질 수 있어요. 카페24 › 보안관리 › ‘봇 트래픽 차단 설정’에서도 막을 수 있지만, 여기서 하면 홈페이지가 직접 관리해요.</p>
 </form>
 
 <?php $gVerified = verify_code((string) ($values['gc_google_verify'] ?? '')) !== '';
