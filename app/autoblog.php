@@ -317,6 +317,13 @@ function auto_check_text($json)
     return '스킬 검증 통과(clean-user-facing-text' . (!empty($c['marks']) ? ' + remove-ai-marks' : '') . ') · 숨은 문자 ' . (int) $c['hidden_before'] . '→0' . $score;
 }
 
+/** 글에 전화번호가 있는지(휴대폰 · 지역번호 · 1588 같은 대표번호) */
+function auto_has_phone($text)
+{
+    return preg_match('/(?<!\d)0\d{1,2}[\s.\-)]{0,2}\d{3,4}[\s.\-]{0,2}\d{4}(?!\d)/u', (string) $text) === 1
+        || preg_match('/(?<!\d)1[5-9]\d{2}[\s.\-]{1,2}\d{4}(?!\d)/u', (string) $text) === 1;
+}
+
 /** 사진 창고에 있는 사진인지(자동 글의 대표 사진은 창고 사진 파일을 그대로 씀) */
 function stock_owns($path)
 {
@@ -434,7 +441,8 @@ function auto_plan()
         'photo_left' => $notePhotos + $counts[$kind] + $counts['etc'],
         'photos' => $counts,
         'recent_titles' => array_column(q_all('SELECT title FROM blog_posts ORDER BY id DESC LIMIT 40'), 'title'),
-        'site' => array('name' => gc('name'), 'phone' => gc('phone'), 'area' => gc('area'), 'url' => base_url()),
+        // 전화번호는 넘기지 않음(자동 글에는 전화번호를 넣지 않음, 문의는 글 아래 견적 문의 칸으로)
+        'site' => array('name' => gc('name'), 'area' => gc('area'), 'url' => base_url()),
         'format' => array(
             'body' => 'HTML. 쓸 수 있는 태그: p, h2, h3, strong, em, u, span(style="color:#…", class="fs-sm|fs-lg|fs-xl"), ul, ol, li, blockquote, hr, br. 표 · 그림 태그는 쓰지 않음. 소제목은 h2.',
             'min_text' => AUTO_MIN_TEXT,
@@ -508,6 +516,10 @@ function auto_receive($in)
     }));
     if ($found) {
         $errors[] = '과장 · 광고 표현이 있어요: ' . implode(', ', $found) . '. 빼거나 사실대로 바꿔 주세요.';
+    }
+    // 3-1: 전화번호는 넣지 않음(문의는 글 아래 견적 문의 칸이 대신함)
+    if (auto_has_phone($title . ' ' . $summary . ' ' . $text)) {
+        $errors[] = '전화번호는 넣지 않아요. 문의 안내는 글 아래 견적 문의 칸이 대신해요. 전화번호를 빼고 다시 보내 주세요.';
     }
     // 4: 최근 글 30개와 많이 겹치면(유사문서) 안 받음
     if ($text !== '') {

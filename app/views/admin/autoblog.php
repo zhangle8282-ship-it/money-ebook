@@ -58,6 +58,7 @@ $cnt = $plan['photos'];
     <li><b>키워드 남용:</b> 대표 키워드가 제목 + 본문에 <?= AUTO_KEYWORD_MAX ?>번 넘게 들어가면 안 받아요.</li>
     <li><b>과장 · 광고:</b> <?= e(implode(' · ', AUTO_BANNED)) ?> 같은 말이 있으면 안 받아요.</li>
     <li><b>길이:</b> 본문 <?= number_format(AUTO_MIN_TEXT) ?>~<?= number_format(AUTO_MAX_TEXT) ?>자만 받아요.</li>
+    <li><b>전화번호:</b> 글에 전화번호가 있으면 안 받아요. 문의는 글 아래 견적 문의 칸이 대신해요.</li>
     <li><b>워터마크 · 스킬 검증:</b> clean-user-facing-text · remove-ai-marks 스킬로 다듬고 검증한 기록(두 스킬의 지문 포함)이 없으면 안 받아요. 보이지 않는 문자(숨은 표시)는 홈페이지가 직접 다시 세서 하나라도 남아 있으면 안 받아요.</li>
   </ul>
   <p class="sub">걸리면 이유를 글 쓰는 Claude에게 돌려줘서 고쳐 다시 보내요. 그래도 안 되면 그날은 건너뛰어요.</p>
