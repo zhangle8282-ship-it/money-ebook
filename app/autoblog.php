@@ -48,7 +48,8 @@ function auto_token_given()
 {
     $out = array();
     if (isset($_SERVER['HTTP_X_AUTO_TOKEN']) && trim((string) $_SERVER['HTTP_X_AUTO_TOKEN']) !== '') {
-        $out[] = array('X-Auto-Token', trim((string) $_SERVER['HTTP_X_AUTO_TOKEN']));
+        // 값 앞에 ‘Bearer ’를 붙여 넣은 경우도 받아 줌
+        $out[] = array('X-Auto-Token', trim(preg_replace('/^Bearer\s+/i', '', trim((string) $_SERVER['HTTP_X_AUTO_TOKEN']))));
     }
     $auth = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
     if (preg_match('/^Bearer\s+(\S+)$/i', trim($auth), $m)) {
