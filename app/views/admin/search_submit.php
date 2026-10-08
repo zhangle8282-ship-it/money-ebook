@@ -154,7 +154,7 @@ $gTodo = count(array_filter($googleChecks, function ($c) { return in_array($c[1]
   <div><button type="submit" form="search-form" class="btn btn-outline btn-sm">켜기 · 끄기 저장</button></div>
   <div class="submit-ping">
     <form method="post" action="/admin/search"><?= csrf_field() ?><input type="hidden" name="action" value="ping_all"><button type="submit" class="btn btn-outline"<?= $on ? '' : ' disabled' ?>>지금 모두 알리기</button></form>
-    <p class="field-help">사이트맵에 있는 주소 <?= (int) $entries ?>개를 한꺼번에 보내요. 검색 사이트에 처음 등록했을 때나 알림이 실패했을 때 눌러 주세요.</p>
+    <p class="field-help">사이트맵에 있는 주소 <?= (int) $entries ?>개를 한꺼번에 보내요. 검색 사이트에 처음 등록했을 때나 알림이 실패했을 때 <b>한 번만</b> 눌러 주세요(6시간에 한 번). 새 글 · 바뀐 내용은 누르지 않아도 자동으로 알려요.</p>
   </div>
 <?php if ($log): ?>
   <div class="table-wrap">
@@ -181,5 +181,11 @@ $gTodo = count(array_filter($googleChecks, function ($c) { return in_array($c[1]
 <?php else: ?>
   <p class="sub">아직 보낸 기록이 없어요. 블로그 글을 공개하거나 ‘지금 모두 알리기’를 누르면 여기에 결과가 남아요.</p>
 <?php endif; ?>
+  <dl class="indexnow-legend">
+    <div><dt><span class="status status-paid">접수</span></dt><dd>검색 사이트가 주소를 받았어요.</dd></div>
+    <div><dt><span class="status status-paid">접수 · 확인 중</span></dt><dd>받았고, 아래 확인 파일로 ‘진짜 주인이 보낸 알림’인지 검사하는 중이에요. <b>정상</b>이에요. 빙 쪽은 계속 이렇게 나오기도 해요.</dd></div>
+    <div><dt><span class="status status-pending">너무 자주 보냄 · 연결 안 됨</span></dt><dd>잠시 뒤 자동으로 다시 알려요. 오래 이어지면 알려 주세요.</dd></div>
+  </dl>
+  <p class="sub">알림은 ‘새로 읽어 가세요’라는 신호예요. 실제로 검색 결과에 나오는 건 검색 사이트가 정하고 보통 며칠~2주 걸려요. 빙은 <a href="https://www.bing.com/webmasters/indexnow" target="_blank" rel="noopener">빙 웹마스터 › IndexNow</a>, 네이버는 서치어드바이저 › 요청에서 받은 주소를 볼 수 있어요.</p>
   <p class="sub">확인 파일: <a href="/<?= e($key) ?>.txt" target="_blank" rel="noopener">/<?= e($key) ?>.txt</a> — 검색 사이트가 이 파일로 우리 홈페이지가 보낸 알림인지 확인해요. 지우거나 바꿀 필요 없어요.</p>
 </section>

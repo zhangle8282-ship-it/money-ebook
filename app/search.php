@@ -13,6 +13,7 @@ const INDEXNOW_ENDPOINTS = array(
     'indexnow' => array('빙 · 기타', 'https://api.indexnow.org/indexnow'),
 );
 const INDEXNOW_LOG_MAX = 10;
+const INDEXNOW_ALL_GAP = 21600; // ‘지금 모두 알리기’는 6시간에 한 번
 const INDEXNOW_GAP = 600; // 같은 주소를 다시 알리기까지 기다리는 시간(초). ‘지금 모두 알리기’는 예외
 
 /** 열쇠(32자리 16진수). 처음 쓸 때 만들어 저장합니다. */
@@ -163,7 +164,7 @@ function indexnow_ok($code)
 
 function indexnow_code_label($code)
 {
-    $labels = array(0 => '연결 안 됨', 200 => '접수', 202 => '접수(확인 중)', 400 => '형식 오류', 403 => '열쇠 확인 실패', 422 => '주소 오류', 429 => '너무 자주 보냄');
+    $labels = array(0 => '연결 안 됨', 200 => '접수', 202 => '접수 · 확인 중', 400 => '형식 오류', 403 => '열쇠 확인 실패', 422 => '주소 오류', 429 => '너무 자주 보냄');
     return $labels[$code] ?? ('응답 ' . $code);
 }
 

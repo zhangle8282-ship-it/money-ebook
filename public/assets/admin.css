@@ -830,6 +830,11 @@ select { max-width: 100%; }
   .sidebar-nav a.nav-site { border: 1px solid var(--site-line); }
 }
 
+.indexnow-legend { margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.indexnow-legend div { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.indexnow-legend dd { margin: 0; color: var(--sub); }
+@media (max-width: 720px) { .indexnow-legend div { grid-template-columns: 1fr; gap: 2px; } }
+
 /* 검색 등록 › 구글에 잘 나오게 */
 .g-checks-admin { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .g-checks-admin li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }

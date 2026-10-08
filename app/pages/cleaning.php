@@ -539,15 +539,27 @@ function admin_search_submit()
     $values = settings();
     if (is_post() && input('action') === 'ping_all') {
         require_csrf('/admin/search');
+        $last = null;
+        foreach (indexnow_log() as $row) {
+            if (($row['why'] ?? '') === '모두 알리기' && !isset($row['skip'])) {
+                $last = $row['at'];
+                break;
+            }
+        }
         if (gc('indexnow_on') !== '1') {
             flash('바로 알리기가 꺼져 있어요. 켜고 저장한 뒤 다시 눌러 주세요.', 'error');
+        } elseif ($last !== null && time() - strtotime($last) < INDEXNOW_ALL_GAP) {
+            // 같은 주소를 자주 보내면 검색 사이트가 무시하거나 스팸으로 볼 수 있어요.
+            flash('‘모두 알리기’는 ' . date('H:i', strtotime($last)) . '에 이미 보냈어요. 같은 주소를 자주 보내면 검색 사이트가 무시할 수 있어서 '
+                . date('H:i', strtotime($last) + INDEXNOW_ALL_GAP) . '부터 다시 보낼 수 있어요. 새 글이나 바뀐 내용은 그때그때 자동으로 알려요.', 'info');
         } else {
             $paths = array_map(function ($row) {
                 return $row[0];
             }, sitemap_entries());
             $entry = indexnow_ping($paths, '모두 알리기', true);
             $ok = $entry && !empty($entry['codes']) && array_filter($entry['codes'], 'indexnow_ok');
-            flash('사이트맵에 있는 주소 ' . count($paths) . '개를 보냈어요.' . indexnow_result_text($entry), $ok ? 'ok' : (isset($entry['skip']) ? 'info' : 'error'));
+            flash('사이트맵에 있는 주소 ' . count($paths) . '개를 보냈어요.' . indexnow_result_text($entry)
+                . ($ok ? ' 검색 결과에 반영되는 건 검색 사이트가 정하고 보통 며칠~2주 걸려요. 여러 번 누를 필요는 없어요.' : ''), $ok ? 'ok' : (isset($entry['skip']) ? 'info' : 'error'));
         }
         redirect('/admin/search#indexnow');
     }
