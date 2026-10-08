@@ -6,6 +6,7 @@
 function page_blog_list()
 {
     indexnow_due();
+    visit_track();
     $page = max(1, input_int('page', 1));
     list($posts, $total) = blog_page($page);
     $pages = max(1, (int) ceil($total / BLOG_PER_PAGE));
@@ -18,6 +19,7 @@ function page_blog_list()
 function page_blog_post($id, $slug = '')
 {
     indexnow_due();
+    visit_track();
     $post = find_blog_post($id);
     $admin = current_admin();
     if (!$post || (!blog_is_public($post) && !$admin)) {

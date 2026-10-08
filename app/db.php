@@ -365,6 +365,13 @@ function migrate(PDO $pdo)
         }
         $pdo->prepare("UPDATE settings SET v = '26' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 27) {
+        // 27: 유입 경로(하루 · 출처 · 검색어마다 횟수만, 개인 정보 없음)
+        $pdo->exec("CREATE TABLE IF NOT EXISTS visit_sources (
+            id $id, day VARCHAR(10) NOT NULL, source VARCHAR(20) NOT NULL, keyword VARCHAR(80) NOT NULL DEFAULT '', hits INT NOT NULL DEFAULT 0)" . $tail);
+        $pdo->exec('CREATE UNIQUE INDEX ' . ($sqlite ? 'IF NOT EXISTS ' : '') . 'idx_visit_day ON visit_sources (day, source, keyword)');
+        $pdo->prepare("UPDATE settings SET v = '27' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

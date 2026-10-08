@@ -12,6 +12,7 @@ function page_landing($slug)
         not_found();
     }
     indexnow_due();
+    visit_track();
     render('cleaning/landing', array(
         'page' => $page,
         'others' => array_values(array_filter(landing_public(), function ($p) use ($page) {

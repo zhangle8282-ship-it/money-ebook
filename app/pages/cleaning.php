@@ -48,6 +48,7 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/account$~', 'admin_account'),
         array('GET|POST', '~^/admin/code$~', 'admin_custom_code'),
         array('GET|POST', '~^/admin/search$~', 'admin_search_submit'),
+        array('GET', '~^/admin/visits$~', 'admin_visits'),
         // 일회성 정산
         array('GET', '~^/admin/onetime$~', 'admin_onetime_list'),
         array('GET', '~^/admin/onetime/jobs$~', 'admin_onetime_jobs'),
@@ -79,6 +80,7 @@ function page_cleaning_home()
 {
     // 화면 새로고침 없이 보내지 못했을 때(자바스크립트 꺼짐) 입력값과 오류를 한 번만 되살립니다.
     indexnow_due();
+    visit_track();
     start_session();
     $form = $_SESSION['inquiry_form'] ?? null;
     unset($_SESSION['inquiry_form']);
@@ -127,6 +129,7 @@ function action_cleaning_inquiry()
 
 function page_cleaning_privacy()
 {
+    visit_track();
     render('cleaning/privacy', array('title' => '개인정보처리방침'), 'cleaning/simple');
 }
 
@@ -482,6 +485,15 @@ function admin_account()
         'title' => '계정', 'nav' => 'account', 'errors' => $errors, 'form' => $form, 'created' => $created,
         'admins' => q_all('SELECT id, username, access, created_at FROM admins ORDER BY id'), 'full' => $full,
     ));
+}
+
+/** 유입 경로: 어느 검색 사이트에서 어떤 검색어로 들어왔는지(기간별) */
+function admin_visits()
+{
+    require_admin();
+    $days = (int) input('days', '7');
+    $days = isset(VISIT_PERIODS[$days]) ? $days : 7;
+    render_admin('visits', array('title' => '유입 경로', 'nav' => 'visits', 'days' => $days, 'r' => visit_report($days)));
 }
 
 /** 검색 등록: 사이트맵 · RSS 주소 안내, 검색 사이트 확인 코드, 바뀐 주소 바로 알리기(IndexNow) */
