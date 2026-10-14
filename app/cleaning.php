@@ -163,6 +163,28 @@ function tel_href($phone)
     return 'tel:' . preg_replace('/[^0-9+]/', '', (string) $phone);
 }
 
+/** 관리자 메뉴(그린청소): 키 => [주소, 이름, 아이콘 path]. 업무 4개 다음에 홈페이지 관리 메뉴. 틀 내보내기도 이 목록을 씀 */
+function cleaning_admin_menu()
+{
+    return array(
+        'inquiries' => array('/admin/inquiries', '견적 문의', '<path d="M4 4h16v12H7l-3 3z"></path><path d="M8 9h8M8 12h5"></path>'),
+        'contracts' => array('/admin/contracts', '정기청소 정산', '<rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M8 18h8"></path>'),
+        'onetime' => array('/admin/onetime', '일회성 정산', '<rect x="4" y="4" width="16" height="17" rx="2"></rect><path d="M8 2v4M16 2v4M4 10h16"></path><path d="M9 15l2 2 4-4"></path>'),
+        'workers' => array('/admin/workers', '인력 배치', '<circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"></path>'),
+        'site' => array('/admin/site', '홈페이지 관리', '<path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path>'),
+        'photos' => array('/admin/photos', '사진 관리', '<rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5-5-8 8"></path>'),
+        'blog' => array('/admin/blog', '블로그', '<path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 7l4 4"></path>'),
+        'pages' => array('/admin/pages', '검색어 페이지', '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle>'),
+        'search' => array('/admin/search', '검색 등록', '<circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4.2-4.2"></path><path d="M8 11h6M11 8v6"></path>'),
+        'visits' => array('/admin/visits', '유입 경로', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path>'),
+        'usage' => array('/admin/usage', '용량 · 트래픽', '<ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path>'),
+        'reviews' => array('/admin/reviews', '후기 관리', '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path>'),
+        'code' => array('/admin/code', '헤드 코드', '<path d="M8 8l-4 4 4 4"></path><path d="M16 8l4 4-4 4"></path><path d="M13.5 5l-3 14"></path>'),
+        'blueprint' => array('/admin/blueprint', '틀 내보내기', '<path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 17v3h16v-3"></path>'),
+        'account' => array('/admin/account', '계정', '<circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path>'),
+    );
+}
+
 const CLEANING_KINDS = array('office' => '사무실', 'building' => '건물·상가', 'restroom' => '화장실');
 const INQUIRY_STATUS = array('new' => '새 문의', 'contacted' => '연락함', 'contracted' => '계약', 'closed' => '종료');
 const INQUIRY_MAILED = array('sent' => '메일 보냄', 'failed' => '메일 못 보냄', 'off' => '메일 알림 꺼짐');

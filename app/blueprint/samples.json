@@ -1,0 +1,54 @@
+{
+  "_about": "모양을 보여 주는 가짜 예시입니다. 실제 고객 · 사람 · 금액 · 글이 아닙니다.",
+  "inquiries": [
+    {"id": 1, "kind": "office", "name": "예시상사(김예시)", "phone": "010-0000-0001", "address": "○○시 ○○로 12, 3층", "status": "new", "memo": "", "ip_hash": "(해시)", "created_at": "2026-01-05 10:12:00", "updated_at": "2026-01-05 10:12:00", "mailed": "sent"},
+    {"id": 2, "kind": "restroom", "name": "예시빌딩 관리실", "phone": "010-0000-0002", "address": "○○시 ○○동 45", "status": "contracted", "memo": "주 2회, 남녀 화장실 4칸씩", "ip_hash": "(해시)", "created_at": "2026-01-03 15:40:00", "updated_at": "2026-01-04 09:00:00", "mailed": "sent"}
+  ],
+  "partners": [
+    {"id": 1, "role": "gap", "name": "대표 예시", "phone": "010-0000-0010", "bank_name": "예시은행", "bank_account": "000-000-000000", "bank_holder": "대표 예시", "worker_id": null, "memo": "", "created_at": "2026-01-01 09:00:00", "updated_at": "2026-01-01 09:00:00"},
+    {"id": 2, "role": "eul", "name": "운영 예시", "phone": "010-0000-0011", "bank_name": "예시은행", "bank_account": "000-000-000001", "bank_holder": "운영 예시", "worker_id": null, "memo": "", "created_at": "2026-01-01 09:00:00", "updated_at": "2026-01-01 09:00:00"},
+    {"id": 3, "role": "byeong", "name": "청소 담당 예시", "phone": "010-0000-0012", "bank_name": "예시은행", "bank_account": "000-000-000002", "bank_holder": "청소 담당 예시", "worker_id": 1, "memo": "", "created_at": "2026-01-02 09:00:00", "updated_at": "2026-01-02 09:00:00"}
+  ],
+  "workers": [
+    {"id": 1, "name": "청소 담당 예시", "phone": "010-0000-0012", "regions": "○○읍,○○면,기타:△△시", "method": "both", "team": "couple", "team_note": "", "memo": "주말 가능", "created_at": "2026-01-02 09:00:00", "updated_at": "2026-01-02 09:00:00"}
+  ],
+  "contracts": [
+    {"id": 1, "name": "예시빌딩", "client": "예시빌딩 관리단", "monthly_fee": 1000000, "invoice": 1, "contract_rate": 20, "gap_rate": 60, "withholding": 1, "gap_partner_id": 1, "eul_partner_id": 2, "byeong_partner_id": 3, "gap_name": "", "eul_name": "", "byeong_name": "", "start_month": "2026-01", "end_month": "", "memo": "", "created_at": "2026-01-01 09:00:00", "updated_at": "2026-01-01 09:00:00"}
+  ],
+  "contract_settlements": [
+    {"_계산": "청소비용 1,000,000 · 세금계산서 발행 · 도급 20% · 대표:운영 60:40 · 원천징수 함 → 세금 100,000 / 세금 뺀 900,000 / 도급 몫 180,000(대표 108,000 · 운영 72,000) / 청소 담당 몫 720,000 − 원천징수 23,760 = 실지급 696,240",
+     "id": 1, "contract_id": 1, "month": "2026-01", "fee": 1000000, "invoice": 1, "tax": 100000, "contract_rate": 20, "contract_amount": 180000, "gap_rate": 60, "gap_amount": 108000, "eul_amount": 72000, "byeong_amount": 720000, "withholding": 1, "withholding_amount": 23760, "byeong_pay": 696240, "status": "done", "step_received": "2026-02-05 10:00:00", "step_invoiced": "2026-02-05 10:05:00", "step_paid_byeong": "2026-02-06 11:00:00", "step_paid_eul": "2026-02-06 11:05:00", "settled_at": "2026-02-06 11:05:00", "settled_by": "admin_example", "memo": "", "created_at": "2026-02-01 00:00:00", "updated_at": "2026-02-06 11:05:00"}
+  ],
+  "onetime_jobs": [
+    {"_계산": "수수료 방식: 청소비용 500,000 · 발행 안 함 · 수수료 20% · 대표:운영 50:50 · 원천징수 안 함 → 회사 몫 100,000(대표 50,000 · 운영 50,000) / 청소 담당 400,000",
+     "id": 1, "name": "예시아파트 입주청소", "client": "이예시", "work_date": "2026-01-20", "method": "commission", "takeover_unit": "won", "takeover_value": 0, "fee": 500000, "invoice": 0, "contract_rate": 20, "gap_rate": 50, "withholding": 0, "gap_partner_id": 1, "eul_partner_id": 2, "byeong_partner_id": 3, "gap_name": "", "eul_name": "", "byeong_name": "", "tax": 0, "contract_amount": 100000, "byeong_amount": 400000, "withholding_amount": 0, "byeong_pay": 400000, "gap_amount": 50000, "eul_amount": 50000, "status": "pending", "step_received": null, "step_invoiced": null, "step_paid_byeong": null, "step_paid_eul": null, "settled_at": null, "settled_by": "", "memo": "", "created_at": "2026-01-15 09:00:00", "updated_at": "2026-01-15 09:00:00"},
+    {"_계산": "인수 방식: 청소비용 300,000 · 발행 → 세금 30,000 / 세금 뺀 270,000 전체가 회사 몫(대표 135,000 · 운영 135,000) / 청소 담당 몫 없음",
+     "id": 2, "name": "예시상가 대청소", "client": "예시상가", "work_date": "2026-01-25", "method": "takeover", "takeover_unit": "won", "takeover_value": 0, "fee": 300000, "invoice": 1, "contract_rate": 100, "gap_rate": 50, "withholding": 0, "gap_partner_id": 1, "eul_partner_id": 2, "byeong_partner_id": null, "gap_name": "", "eul_name": "", "byeong_name": "", "tax": 30000, "contract_amount": 270000, "byeong_amount": 0, "withholding_amount": 0, "byeong_pay": 0, "gap_amount": 135000, "eul_amount": 135000, "status": "done", "step_received": "2026-01-26 10:00:00", "step_invoiced": "2026-01-26 10:10:00", "step_paid_byeong": null, "step_paid_eul": "2026-01-27 09:00:00", "settled_at": "2026-01-27 09:00:00", "settled_by": "admin_example", "memo": "", "created_at": "2026-01-20 09:00:00", "updated_at": "2026-01-27 09:00:00"}
+  ],
+  "blog_posts": [
+    {"id": 1, "title": "○○ 사무실정기청소, 주 몇 번이 알맞을까요", "slug": "○○-사무실정기청소-주-몇-번이-알맞을까요", "summary": "직원 수와 손님 방문 횟수로 사무실 청소 주기를 정하는 방법을 정리했어요.", "body": "<p style=\"text-align:center\"><span class=\"fs-xl\"><strong>사무실 청소 주기, 이렇게 정해요 🧹</strong></span></p><h2>먼저 볼 것</h2><p>…</p>", "format": "html", "cover": "/uploads/stock/20260101-example.jpg", "seo_title": "", "keywords": "○○ 사무실정기청소, 사무실청소, 정기청소", "status": "published", "published_at": "2026-01-10 14:23:00", "views": 128, "auto": 1, "auto_check": "{\"skill\":\"clean-user-facing-text\",\"hidden_before\":0,\"hidden_after\":0,\"marks\":\"remove-ai-marks\"}", "created_at": "2026-01-10 06:01:00", "updated_at": "2026-01-10 14:23:00"},
+    {"id": 2, "title": "화장실 냄새가 남는 이유", "slug": "화장실-냄새가-남는-이유", "summary": "", "body": "## 냄새의 원인\n소변기 아래 요석에서 시작돼요.\n\n- 거름망 바꾸기\n- 배수구 청소", "format": "md", "cover": "", "seo_title": "", "keywords": "화장실청소", "status": "draft", "published_at": null, "views": 0, "auto": 0, "auto_check": null, "created_at": "2026-01-12 09:00:00", "updated_at": "2026-01-12 09:00:00"}
+  ],
+  "photo_stock": [
+    {"id": 1, "path": "/uploads/stock/20260101-example.jpg", "kind": "office", "memo": "○○ 사무실", "note_id": null, "used_post_id": 1, "used_at": "2026-01-10 06:01:00", "created_at": "2026-01-01 09:00:00"},
+    {"id": 2, "path": "/uploads/stock/20260102-example.jpg", "kind": "restroom", "memo": "", "note_id": 1, "used_post_id": null, "used_at": null, "created_at": "2026-01-02 09:00:00"}
+  ],
+  "experience_notes": [
+    {"id": 1, "kind": "restroom", "region": "○○읍", "title": "상가 화장실 첫 정기청소", "body": "상가 2층 남녀 화장실이었어요. 소변기 아래 요석 때문에 냄새가 심했는데, 거름망을 바꾸고 배수구를 세척하니 다음 주부터 냄새가 줄었어요. 지금은 주 2회 하고 있어요.", "work_date": "2026-01-08", "used_post_id": null, "used_at": null, "created_at": "2026-01-08 18:00:00", "updated_at": "2026-01-08 18:00:00"}
+  ],
+  "landing_pages": [
+    {"id": 1, "slug": "○○사무실청소", "title": "○○ 사무실청소 · 정기청소", "summary": "○○ 지역 사무실 정기청소 안내", "body": "## 이런 곳을 청소해요\n- 사무실\n- 회의실", "cover": "", "seo_title": "○○사무실청소 | 예시청소", "keywords": "○○사무실청소, ○○청소업체", "kind": "office", "sort": 1, "status": "published", "created_at": "2026-01-01 09:00:00", "updated_at": "2026-01-01 09:00:00"}
+  ],
+  "visit_sources": [
+    {"id": 1, "day": "2026-01-10", "source": "naver", "keyword": "○○ 사무실청소", "hits": 3},
+    {"id": 2, "day": "2026-01-10", "source": "direct", "keyword": "", "hits": 5}
+  ],
+  "server_stats": [
+    {"id": 1, "day": "2026-01-10", "section": "home", "bot": 0, "hits": 42, "page_bytes": 1260000, "file_bytes": 8400000},
+    {"id": 2, "day": "2026-01-10", "section": "blog", "bot": 1, "hits": 120, "page_bytes": 2400000, "file_bytes": 0}
+  ],
+  "admins": [
+    {"id": 1, "username": "owner_example", "password_hash": "(내보내지 않음)", "access": "all", "created_at": "2026-01-01 09:00:00"},
+    {"id": 2, "username": "staff_example", "password_hash": "(내보내지 않음)", "access": "work", "created_at": "2026-01-01 09:00:00"}
+  ]
+}

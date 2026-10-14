@@ -57,6 +57,8 @@ function cleaning_routes()
         array('GET|POST', '~^/admin/search$~', 'admin_search_submit'),
         array('GET', '~^/admin/visits$~', 'admin_visits'),
         array('GET|POST', '~^/admin/usage$~', 'admin_usage'),
+        array('GET', '~^/admin/blueprint$~', 'admin_blueprint'),
+        array('GET', '~^/admin/blueprint/download$~', 'admin_blueprint_download'),
         // 일회성 정산
         array('GET', '~^/admin/onetime$~', 'admin_onetime_list'),
         array('GET', '~^/admin/onetime/jobs$~', 'admin_onetime_jobs'),
@@ -749,4 +751,26 @@ function admin_telegram_action($action)
         redirect($back);
     }
     redirect($back);
+}
+
+/** 틀 내보내기: 다른 사이트를 만들 때 참고할 구조 · 화면 · 디자인 · 코드 묶음(실제 데이터 · 비밀 값 없음) */
+function admin_blueprint()
+{
+    require_admin();
+    render_admin('blueprint', array('title' => '틀 내보내기', 'nav' => 'blueprint', 'sum' => blueprint_summary()));
+}
+
+/** 틀 묶음(zip) 내려받기 */
+function admin_blueprint_download()
+{
+    require_admin();
+    try {
+        $path = blueprint_build_zip();
+    } catch (RuntimeException $e) {
+        flash($e->getMessage(), 'error');
+        redirect('/admin/blueprint');
+    }
+    send_download($path, 'site-blueprint-' . date('Ymd') . '.zip', 'application/zip');
+    @unlink($path);
+    exit;
 }
