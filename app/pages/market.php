@@ -6,6 +6,10 @@
 function base_url()
 {
     $host = preg_replace('/[^A-Za-z0-9.:\-]/', '', $_SERVER['HTTP_HOST'] ?? 'localhost');
+    // 그린청소: 대표 주소가 정해져 있으면 다른 도메인으로 열려도 검색용 주소(canonical · 사이트맵 · 공유)는 대표 주소로
+    if (function_exists('main_host') && main_host() !== '' && is_public_host($host)) {
+        return 'https://' . main_host();
+    }
     return (is_https() ? 'https' : 'http') . '://' . $host;
 }
 

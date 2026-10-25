@@ -124,9 +124,42 @@ function indexnow_public_host()
     return is_public_host(parse_url(base_url(), PHP_URL_HOST));
 }
 
+/** 대표 주소(도메인, www 없이). 그린청소 모드에서만, 정해지지 않았으면 '' */
+function main_host()
+{
+    return defined('SITE_MODE') && SITE_MODE === 'cleaning' ? strtolower((string) gc('main_host')) : '';
+}
+
+/** 지금 들어온 주소(포트 · www 뗀 도메인). 인터넷 주소가 아니면 '' */
+function request_bare_host()
+{
+    $host = strtolower(preg_replace('/[^A-Za-z0-9.:\-]/', '', $_SERVER['HTTP_HOST'] ?? ''));
+    if (!is_public_host($host)) {
+        return '';
+    }
+    return preg_replace('/^www\./', '', preg_replace('/:\d+$/', '', $host));
+}
+
 /**
- * 주소 하나로 모으기: http:// 와 www. 로 들어오면 https://(www 없는 주소)로 영구 이동(301)합니다.
- * 같은 홈페이지가 주소 4개로 따로 열리면 검색 점수가 나뉘기 때문입니다.
+ * 대표 주소 정하기: 아직 없을 때, 로그인한 관리자가 https 로 연 관리자 화면의 주소로 한 번 정합니다.
+ * (보안 인증서가 있는 도메인만 https 로 열리고, 아무나 보낸 요청으로는 정해지지 않게 관리자 화면에서만)
+ */
+function main_host_learn()
+{
+    if (main_host() !== '' || !is_https() || !current_admin()) {
+        return;
+    }
+    $bare = request_bare_host();
+    if ($bare !== '') {
+        save_settings(array('gc_main_host' => $bare));
+    }
+}
+
+/**
+ * 주소 하나로 모으기: http:// · www. · 다른 도메인(같은 서버에 연결된 다른 주소)으로 들어오면
+ * https://대표 주소(www 없는 주소)로 영구 이동(301)합니다. 같은 홈페이지가 여러 주소로 따로 열리면
+ * 검색 사이트가 서로 다른 사이트로 보고 점수가 나뉘기 때문입니다.
+ * 대표 주소가 아직 없으면 들어온 도메인 그대로(www만 떼고) https 로 옮깁니다.
  * 내 컴퓨터 · IP 주소로 열 때와 보내는 요청(POST)은 그대로 둡니다. 관리자 › 검색 등록에서 끌 수 있습니다.
  */
 function canonical_host_redirect()
@@ -135,13 +168,13 @@ function canonical_host_redirect()
     if (($method !== 'GET' && $method !== 'HEAD') || gc('canonical_redirect') === '0') {
         return;
     }
-    $host = strtolower(preg_replace('/[^A-Za-z0-9.:\-]/', '', $_SERVER['HTTP_HOST'] ?? ''));
-    if (!is_public_host($host)) {
+    $bare = request_bare_host();
+    if ($bare === '') {
         return;
     }
-    $host = preg_replace('/:\d+$/', '', $host);
-    $target = preg_replace('/^www\./', '', $host);
-    if ($target === $host && is_https()) {
+    $host = strtolower(preg_replace('/:\d+$/', '', preg_replace('/[^A-Za-z0-9.:\-]/', '', $_SERVER['HTTP_HOST'] ?? '')));
+    $target = main_host() !== '' ? main_host() : $bare;
+    if ($host === $target && is_https()) {
         return;
     }
     $uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');

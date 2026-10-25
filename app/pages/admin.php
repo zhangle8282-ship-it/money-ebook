@@ -11,6 +11,9 @@ function render_admin($view, $vars)
         header('X-Robots-Tag: noindex, nofollow, noarchive');
     }
     $vars['admin'] = current_admin();
+    if (function_exists('main_host_learn')) {
+        main_host_learn(); // 그린청소: 대표 주소가 아직 없으면 지금 주소로
+    }
     render('admin/' . $view, $vars, 'admin/layout');
 }
 

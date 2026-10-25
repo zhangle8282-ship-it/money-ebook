@@ -4,106 +4,306 @@
     {
       "name": "회사 · 연락처 (관리자 › 홈페이지 관리)",
       "keys": {
-        "gc_name": {"desc": "회사 이름(화면 곳곳 · 검색 제목)", "example": "예시청소"},
-        "gc_tagline": {"desc": "첫 화면 한 줄 소개", "example": "사무실 · 상가 정기청소 전문"},
-        "gc_phone": {"desc": "대표 전화번호(머리글 · 바닥글 · 문의 완료 안내)", "example": "010-0000-0000"},
-        "gc_kakao_url": {"desc": "카카오톡 채널 주소", "example": "https://pf.kakao.com/_example"},
-        "gc_channeltalk_key": {"desc": "채널톡 플러그인 키(넣으면 채팅 상담 버튼)", "example": "", "secret": true},
-        "gc_owner": {"desc": "대표자 이름(바닥글 사업자 정보)", "example": "홍길동"},
-        "gc_biz_number": {"desc": "사업자등록번호", "example": "000-00-00000"},
-        "gc_biz_type": {"desc": "업태", "example": "서비스"},
-        "gc_biz_item": {"desc": "종목", "example": "건물 청소업"},
-        "gc_address": {"desc": "사업장 주소", "example": "○○시 ○○로 00"},
-        "gc_email": {"desc": "대표 이메일(바닥글)", "example": "hello@example.com"},
-        "gc_area": {"desc": "서비스 지역 소개 문장", "example": "○○시 전 지역 · 인근 산업단지"},
-        "gc_notify_email": {"desc": "새 견적 문의를 받을 메일 주소", "example": "owner@example.com"}
+        "gc_name": {
+          "desc": "회사 이름(화면 곳곳 · 검색 제목)",
+          "example": "예시청소"
+        },
+        "gc_tagline": {
+          "desc": "첫 화면 한 줄 소개",
+          "example": "사무실 · 상가 정기청소 전문"
+        },
+        "gc_phone": {
+          "desc": "대표 전화번호(머리글 · 바닥글 · 문의 완료 안내)",
+          "example": "010-0000-0000"
+        },
+        "gc_kakao_url": {
+          "desc": "카카오톡 채널 주소",
+          "example": "https://pf.kakao.com/_example"
+        },
+        "gc_channeltalk_key": {
+          "desc": "채널톡 플러그인 키(넣으면 채팅 상담 버튼)",
+          "example": "",
+          "secret": true
+        },
+        "gc_owner": {
+          "desc": "대표자 이름(바닥글 사업자 정보)",
+          "example": "홍길동"
+        },
+        "gc_biz_number": {
+          "desc": "사업자등록번호",
+          "example": "000-00-00000"
+        },
+        "gc_biz_type": {
+          "desc": "업태",
+          "example": "서비스"
+        },
+        "gc_biz_item": {
+          "desc": "종목",
+          "example": "건물 청소업"
+        },
+        "gc_address": {
+          "desc": "사업장 주소",
+          "example": "○○시 ○○로 00"
+        },
+        "gc_email": {
+          "desc": "대표 이메일(바닥글)",
+          "example": "hello@example.com"
+        },
+        "gc_area": {
+          "desc": "서비스 지역 소개 문장",
+          "example": "○○시 전 지역 · 인근 산업단지"
+        },
+        "gc_notify_email": {
+          "desc": "새 견적 문의를 받을 메일 주소",
+          "example": "owner@example.com"
+        }
       }
     },
     {
       "name": "첫 화면 내용 (관리자 › 사진 관리 · 후기 관리)",
       "keys": {
-        "gc_photos": {"desc": "사진 목록 JSON: {\"site\":[현장 사진 6장 경로], \"ba\":[{title,before,after} 2쌍], \"map\":\"\"}", "example": "{\"site\":[\"/uploads/site/a.jpg\"],\"ba\":[{\"title\":\"화장실\",\"before\":\"/uploads/site/b1.jpg\",\"after\":\"/uploads/site/b2.jpg\"}],\"map\":\"\"}"},
-        "gc_reviews": {"desc": "고객 후기 JSON: [[후기 글, 누가] …]", "example": "[[\"꼼꼼하게 해 주셨어요.\",\"○○사무실 담당자\"]]"},
-        "gc_home_updated": {"desc": "첫 화면을 마지막으로 고친 시각(사이트맵 날짜)", "example": "2026-01-01 09:00:00"}
+        "gc_photos": {
+          "desc": "사진 목록 JSON: {\"site\":[현장 사진 6장 경로], \"ba\":[{title,before,after} 2쌍], \"map\":\"\"}",
+          "example": "{\"site\":[\"/uploads/site/a.jpg\"],\"ba\":[{\"title\":\"화장실\",\"before\":\"/uploads/site/b1.jpg\",\"after\":\"/uploads/site/b2.jpg\"}],\"map\":\"\"}"
+        },
+        "gc_reviews": {
+          "desc": "고객 후기 JSON: [[후기 글, 누가] …]",
+          "example": "[[\"꼼꼼하게 해 주셨어요.\",\"○○사무실 담당자\"]]"
+        },
+        "gc_home_updated": {
+          "desc": "첫 화면을 마지막으로 고친 시각(사이트맵 날짜)",
+          "example": "2026-01-01 09:00:00"
+        }
       }
     },
     {
       "name": "정산 역할 (관리자 › 정기청소 정산 · 일회성 정산 › 파트너 역할)",
       "keys": {
-        "gc_roles": {"desc": "정기청소에서 대표 · 운영 · 청소 담당이 하는 일 JSON {\"gap\":[…],\"eul\":[…],\"byeong\":[…]}", "example": "{\"gap\":[\"세금계산서 발행\",\"방문견적\"],\"eul\":[\"홈페이지 관리\",\"홍보\"],\"byeong\":[\"현장 청소 작업\"]}"},
-        "gc_onetime_roles": {"desc": "일회성 정산에서 역할 JSON(같은 모양)", "example": "{\"gap\":[\"전화상담\"],\"eul\":[\"홍보\"],\"byeong\":[\"현장 청소 업무\"]}"}
+        "gc_roles": {
+          "desc": "정기청소에서 대표 · 운영 · 청소 담당이 하는 일 JSON {\"gap\":[…],\"eul\":[…],\"byeong\":[…]}",
+          "example": "{\"gap\":[\"세금계산서 발행\",\"방문견적\"],\"eul\":[\"홈페이지 관리\",\"홍보\"],\"byeong\":[\"현장 청소 작업\"]}"
+        },
+        "gc_onetime_roles": {
+          "desc": "일회성 정산에서 역할 JSON(같은 모양)",
+          "example": "{\"gap\":[\"전화상담\"],\"eul\":[\"홍보\"],\"byeong\":[\"현장 청소 업무\"]}"
+        }
       }
     },
     {
       "name": "검색 노출 (관리자 › 홈페이지 관리 · 검색 등록)",
       "keys": {
-        "gc_seo_title": {"desc": "첫 화면 검색 제목", "example": "○○청소업체 | 예시청소"},
-        "gc_seo_desc": {"desc": "첫 화면 검색 설명", "example": "○○ 사무실 · 상가 정기청소, 무료 방문 견적"},
-        "gc_seo_keywords": {"desc": "첫 화면 키워드(쉼표로)", "example": "○○청소업체, ○○사무실청소"},
-        "gc_naver_verify": {"desc": "네이버 서치어드바이저 사이트 확인 코드", "example": "", "secret": true},
-        "gc_google_verify": {"desc": "구글 서치 콘솔 확인 코드", "example": "", "secret": true},
-        "gc_bing_verify": {"desc": "빙 웹마스터 확인 코드", "example": "", "secret": true},
-        "gc_daum_verify": {"desc": "다음 웹마스터 확인 코드", "example": "", "secret": true},
-        "gc_canonical_redirect": {"desc": "대표 주소로 넘겨 주기(1 켬)", "example": "1"},
-        "gc_indexnow_on": {"desc": "바뀐 주소를 검색 사이트에 바로 알리기(IndexNow) 켬(1)", "example": "1"},
-        "gc_indexnow_key": {"desc": "IndexNow 열쇠(사이트마다 새로 만듦)", "example": "", "secret": true},
-        "gc_indexnow_log": {"desc": "최근 알림 기록 JSON", "example": "[]"},
-        "gc_indexnow_sent": {"desc": "마지막으로 모두 알린 시각", "example": ""},
-        "gc_indexnow_next": {"desc": "다음에 알릴 주소 대기열 JSON", "example": "[]"},
-        "gc_bot_rules": {"desc": "검색 로봇 허용 · 차단 JSON {\"googlebot\":\"allow\", …}", "example": "{}"}
+        "gc_seo_title": {
+          "desc": "첫 화면 검색 제목",
+          "example": "○○청소업체 | 예시청소"
+        },
+        "gc_seo_desc": {
+          "desc": "첫 화면 검색 설명",
+          "example": "○○ 사무실 · 상가 정기청소, 무료 방문 견적"
+        },
+        "gc_seo_keywords": {
+          "desc": "첫 화면 키워드(쉼표로)",
+          "example": "○○청소업체, ○○사무실청소"
+        },
+        "gc_naver_verify": {
+          "desc": "네이버 서치어드바이저 사이트 확인 코드",
+          "example": "",
+          "secret": true
+        },
+        "gc_google_verify": {
+          "desc": "구글 서치 콘솔 확인 코드",
+          "example": "",
+          "secret": true
+        },
+        "gc_bing_verify": {
+          "desc": "빙 웹마스터 확인 코드",
+          "example": "",
+          "secret": true
+        },
+        "gc_daum_verify": {
+          "desc": "다음 웹마스터 확인 코드",
+          "example": "",
+          "secret": true
+        },
+        "gc_canonical_redirect": {
+          "desc": "대표 주소로 넘겨 주기(1 켬)",
+          "example": "1"
+        },
+        "gc_main_host": {
+          "desc": "대표 주소(도메인, www 없이). 다른 도메인 · www · http 로 들어와도 https://대표 주소로 옮기고, canonical · 사이트맵 · 공유 주소도 이 주소로 씀. 로그인한 관리자가 https 로 관리자 화면을 처음 열 때 정해짐",
+          "example": "example.com"
+        },
+        "gc_indexnow_on": {
+          "desc": "바뀐 주소를 검색 사이트에 바로 알리기(IndexNow) 켬(1)",
+          "example": "1"
+        },
+        "gc_indexnow_key": {
+          "desc": "IndexNow 열쇠(사이트마다 새로 만듦)",
+          "example": "",
+          "secret": true
+        },
+        "gc_indexnow_log": {
+          "desc": "최근 알림 기록 JSON",
+          "example": "[]"
+        },
+        "gc_indexnow_sent": {
+          "desc": "마지막으로 모두 알린 시각",
+          "example": ""
+        },
+        "gc_indexnow_next": {
+          "desc": "다음에 알릴 주소 대기열 JSON",
+          "example": "[]"
+        },
+        "gc_bot_rules": {
+          "desc": "검색 로봇 허용 · 차단 JSON {\"googlebot\":\"allow\", …}",
+          "example": "{}"
+        }
       }
     },
     {
       "name": "헤드 코드 (관리자 › 헤드 코드)",
       "keys": {
-        "gc_head_code": {"desc": "공개 화면 <head> 끝에 넣는 코드(분석 · 광고 태그)", "example": "", "secret": true},
-        "gc_body_code": {"desc": "</body> 바로 앞에 넣는 코드", "example": "", "secret": true},
-        "gc_code_enabled": {"desc": "헤드 코드 켬(1)", "example": "0"}
+        "gc_head_code": {
+          "desc": "공개 화면 <head> 끝에 넣는 코드(분석 · 광고 태그)",
+          "example": "",
+          "secret": true
+        },
+        "gc_body_code": {
+          "desc": "</body> 바로 앞에 넣는 코드",
+          "example": "",
+          "secret": true
+        },
+        "gc_code_enabled": {
+          "desc": "헤드 코드 켬(1)",
+          "example": "0"
+        }
       }
     },
     {
       "name": "블로그 자동 글쓰기 (관리자 › 블로그 › 자동 글쓰기)",
       "keys": {
-        "gc_auto_on": {"desc": "자동 글쓰기 켬(1)", "example": "1"},
-        "gc_auto_from": {"desc": "공개 시각 범위 시작(HH:MM)", "example": "08:30"},
-        "gc_auto_to": {"desc": "공개 시각 범위 끝(HH:MM)", "example": "20:30"},
-        "gc_auto_need_note": {"desc": "경험 노트가 없으면 그날은 쉬기(1)", "example": "1"},
-        "gc_auto_token_hash": {"desc": "글 받는 통로 비밀 열쇠의 해시(열쇠는 저장하지 않음)", "example": "", "secret": true},
-        "gc_auto_token_hint": {"desc": "열쇠 앞자리(화면 표시용)", "example": "", "secret": true},
-        "gc_auto_token_at": {"desc": "열쇠 만든 시각", "example": ""},
-        "gc_auto_last": {"desc": "마지막으로 받은 글 JSON", "example": "{}"},
-        "gc_auto_rejects": {"desc": "최근 거절 기록 JSON(최대 10)", "example": "[]"},
-        "gc_auto_fail": {"desc": "마지막 열쇠 실패 진단 JSON", "example": "{}", "secret": true}
+        "gc_auto_on": {
+          "desc": "자동 글쓰기 켬(1)",
+          "example": "1"
+        },
+        "gc_auto_from": {
+          "desc": "공개 시각 범위 시작(HH:MM)",
+          "example": "08:30"
+        },
+        "gc_auto_to": {
+          "desc": "공개 시각 범위 끝(HH:MM)",
+          "example": "20:30"
+        },
+        "gc_auto_need_note": {
+          "desc": "경험 노트가 없으면 그날은 쉬기(1)",
+          "example": "1"
+        },
+        "gc_auto_token_hash": {
+          "desc": "글 받는 통로 비밀 열쇠의 해시(열쇠는 저장하지 않음)",
+          "example": "",
+          "secret": true
+        },
+        "gc_auto_token_hint": {
+          "desc": "열쇠 앞자리(화면 표시용)",
+          "example": "",
+          "secret": true
+        },
+        "gc_auto_token_at": {
+          "desc": "열쇠 만든 시각",
+          "example": ""
+        },
+        "gc_auto_last": {
+          "desc": "마지막으로 받은 글 JSON",
+          "example": "{}"
+        },
+        "gc_auto_rejects": {
+          "desc": "최근 거절 기록 JSON(최대 10)",
+          "example": "[]"
+        },
+        "gc_auto_fail": {
+          "desc": "마지막 열쇠 실패 진단 JSON",
+          "example": "{}",
+          "secret": true
+        }
       }
     },
     {
       "name": "용량 · 트래픽 (관리자 › 용량 · 트래픽)",
       "keys": {
-        "gc_host_plan": {"desc": "호스팅 상품 이름", "example": "○○ 호스팅 10G"},
-        "gc_host_quota_mb": {"desc": "디스크 한도(MB)", "example": "10000"},
-        "gc_host_traffic_mb": {"desc": "월 트래픽 한도(MB)", "example": "500000"},
-        "gc_usage_cache": {"desc": "용량 계산 결과 잠깐 기억(10분)", "example": ""},
-        "gc_photo_existing": {"desc": "기존 사진 줄이기 결과 JSON", "example": ""}
+        "gc_host_plan": {
+          "desc": "호스팅 상품 이름",
+          "example": "○○ 호스팅 10G"
+        },
+        "gc_host_quota_mb": {
+          "desc": "디스크 한도(MB)",
+          "example": "10000"
+        },
+        "gc_host_traffic_mb": {
+          "desc": "월 트래픽 한도(MB)",
+          "example": "500000"
+        },
+        "gc_usage_cache": {
+          "desc": "용량 계산 결과 잠깐 기억(10분)",
+          "example": ""
+        },
+        "gc_photo_existing": {
+          "desc": "기존 사진 줄이기 결과 JSON",
+          "example": ""
+        }
       }
     },
     {
       "name": "텔레그램 알림",
       "keys": {
-        "gc_tg_on": {"desc": "새 문의를 텔레그램으로 알림(1)", "example": "0"},
-        "gc_tg_token": {"desc": "텔레그램 봇 토큰", "example": "", "secret": true},
-        "gc_tg_bot": {"desc": "봇 이름", "example": "", "secret": true},
-        "gc_tg_chat": {"desc": "보낼 대화방 id", "example": "", "secret": true},
-        "gc_tg_chat_title": {"desc": "대화방 이름", "example": ""},
-        "gc_tg_chats": {"desc": "보낼 대화방 목록 JSON", "example": "", "secret": true},
-        "gc_tg_candidates": {"desc": "연결할 수 있는 대화방 후보 JSON", "example": "", "secret": true},
-        "gc_tg_last": {"desc": "마지막 보내기 결과", "example": ""},
-        "gc_tg_check": {"desc": "마지막 연결 확인 결과", "example": ""}
+        "gc_tg_on": {
+          "desc": "새 문의를 텔레그램으로 알림(1)",
+          "example": "0"
+        },
+        "gc_tg_token": {
+          "desc": "텔레그램 봇 토큰",
+          "example": "",
+          "secret": true
+        },
+        "gc_tg_bot": {
+          "desc": "봇 이름",
+          "example": "",
+          "secret": true
+        },
+        "gc_tg_chat": {
+          "desc": "보낼 대화방 id",
+          "example": "",
+          "secret": true
+        },
+        "gc_tg_chat_title": {
+          "desc": "대화방 이름",
+          "example": ""
+        },
+        "gc_tg_chats": {
+          "desc": "보낼 대화방 목록 JSON",
+          "example": "",
+          "secret": true
+        },
+        "gc_tg_candidates": {
+          "desc": "연결할 수 있는 대화방 후보 JSON",
+          "example": "",
+          "secret": true
+        },
+        "gc_tg_last": {
+          "desc": "마지막 보내기 결과",
+          "example": ""
+        },
+        "gc_tg_check": {
+          "desc": "마지막 연결 확인 결과",
+          "example": ""
+        }
       }
     },
     {
       "name": "내부 표시",
       "keys": {
-        "gc_landing_seeded": {"desc": "기본 검색어 페이지를 몇 번째 묶음까지 넣었는지", "example": "2"}
+        "gc_landing_seeded": {
+          "desc": "기본 검색어 페이지를 몇 번째 묶음까지 넣었는지",
+          "example": "2"
+        }
       }
     }
   ]

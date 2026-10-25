@@ -54,6 +54,8 @@ function cleaning_defaults()
         'gc_home_updated' => '',
         // 주소 하나로 모으기(http · www → https://그린청소.com): '0'이면 끔
         'gc_canonical_redirect' => '1',
+        // 대표 주소(도메인): 다른 도메인으로 열려도 이 주소로 옮기고, 검색용 주소도 이 주소로 씀. 로그인한 관리자가 https 로 처음 열 때 정해짐
+        'gc_main_host' => '',
         // 검색어 페이지 기본 5개를 넣었는지(한 번만)
         'gc_landing_seeded' => '',
         'gc_photo_existing' => '',

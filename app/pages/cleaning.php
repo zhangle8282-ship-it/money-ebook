@@ -546,6 +546,18 @@ function admin_search_submit()
     require_admin();
     $errors = array();
     $values = settings();
+    if (is_post() && input('action') === 'main_host') {
+        // 대표 주소를 지금 주소로(보안 인증서가 있는 https 주소만)
+        require_csrf('/admin/search');
+        $here = request_bare_host();
+        if ($here === '' || !is_https()) {
+            flash('대표 주소는 https 로 열린 인터넷 주소만 정할 수 있어요.', 'error');
+        } else {
+            save_settings(array('gc_main_host' => $here));
+            flash('대표 주소를 ' . display_url('https://' . $here) . ' 로 바꿨어요. 다른 주소로 들어오면 모두 이 주소로 옮겨져요.');
+        }
+        redirect('/admin/search');
+    }
     if (is_post() && in_array(input('action'), array('bots', 'bots_recommend'), true)) {
         require_csrf('/admin/search');
         $rules = array();
