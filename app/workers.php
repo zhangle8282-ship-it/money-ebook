@@ -1,8 +1,22 @@
 <?php
 /**
  * 그린청소 인력 배치 정보: 일할 사람의 이름 · 연락처 · 커버 가능한 지역 · 원하는 방식(수수료 / 인수)을 모아 두고 찾아봅니다.
+ * 청소 담당뿐 아니라 대표 · 운영팀도 함께 등록하고, 정산의 파트너(대표 · 운영)로 이어집니다.
  * 관리자 화면 전용입니다(검색 사이트에 나오지 않음).
  */
+
+// 역할: 키는 정산 파트너의 역할 키와 같음(gap 대표파트너 · eul 운영파트너 · byeong 청소 담당 파트너)
+const WORKER_ROLES = array('byeong' => '청소 담당', 'gap' => '대표', 'eul' => '운영팀');
+
+// 안내 문장에 쓰는 ‘~로’ 꼴
+const WORKER_ROLES_AS = array('byeong' => '청소 담당으로', 'gap' => '대표로', 'eul' => '운영팀으로');
+
+/** 이 사람의 역할 키 */
+function worker_role($worker)
+{
+    $role = (string) ($worker['role'] ?? 'byeong');
+    return isset(WORKER_ROLES[$role]) ? $role : 'byeong';
+}
 
 // 원하는 방식: 키 => [이름, 설명]. 둘 다 고르면 DB에는 'both'로 저장합니다.
 const WORKER_METHODS = array(
@@ -84,9 +98,9 @@ function find_worker($id)
 
 /**
  * 찾기: $q 는 띄어쓰기로 나눈 낱말이 모두 들어 있어야 함(이름 · 지역 · 메모, 숫자는 전화번호까지).
- * $method: commission | takeover | '' , $region: 지역 이름 | '', $team: 구성 키 | ''
+ * $method: commission | takeover | '' , $region: 지역 이름 | '', $team: 구성 키 | '', $role: 역할 키 | ''
  */
-function workers_search($q, $method, $region, $team = '')
+function workers_search($q, $method, $region, $team = '', $role = '')
 {
     $where = array();
     $params = array();
@@ -120,6 +134,10 @@ function workers_search($q, $method, $region, $team = '')
         $where[] = 'team = ?';
         $params[] = $team;
     }
+    if (array_key_exists($role, WORKER_ROLES)) {
+        $where[] = 'role = ?';
+        $params[] = $role;
+    }
     return q_all('SELECT * FROM workers' . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY name, id', $params);
 }
 
@@ -132,7 +150,7 @@ function worker_like($word)
 function worker_counts()
 {
     $counts = array_fill_keys(array_keys(WORKER_METHODS), 0);
-    foreach (q_all('SELECT method, COUNT(*) AS n FROM workers GROUP BY method') as $r) {
+    foreach (q_all("SELECT method, COUNT(*) AS n FROM workers WHERE role = 'byeong' GROUP BY method") as $r) {
         foreach (worker_methods($r['method']) as $key) {
             $counts[$key] += (int) $r['n'];
         }
@@ -140,36 +158,69 @@ function worker_counts()
     return $counts;
 }
 
-/* ───────── 정기청소 정산과 잇기: 인력 배치 사람을 청소 담당 파트너로 ───────── */
+/** 역할별 사람 수: 역할 키 => 수 */
+function worker_role_counts()
+{
+    $counts = array_fill_keys(array_keys(WORKER_ROLES), 0);
+    foreach (q_all('SELECT role, COUNT(*) AS n FROM workers GROUP BY role') as $r) {
+        if (isset($counts[$r['role']])) {
+            $counts[$r['role']] = (int) $r['n'];
+        }
+    }
+    return $counts;
+}
+
+/* ───────── 정기청소 정산과 잇기: 인력 배치 사람을 파트너(청소 담당 · 대표 · 운영)로 ───────── */
 
 /** 청소 담당으로 고를 수 있는 인력 배치 사람(아직 청소 담당 파트너로 이어지지 않은 사람만. 이어진 사람은 파트너 목록에 나옴) */
 function workers_for_pick()
 {
-    return q_all("SELECT * FROM workers WHERE id NOT IN (SELECT worker_id FROM partners WHERE role = 'byeong' AND worker_id IS NOT NULL) ORDER BY name, id");
+    return q_all("SELECT * FROM workers WHERE role = 'byeong' AND id NOT IN (SELECT worker_id FROM partners WHERE role = 'byeong' AND worker_id IS NOT NULL) ORDER BY name, id");
 }
 
-/** 인력 배치 사람 → 청소 담당 파트너(이미 있으면 그 파트너, 없으면 이름 · 연락처로 새로 만듦). 반환: [파트너 id, 새로 만들었는지] */
-function partner_from_worker($worker)
+/**
+ * 인력 배치 사람 → 그 역할의 파트너(이미 있으면 그 파트너, 없으면 이름 · 연락처로 새로 만듦). 반환: [파트너 id, 새로 만들었는지]
+ * 대표 · 운영은 파트너 · 계좌에 먼저 등록해 둔 같은 이름이 있으면 새로 만들지 않고 그 파트너(계좌 포함)에 잇습니다.
+ */
+function partner_from_worker($worker, $role = 'byeong')
 {
-    $id = (int) q_value("SELECT id FROM partners WHERE role = 'byeong' AND worker_id = ?", array((int) $worker['id']));
+    $wid = (int) $worker['id'];
+    $id = (int) q_value('SELECT id FROM partners WHERE role = ? AND worker_id = ?', array($role, $wid));
     if ($id) {
         return array($id, false);
     }
+    if ($role !== 'byeong') {
+        $id = (int) q_value('SELECT id FROM partners WHERE role = ? AND name = ? AND worker_id IS NULL ORDER BY id LIMIT 1', array($role, $worker['name']));
+        if ($id) {
+            q('UPDATE partners SET worker_id = ?, updated_at = ? WHERE id = ?', array($wid, now(), $id));
+            return array($id, false);
+        }
+    }
     $id = q_insert('partners', array(
-        'role' => 'byeong', 'name' => $worker['name'], 'phone' => $worker['phone'], 'bank_name' => '', 'bank_account' => '', 'bank_holder' => '',
-        'memo' => '인력 배치에서 등록', 'worker_id' => (int) $worker['id'], 'created_at' => now(), 'updated_at' => now(),
+        'role' => $role, 'name' => $worker['name'], 'phone' => $worker['phone'], 'bank_name' => '', 'bank_account' => '', 'bank_holder' => '',
+        'memo' => '인력 배치에서 등록', 'worker_id' => $wid, 'created_at' => now(), 'updated_at' => now(),
     ));
     return array((int) $id, true);
 }
 
-/** 사람마다 지금 맡고 있는 청소(끝나지 않은 것): worker_id => [[id, 청소 이름]…] */
+/** 대표 · 운영팀을 청소에 배치(그 역할 칸에 파트너로). 반환: [성공했는지, 안내 글] */
+function assign_partner_role($contract, $worker, $role)
+{
+    list($pid) = partner_from_worker($worker, $role);
+    q_update('contracts', (int) $contract['id'], array($role . '_partner_id' => $pid, 'updated_at' => now()));
+    return array(true, '‘' . $contract['name'] . '’에 ‘' . $worker['name'] . '’ 님을 ' . WORKER_ROLES_AS[$role] . ' 배치했어요.');
+}
+
+/** 사람마다 지금 맡고 있는 청소(끝나지 않은 것): worker_id => [[id, 청소 이름]…]. 대표 · 운영팀은 그 역할로 맡은 청소 */
 function worker_assignments()
 {
     $out = array();
-    $rows = q_all("SELECT p.worker_id, c.id, c.name FROM contracts c JOIN partners p ON p.id = c.byeong_partner_id
-        WHERE p.worker_id IS NOT NULL AND (c.end_month IS NULL OR c.end_month = '' OR c.end_month >= ?) ORDER BY c.name, c.id", array(date('Y-m')));
-    foreach ($rows as $r) {
-        $out[(int) $r['worker_id']][] = array((int) $r['id'], $r['name']);
+    foreach (array_keys(WORKER_ROLES) as $role) {
+        $rows = q_all('SELECT p.worker_id, c.id, c.name FROM contracts c JOIN partners p ON p.id = c.' . $role . "_partner_id
+            WHERE p.worker_id IS NOT NULL AND (c.end_month IS NULL OR c.end_month = '' OR c.end_month >= ?) ORDER BY c.name, c.id", array(date('Y-m')));
+        foreach ($rows as $r) {
+            $out[(int) $r['worker_id']][] = array((int) $r['id'], $r['name']);
+        }
     }
     return $out;
 }
@@ -189,7 +240,7 @@ function assign_cleaner($contract, $pick, $table = 'contracts')
     $created = false;
     if (preg_match('/^w:(\d+)$/', $pick, $m)) {
         $worker = find_worker($m[1]);
-        if (!$worker) {
+        if (!$worker || worker_role($worker) !== 'byeong') {
             return array(false, '인력 배치에서 그 사람을 찾지 못했어요. 새로고침해 주세요.');
         }
         list($pid, $created) = partner_from_worker($worker);
@@ -207,35 +258,60 @@ function assign_cleaner($contract, $pick, $table = 'contracts')
 }
 
 /**
- * 인력 배치에서 사람을 지울 때: 끝나지 않은 정기청소 · 정산 전인 일회성 일의 청소 담당에서 빼고,
- * 끝난 청소 · 정산 완료한 일회성 기록에 남아 있지 않으면 청소 담당 파트너 정보도 지웁니다(기록이 있으면 연결만 끊고 남김).
- * 반환: 청소 담당을 비운 정기청소 이름 목록($onetime 에는 일회성 일 이름)
+ * 인력 배치에서 사람을 지우거나 역할을 바꿀 때: 끝나지 않은 정기청소 · 정산 전인 일회성 일의 그 역할 칸에서 빼고,
+ * 끝난 청소 · 정산 완료한 일회성 기록에 남아 있지 않으면 파트너 정보도 지웁니다(기록이 있으면 연결만 끊고 남김).
+ * 대표 · 운영 파트너는 계좌가 들어 있으면 지우지 않고 연결만 끊습니다.
+ * 반환: 칸을 비운 정기청소 이름 목록($onetime 에는 일회성 일 이름)
  */
 function worker_release($worker, &$onetime = null)
 {
     $freed = array();
     $onetime = array();
-    foreach (q_all("SELECT id FROM partners WHERE role = 'byeong' AND worker_id = ?", array((int) $worker['id'])) as $p) {
+    foreach (q_all('SELECT id, role, bank_account FROM partners WHERE worker_id = ?', array((int) $worker['id'])) as $p) {
         $pid = (int) $p['id'];
-        $open = q_all("SELECT id, name, byeong_name FROM contracts WHERE byeong_partner_id = ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?) ORDER BY name, id", array($pid, date('Y-m')));
+        if (!isset(WORKER_ROLES[$p['role']])) {
+            continue;
+        }
+        $col = $p['role'] . '_partner_id';
+        $nameCol = $p['role'] . '_name';
+        $open = q_all('SELECT id, name, ' . $nameCol . " AS who FROM contracts WHERE $col = ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?) ORDER BY name, id", array($pid, date('Y-m')));
         foreach ($open as $c) {
             // 직접 적어 둔 이름이 지운 사람이면 그 이름도 비워서 ‘배치된 것처럼’ 보이지 않게
-            q_update('contracts', (int) $c['id'], array('byeong_partner_id' => null, 'byeong_name' => $c['byeong_name'] === $worker['name'] ? '' : $c['byeong_name'], 'updated_at' => now()));
+            q_update('contracts', (int) $c['id'], array($col => null, $nameCol => $c['who'] === $worker['name'] ? '' : $c['who'], 'updated_at' => now()));
             $freed[] = $c['name'];
         }
-        foreach (q_all("SELECT id, name FROM onetime_jobs WHERE byeong_partner_id = ? AND status <> 'done' ORDER BY work_date, id", array($pid)) as $j) {
-            q_update('onetime_jobs', (int) $j['id'], array('byeong_partner_id' => null, 'updated_at' => now()));
+        foreach (q_all("SELECT id, name FROM onetime_jobs WHERE $col = ? AND status <> 'done' ORDER BY work_date, id", array($pid)) as $j) {
+            q_update('onetime_jobs', (int) $j['id'], array($col => null, 'updated_at' => now()));
             $onetime[] = $j['name'];
         }
-        $used = (int) q_value('SELECT COUNT(*) FROM contracts WHERE byeong_partner_id = ?', array($pid))
-            + (int) q_value('SELECT COUNT(*) FROM onetime_jobs WHERE byeong_partner_id = ?', array($pid));
-        if ($used) {
+        $used = (int) q_value("SELECT COUNT(*) FROM contracts WHERE $col = ?", array($pid))
+            + (int) q_value("SELECT COUNT(*) FROM onetime_jobs WHERE $col = ?", array($pid));
+        if ($used || ($p['role'] !== 'byeong' && (string) $p['bank_account'] !== '')) {
             q('UPDATE partners SET worker_id = NULL, updated_at = ? WHERE id = ?', array(now(), $pid));
         } else {
             q('DELETE FROM partners WHERE id = ?', array($pid));
         }
     }
     return $freed;
+}
+
+/** 이 사람이 지금 그 역할로 맡고 있는 일 이름(끝나지 않은 정기청소 · 정산 전 일회성). 역할을 바꾸기 전에 확인 */
+function worker_open_jobs($worker)
+{
+    $names = array();
+    foreach (q_all('SELECT id, role FROM partners WHERE worker_id = ?', array((int) $worker['id'])) as $p) {
+        if (!isset(WORKER_ROLES[$p['role']])) {
+            continue;
+        }
+        $col = $p['role'] . '_partner_id';
+        foreach (q_all("SELECT name FROM contracts WHERE $col = ? AND (end_month IS NULL OR end_month = '' OR end_month >= ?) ORDER BY name, id", array((int) $p['id'], date('Y-m'))) as $c) {
+            $names[] = $c['name'];
+        }
+        foreach (q_all("SELECT name FROM onetime_jobs WHERE $col = ? AND status <> 'done' ORDER BY work_date, id", array((int) $p['id'])) as $j) {
+            $names[] = $j['name'];
+        }
+    }
+    return $names;
 }
 
 /**
@@ -265,7 +341,7 @@ function cleaner_choices()
         $once[(int) $o['worker_id']] = (int) $o['n'];
     }
     $out = array('workers' => array(), 'others' => $others);
-    foreach (q_all('SELECT * FROM workers ORDER BY name, id') as $w) {
+    foreach (q_all("SELECT * FROM workers WHERE role = 'byeong' ORDER BY name, id") as $w) {
         $wid = (int) $w['id'];
         $team = worker_team_label($w);
         $load = array();

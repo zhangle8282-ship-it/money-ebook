@@ -1,7 +1,11 @@
-<?php /** 그린청소 관리자 › 인력 배치 목록 · 찾기. 변수: $rows, $q, $method, $region, $team, $counts, $total, $assigned(맡은 청소), $openContracts(배치할 수 있는 청소) */
+<?php /** 그린청소 관리자 › 인력 배치 목록 · 찾기. 변수: $rows, $q, $method, $region, $team, $role, $counts, $roleCounts, $total, $assigned(맡은 청소), $openContracts(배치할 수 있는 청소) */
 $back = $_SERVER['REQUEST_URI'] ?? '/admin/workers';
 $link = function ($m) use ($q, $region, $team) {
     $params = array_filter(array('q' => $q, 'method' => $m, 'region' => $region, 'team' => $team), 'strlen');
+    return '/admin/workers' . ($params ? '?' . http_build_query($params) : '');
+};
+$roleLink = function ($r) use ($q, $region, $team) {
+    $params = array_filter(array('q' => $q, 'role' => $r, 'region' => $region, 'team' => $team), 'strlen');
     return '/admin/workers' . ($params ? '?' . http_build_query($params) : '');
 };
 $searching = $q !== '' || $region !== '' || $team !== '';
@@ -9,13 +13,15 @@ $searching = $q !== '' || $region !== '' || $team !== '';
 <div class="page-head">
   <div class="page-head-text">
     <h1>인력 배치</h1>
-    <p class="muted">일할 분의 이름 · 연락처 · 커버 가능한 지역과 원하는 방식(수수료 방식 / 인수해서 직접)을 모아 두고, 지역이나 이름으로 찾아봐요.</p>
+    <p class="muted">일할 분의 이름 · 연락처 · 커버 가능한 지역과 원하는 방식(수수료 방식 / 인수해서 직접)을 모아 두고, 지역이나 이름으로 찾아봐요. 대표 · 운영팀도 함께 등록할 수 있어요.</p>
   </div>
   <a class="btn btn-primary" href="/admin/workers/new">+ 새 사람 추가</a>
 </div>
 
 <form method="get" action="/admin/workers" class="card worker-search" role="search">
 <?php if ($method !== ''): ?>  <input type="hidden" name="method" value="<?= e($method) ?>">
+<?php endif; ?>
+<?php if ($role !== ''): ?>  <input type="hidden" name="role" value="<?= e($role) ?>">
 <?php endif; ?>
   <div class="field worker-q">
     <label for="w-q">찾기</label>
@@ -43,16 +49,19 @@ $searching = $q !== '' || $region !== '' || $team !== '';
   </div>
   <div class="worker-search-btns">
     <button type="submit" class="btn btn-primary">찾기</button>
-<?php if ($searching || $method !== ''): ?>    <a class="btn btn-ghost" href="/admin/workers">처음부터</a>
+<?php if ($searching || $method !== '' || $role !== ''): ?>    <a class="btn btn-ghost" href="/admin/workers">처음부터</a>
 <?php endif; ?>
   </div>
 </form>
 
 <div class="toolbar">
-  <nav class="tabs" aria-label="원하는 방식">
-    <a href="<?= e($link('')) ?>"<?= $method === '' ? ' aria-current="page"' : '' ?>>전체 <span class="count"><?= (int) $total ?></span></a>
+  <nav class="tabs" aria-label="역할 · 원하는 방식">
+    <a href="<?= e($link('')) ?>"<?= $method === '' && $role === '' ? ' aria-current="page"' : '' ?>>전체 <span class="count"><?= (int) $total ?></span></a>
 <?php foreach (WORKER_METHODS as $key => $m): ?>
     <a href="<?= e($link($key)) ?>"<?= $method === $key ? ' aria-current="page"' : '' ?>><?= e($m[0]) ?> <span class="count"><?= (int) $counts[$key] ?></span></a>
+<?php endforeach; ?>
+<?php foreach (array('gap', 'eul') as $key): ?>
+    <a href="<?= e($roleLink($key)) ?>"<?= $role === $key ? ' aria-current="page"' : '' ?>><?= e(WORKER_ROLES[$key]) ?> <span class="count"><?= (int) $roleCounts[$key] ?></span></a>
 <?php endforeach; ?>
   </nav>
 <?php if ($searching): ?>  <p class="sub">찾은 사람 <?= count($rows) ?>명</p>
@@ -65,18 +74,18 @@ $searching = $q !== '' || $region !== '' || $team !== '';
   <table class="table worker-table">
     <thead><tr><th scope="col">이름</th><th scope="col">커버 가능 지역</th><th scope="col">원하는 방식</th><th scope="col">맡은 청소</th><th scope="col">메모</th><th scope="col"><span class="sr-only">고치기</span></th></tr></thead>
     <tbody>
-<?php foreach ($rows as $w): ?>
+<?php foreach ($rows as $w): $wRole = worker_role($w); ?>
       <tr>
         <td class="nowrap"><a class="strong" href="/admin/workers/<?= (int) $w['id'] ?>/edit"><?= e($w['name']) ?></a><?php if (worker_team_label($w) !== ''): ?> <span class="team-pill"><?= e(worker_team_label($w)) ?></span><?php endif; ?><?php if ($w['phone'] !== ''): ?><div class="sub"><a href="<?= e(tel_href($w['phone'])) ?>"><?= e($w['phone']) ?></a></div><?php endif; ?></td>
-        <td><div class="region-chips"><?php foreach (worker_regions($w['regions']) as $r): ?><span class="region-chip<?= $r === $region ? ' is-hit' : '' ?>"><?= e($r) ?></span><?php endforeach; ?></div></td>
-        <td><div class="method-pills"><?php foreach (worker_methods($w['method']) as $key): ?><span class="status worker-<?= e($key) ?>"><?= e(WORKER_METHODS[$key][0]) ?></span><?php endforeach; ?></div></td>
+        <td><?php if ($wRole === 'byeong'): ?><div class="region-chips"><?php foreach (worker_regions($w['regions']) as $r): ?><span class="region-chip<?= $r === $region ? ' is-hit' : '' ?>"><?= e($r) ?></span><?php endforeach; ?></div><?php else: ?><span class="sub">-</span><?php endif; ?></td>
+        <td><div class="method-pills"><?php if ($wRole === 'byeong'): foreach (worker_methods($w['method']) as $key): ?><span class="status worker-<?= e($key) ?>"><?= e(WORKER_METHODS[$key][0]) ?></span><?php endforeach; else: ?><span class="status worker-<?= e($wRole) ?>"><?= e(WORKER_ROLES[$wRole]) ?></span><?php endif; ?></div></td>
         <td class="worker-jobs"><?php $mine = array_column($assigned[(int) $w['id']] ?? array(), 0); if ($mine): foreach ($assigned[(int) $w['id']] as $job): ?><a class="job-chip" href="/admin/contracts/<?= (int) $job[0] ?>/edit"><?= e($job[1]) ?></a><?php endforeach; endif; ?>
 <?php $canTake = array_filter($openContracts, function ($c) use ($mine) { return !in_array((int) $c['id'], $mine, true); }); if ($canTake): ?>
           <form method="post" action="/admin/workers/<?= (int) $w['id'] ?>/assign" class="assign-form">
             <?= csrf_field() ?><input type="hidden" name="back" value="<?= e($back) ?>">
             <select name="contract_id" aria-label="‘<?= e($w['name']) ?>’ 님을 배치할 청소">
               <option value="">청소 고르기</option>
-<?php foreach ($canTake as $c): $now = contract_partner_name($c, 'byeong'); ?>              <option value="<?= (int) $c['id'] ?>"><?= e($c['name']) ?><?= $now !== '' ? ' (지금 ' . e($now) . ')' : ' (담당 없음)' ?></option>
+<?php foreach ($canTake as $c): $now = contract_partner_name($c, $wRole); ?>              <option value="<?= (int) $c['id'] ?>"><?= e($c['name']) ?><?= $now !== '' ? ' (지금 ' . e($now) . ')' : ' (' . ($wRole === 'byeong' ? '담당' : e(WORKER_ROLES[$wRole])) . ' 없음)' ?></option>
 <?php endforeach; ?>
             </select>
             <button type="submit" class="btn btn-outline btn-sm">배치</button>

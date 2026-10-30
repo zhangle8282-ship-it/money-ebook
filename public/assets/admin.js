@@ -915,3 +915,17 @@ document.querySelectorAll('table.table').forEach(function (table) {
     });
   });
 });
+
+// 인력 배치: 대표 · 운영팀은 청소 담당 칸(구성 · 지역 · 방식)을 숨깁니다(저장할 때도 비웁니다).
+(function () {
+  var form = document.querySelector('[data-worker-form]');
+  if (!form) return;
+  var sync = function () {
+    var picked = form.querySelector('input[name="role"]:checked');
+    var cleaner = !picked || picked.value === 'byeong';
+    form.querySelectorAll('[data-cleaner-only]').forEach(function (el) { el.hidden = !cleaner; });
+    form.querySelectorAll('[data-partner-only]').forEach(function (el) { el.hidden = cleaner; });
+  };
+  form.addEventListener('change', sync);
+  sync();
+})();

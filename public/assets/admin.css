@@ -726,6 +726,8 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .region-chip.is-hit { background: var(--accent); color: #fff; }
 .status.worker-commission { background: #E4EFEA; color: #1F4A3C; }
 .status.worker-takeover { background: #EDE7FB; color: #4B3592; }
+.status.worker-gap { background: #E3ECF8; color: #1F4470; }
+.status.worker-eul { background: #FDECDC; color: #8A4B14; }
 .region-picker, .method-picker { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .region-picker legend, .method-picker legend { padding: 0; margin-bottom: 4px; font-size: 14px; font-weight: 600; }
 .region-group { display: flex; gap: 12px; align-items: flex-start; }

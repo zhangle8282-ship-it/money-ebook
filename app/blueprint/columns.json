@@ -124,7 +124,7 @@
       "bank_name": "은행 이름",
       "bank_account": "계좌번호",
       "bank_holder": "예금주",
-      "worker_id": "인력 배치에서 데려온 사람이면 workers.id(인력을 지우면 함께 정리)",
+      "worker_id": "인력 배치 사람이면 workers.id(인력을 지우면 함께 정리, 대표 · 운영은 계좌가 있으면 연결만 끊음)",
       "memo": "메모",
       "created_at": "만든 시각",
       "updated_at": "고친 시각"
@@ -132,13 +132,14 @@
   },
   "workers": {
     "area": "settle",
-    "desc": "인력 배치: 일할 수 있는 사람과 가능한 지역 · 방식 · 구성. 정기청소 · 일회성 일에 청소 담당으로 배치함",
+    "desc": "인력 배치: 일할 사람(청소 담당 · 대표 · 운영팀). 청소 담당은 가능한 지역 · 방식 · 구성을 모아 찾아보고 청소에 배치함. 대표 · 운영팀은 저장하면 바로 파트너(partners)로 이어져 정산의 대표 · 운영 칸에서 고를 수 있음",
     "columns": {
       "id": "번호",
+      "role": "역할(byeong 청소 담당 · gap 대표 · eul 운영팀). 정산 파트너의 역할 키와 같음",
       "name": "이름",
       "phone": "연락처",
-      "regions": "가능한 지역 목록(쉼표로, 미리 정한 읍 · 면 + 기타 지역)",
-      "method": "원하는 방식(commission 수수료 · takeover 인수 · both 둘 다)",
+      "regions": "가능한 지역 목록(쉼표로, 미리 정한 읍 · 면 + 기타 지역). 청소 담당만",
+      "method": "원하는 방식(commission 수수료 · takeover 인수 · both 둘 다). 청소 담당만",
       "team": "구성(male 남자 · female 여자 · couple 부부 · siblings 남매 · mother_daughter 모녀 · mother_son 모자 · friends 친구 · other 기타)",
       "team_note": "기타일 때 관계를 적은 글",
       "memo": "메모",
