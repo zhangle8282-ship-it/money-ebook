@@ -16,7 +16,7 @@ $fee = $form['fee'] !== '' ? number_format((int) $form['fee']) : '';
 <?php if ($errors): ?>
 <div class="alert" role="alert"><?php foreach ($errors as $err): ?><p><?= e($err) ?></p><?php endforeach; ?></div>
 <?php endif; ?>
-<form method="post" action="<?= e($action) ?>" id="onetime-form" class="form-grid contract-grid" data-contract-form>
+<form method="post" action="<?= e($action) ?>" id="onetime-form" class="form-grid contract-grid" data-contract-form data-eul2-fee="<?= EUL2_FEE ?>">
   <?= csrf_field() ?>
   <div class="form-main">
     <section class="card stack-lg" aria-labelledby="of-basic">
@@ -103,7 +103,8 @@ $pickNow = !empty($form['byeong_worker_id']) ? 'w:' . (int) $form['byeong_worker
         <div class="split byeong-row" data-byeong-field><dt>청소 담당 <span data-calc="byeong_rate2">80</span>%<small>몫 <span data-calc="byeong">0원</span> − 원천징수 <?= CONTRACT_WITHHOLDING ?>% <span data-calc="withholding">0원</span><br>(소득세 3% <span data-calc="income_tax">0</span> + 지방세 0.3% <span data-calc="local_tax">0</span>)</small></dt><dd data-calc="byeong_pay">0원</dd></div>
         <div class="split"><dt>회사 몫 (대표 · 운영) <span data-calc="rate">20</span>%</dt><dd data-calc="contract">0원</dd></div>
         <div class="split gap-row sub-row"><dt>└ 대표파트너 <span data-calc="gap_rate">60</span>%</dt><dd data-calc="gap">0원</dd></div>
-        <div class="split eul-row sub-row"><dt>└ 운영파트너 <span data-calc="eul_rate2">40</span>%</dt><dd data-calc="eul">0원</dd></div>
+        <div class="split eul2-row sub-row" data-eul2-row hidden><dt>└ 운영파트너2 <span data-calc="eul2_rate">30</span>%</dt><dd data-calc="eul2">0원</dd></div>
+        <div class="split eul-row sub-row"><dt>└ 운영파트너 <span data-calc="eul_rate2">40</span>%<small data-eul2-row hidden>운영파트너2 수수료</small></dt><dd data-calc="eul">0원</dd></div>
       </dl>
     </section>
   </aside>

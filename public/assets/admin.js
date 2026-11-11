@@ -455,6 +455,11 @@
     var localTax = wh ? Math.floor(incomeTax / 10 / 10) * 10 : 0;
     var withheld = incomeTax + localTax;
     var gapAmt = Math.round(contract * gap / 100);
+    // 운영파트너2를 고르면 운영 몫에서 수수료(기본 10%)를 떼어 운영파트너에게: 60 : 30 : 10
+    var eul2On = Array.prototype.some.call(form.querySelectorAll('[data-eul2-pick]'), function (el) { return el.value.trim() !== ''; });
+    var eul2Rate = eul2On ? Math.max(0, 100 - gap - (Number(form.getAttribute('data-eul2-fee')) || 10)) : 0;
+    var eul2Amt = Math.round(contract * eul2Rate / 100);
+    form.querySelectorAll('[data-eul2-row]').forEach(function (el) { el.hidden = !eul2On; });
     set('fee', won(fee));
     set('tax', tax ? '− ' + won(tax) : '0원 (발행 안 함)');
     set('after_tax', won(after));
@@ -468,10 +473,12 @@
     set('byeong_pay', won(byeong - withheld));
     set('contract', won(contract));
     set('gap_rate', gap);
-    set('eul_rate', 100 - gap);
-    set('eul_rate2', 100 - gap);
+    set('eul_rate', 100 - gap - eul2Rate);
+    set('eul_rate2', 100 - gap - eul2Rate);
+    set('eul2_rate', eul2Rate);
     set('gap', won(gapAmt));
-    set('eul', won(contract - gapAmt));
+    set('eul2', won(eul2Amt));
+    set('eul', won(contract - gapAmt - eul2Amt));
   }
   form.addEventListener('input', calc);
   form.addEventListener('change', calc);

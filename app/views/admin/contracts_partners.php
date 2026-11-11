@@ -11,11 +11,11 @@
 <div class="alert" role="alert"><?php foreach ($errors as $err): ?><p><?= e($err) ?></p><?php endforeach; ?></div>
 <?php endif; ?>
 <div class="partner-board">
-<?php foreach (CONTRACT_ROLE_SIDES as $role => $label): $list = $groups[$role]; ?>
+<?php foreach (PARTNER_ROLES as $role => $label): $list = $groups[$role]; ?>
   <section class="card role-card role-<?= $role ?>" aria-labelledby="pg-<?= $role ?>">
     <div class="role-head">
-      <span class="role-badge" title="<?= e($label) ?>"><?= e(CONTRACT_ROLE_SHORT[$role]) ?></span>
-      <div><h2 id="pg-<?= $role ?>"><?= e($label) ?></h2><p class="sub"><?= count($list) ?>명</p></div>
+      <span class="role-badge" title="<?= e($label) ?>"><?= e(PARTNER_ROLE_SHORT[$role]) ?></span>
+      <div><h2 id="pg-<?= $role ?>"><?= e($label) ?></h2><p class="sub"><?= count($list) ?>명<?= $role === 'eul2' ? ' · 배치되면 운영 몫 중 ' . EUL2_FEE . '%는 운영파트너 수수료' : '' ?></p></div>
     </div>
 <?php if ($list): ?>
     <ul class="partner-list">
@@ -45,7 +45,7 @@
 <?php else: ?>
     <p class="muted role-empty">아직 등록한 <?= e($label) ?>가 없어요.</p>
 <?php endif; ?>
-    <a class="btn btn-outline btn-sm" href="/admin/contracts/partners?role=<?= $role ?>#partner-add">+ <?= e(CONTRACT_ROLE_SHORT[$role]) ?> 파트너 추가</a>
+    <a class="btn btn-outline btn-sm" href="/admin/contracts/partners?role=<?= $role ?>#partner-add">+ <?= e(PARTNER_ROLE_SHORT[$role]) ?> 파트너 추가</a>
   </section>
 <?php endforeach; ?>
 </div>

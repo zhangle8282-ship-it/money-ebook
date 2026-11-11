@@ -95,7 +95,7 @@ function admin_worker_form($id = null)
             $note = '';
             if (!$cleaner) {
                 list(, $created) = partner_from_worker(find_worker($savedId), $role);
-                $note = ' 정기청소 · 일회성 정산에서 ' . WORKER_ROLES_AS[$role] . ' 고를 수 있어요.' . ($created ? ' 지급 계좌는 정기청소 정산 › 파트너 · 계좌에서 넣어 주세요.' : '');
+                $note = ' 정기청소 · 일회성 정산에서 ' . WORKER_ROLES_AS[$role] . ' 고를 수 있어요.' . ($role === 'eul2' ? ' 배치된 청소는 운영 몫 중 ' . EUL2_FEE . '%가 운영파트너 수수료로 잡혀요.' : '') . ($created ? ' 지급 계좌는 정기청소 정산 › 파트너 · 계좌에서 넣어 주세요.' : '');
             }
             flash(($worker ? '‘' . $form['name'] . '’ 정보를 저장했어요.' : '‘' . $form['name'] . '’ 님을 ' . WORKER_ROLES_AS[$role] . ' 추가했어요.') . $note);
             redirect('/admin/workers');

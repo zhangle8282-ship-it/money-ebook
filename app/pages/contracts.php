@@ -18,15 +18,16 @@ function admin_contracts_month()
         header('Content-Disposition: attachment; filename="contract-settlement-' . $month . '.csv"; filename*=UTF-8\'\'' . rawurlencode($name));
         header('Cache-Control: private, no-store');
         echo "\xEF\xBB\xBF" . contract_csv_line(array('정산 월', month_label($month), '계산', '세금 10% 뺀 금액을 청소 담당 파트너와 도급(대표·운영 파트너)이 나눔, 청소 담당 파트너는 원천징수 3.3%'));
-        echo contract_csv_line(array('청소 이름', '거래처', '청소비용', '세금계산서', '세금', '세금 뺀 금액', '청소 담당 비율', '청소 담당 파트너', '청소 담당 몫', '원천징수', '청소 담당 실지급', '청소 담당 지급 계좌', '도급 비율', '도급 몫', '대표파트너 비율', '대표파트너', '대표파트너 금액', '운영파트너', '운영파트너 금액', '운영파트너 지급 계좌', '상태', '메모'));
+        echo contract_csv_line(array('청소 이름', '거래처', '청소비용', '세금계산서', '세금', '세금 뺀 금액', '청소 담당 비율', '청소 담당 파트너', '청소 담당 몫', '원천징수', '청소 담당 실지급', '청소 담당 지급 계좌', '도급 비율', '도급 몫', '대표파트너 비율', '대표파트너', '대표파트너 금액', '운영파트너2 비율', '운영파트너2', '운영파트너2 금액', '운영파트너2 지급 계좌', '운영파트너 비율', '운영파트너', '운영파트너 금액', '운영파트너 지급 계좌', '상태', '메모'));
         foreach ($rows as $r) {
             $c = $r['contract'];
             echo contract_csv_line(array($c['name'], $c['client'], $r['fee'], $r['invoice'] ? '발행' : '미발행', $r['tax'], $r['after_tax'],
                 $r['byeong_rate'] . '%', contract_partner_name($c, 'byeong'), $r['byeong_amount'], $r['withholding_amount'], $r['byeong_pay'], partner_account(contract_partner($c, 'byeong')),
                 $r['contract_rate'] . '%', $r['contract_amount'], $r['gap_rate'] . '%', contract_partner_name($c, 'gap'), $r['gap_amount'],
-                contract_partner_name($c, 'eul'), $r['eul_amount'], partner_account(contract_partner($c, 'eul')), SETTLEMENT_STATUS[$r['status']] ?? $r['status'], $r['memo']));
+                $r['eul2_rate'] ? $r['eul2_rate'] . '%' : '', $r['eul2_rate'] ? contract_partner_name($c, 'eul2') : '', $r['eul2_amount'], $r['eul2_rate'] ? partner_account(contract_partner($c, 'eul2')) : '',
+                $r['eul_rate'] . '%' . ($r['eul2_rate'] ? ' (운영파트너2 수수료)' : ''), contract_partner_name($c, 'eul'), $r['eul_amount'], partner_account(contract_partner($c, 'eul')), SETTLEMENT_STATUS[$r['status']] ?? $r['status'], $r['memo']));
         }
-        echo contract_csv_line(array('합계', '', $sum['fee'], '', $sum['tax'], $sum['fee'] - $sum['tax'], '', '', $sum['byeong_amount'], $sum['withholding_amount'], $sum['byeong_pay'], '', '', $sum['contract_amount'], '', '', $sum['gap_amount'], '', $sum['eul_amount'], '', $sum['done'] . '/' . $sum['count'] . ' 완료', ''));
+        echo contract_csv_line(array('합계', '', $sum['fee'], '', $sum['tax'], $sum['fee'] - $sum['tax'], '', '', $sum['byeong_amount'], $sum['withholding_amount'], $sum['byeong_pay'], '', '', $sum['contract_amount'], '', '', $sum['gap_amount'], '', '', $sum['eul2_amount'], '', '', '', $sum['eul_amount'], '', $sum['done'] . '/' . $sum['count'] . ' 완료', ''));
         exit;
     }
     $year = (int) substr($month, 0, 4);
@@ -99,7 +100,7 @@ function admin_contracts_settle()
         flash($contract['name'] . ' · ' . month_label($month) . ' 정산을 완료했어요.');
     } elseif ($action === 'undo') {
         save_month_settlement($contract, $month, array('status' => 'pending', 'settled_at' => null, 'settled_by' => '',
-            'step_received' => null, 'step_invoiced' => null, 'step_paid_byeong' => null, 'step_paid_eul' => null));
+            'step_received' => null, 'step_invoiced' => null, 'step_paid_byeong' => null, 'step_paid_eul2' => null, 'step_paid_eul' => null));
         flash($contract['name'] . ' · ' . month_label($month) . ' 정산을 정산 전으로 되돌렸어요.');
     } elseif ($action === 'save') {
         $fee = input_int('fee', -1);
@@ -122,7 +123,7 @@ function admin_contracts_list()
     $now = date('Y-m');
     $contracts = q_all('SELECT c.*, (SELECT COUNT(*) FROM contract_settlements s WHERE s.contract_id = c.id AND s.status = \'done\') AS done_count FROM contracts c ORDER BY c.name, c.id');
     foreach ($contracts as &$c) {
-        $c['calc'] = contract_calc($c['monthly_fee'], (int) $c['invoice'], $c['contract_rate'], $c['gap_rate'], (int) $c['withholding']);
+        $c['calc'] = contract_calc($c['monthly_fee'], (int) $c['invoice'], $c['contract_rate'], $c['gap_rate'], (int) $c['withholding'], null, has_eul2($c) ? contract_eul2_rate($c['gap_rate']) : 0);
         $c['active'] = $c['start_month'] <= $now && ($c['end_month'] === null || $c['end_month'] === '' || $c['end_month'] >= $now);
         $c['upcoming'] = $c['start_month'] > $now;
     }
@@ -139,8 +140,8 @@ function admin_contract_form($id = null)
     }
     $form = $contract ?: array(
         'name' => '', 'client' => '', 'monthly_fee' => '', 'invoice' => 1, 'contract_rate' => 10, 'gap_rate' => CONTRACT_GAP_DEFAULT,
-        'gap_name' => gc('name'), 'eul_name' => '', 'byeong_name' => '', 'withholding' => 1,
-        'gap_partner_id' => null, 'eul_partner_id' => null, 'byeong_partner_id' => null, 'start_month' => date('Y-m'), 'end_month' => '', 'memo' => '',
+        'gap_name' => gc('name'), 'eul_name' => '', 'eul2_name' => '', 'byeong_name' => '', 'withholding' => 1,
+        'gap_partner_id' => null, 'eul_partner_id' => null, 'eul2_partner_id' => null, 'byeong_partner_id' => null, 'start_month' => date('Y-m'), 'end_month' => '', 'memo' => '',
     );
     $errors = array();
     if (is_post()) {
@@ -154,9 +155,11 @@ function admin_contract_form($id = null)
             'gap_rate' => input('gap_rate') === '' ? -1 : input_int('gap_rate', -1),
             'gap_name' => str_cut(trim(input('gap_name')), 60, ''),
             'eul_name' => str_cut(trim(input('eul_name')), 60, ''),
+            'eul2_name' => str_cut(trim(input('eul2_name')), 60, ''),
             'byeong_name' => str_cut(trim(input('byeong_name')), 60, ''),
             'gap_partner_id' => input_int('gap_partner_id') ?: null,
             'eul_partner_id' => input_int('eul_partner_id') ?: null,
+            'eul2_partner_id' => input_int('eul2_partner_id') ?: null,
             'byeong_partner_id' => input_int('byeong_partner_id') ?: null,
             // 청소 담당은 인력 배치 사람도 고를 수 있음(값 w:번호). 저장할 때 청소 담당 파트너로 이어 줍니다.
             'byeong_worker_id' => preg_match('/^w:(\d+)$/', input('byeong_partner_id'), $wm) ? (int) $wm[1] : null,
@@ -179,7 +182,7 @@ function admin_contract_form($id = null)
         }
         // 고른 파트너가 그 역할로 등록된 사람인지 확인
         $all = partners_all();
-        foreach (array_keys(CONTRACT_ROLE_SIDES) as $role) {
+        foreach (array_keys(PARTNER_ROLES) as $role) {
             $pid = $form[$role . '_partner_id'];
             if ($pid && (!isset($all[$pid]) || $all[$pid]['role'] !== $role)) {
                 $form[$role . '_partner_id'] = null;
@@ -290,7 +293,7 @@ function admin_contract_roles($scope = 'contract')
 function partner_from_request()
 {
     $v = array(
-        'role' => array_key_exists(input('role'), CONTRACT_ROLE_SIDES) ? input('role') : '',
+        'role' => array_key_exists(input('role'), PARTNER_ROLES) ? input('role') : '',
         'name' => str_cut(trim(preg_replace('/\s+/u', ' ', input('name'))), 60, ''),
         'phone' => str_cut(trim(input('phone')), 40, ''),
         'bank_name' => str_cut(trim(input('bank_name')), 40, ''),
@@ -300,7 +303,7 @@ function partner_from_request()
     );
     $errors = array();
     if ($v['role'] === '') {
-        $errors[] = '역할(대표 · 운영 · 청소 담당)을 골라 주세요.';
+        $errors[] = '역할(대표 · 운영 · 운영2 · 청소 담당)을 골라 주세요.';
     }
     if ($v['name'] === '') {
         $errors[] = '이름을 적어 주세요.';
@@ -319,18 +322,18 @@ function admin_partners()
 {
     require_admin();
     $errors = array();
-    $form = array('role' => array_key_exists(input('role'), CONTRACT_ROLE_SIDES) ? input('role') : 'byeong', 'name' => '', 'phone' => '', 'bank_name' => '', 'bank_account' => '', 'bank_holder' => '', 'memo' => '');
+    $form = array('role' => array_key_exists(input('role'), PARTNER_ROLES) ? input('role') : 'byeong', 'name' => '', 'phone' => '', 'bank_name' => '', 'bank_account' => '', 'bank_holder' => '', 'memo' => '');
     if (is_post()) {
         require_csrf('/admin/contracts/partners');
         list($form, $errors) = partner_from_request();
         if (!$errors) {
             q_insert('partners', $form + array('created_at' => now(), 'updated_at' => now()));
-            flash(CONTRACT_ROLE_SIDES[$form['role']] . ' ‘' . $form['name'] . '’을(를) 추가했어요. 청소마다 담당 파트너로 고를 수 있어요.');
+            flash(PARTNER_ROLES[$form['role']] . ' ‘' . $form['name'] . '’을(를) 추가했어요. 청소마다 담당 파트너로 고를 수 있어요.');
             redirect('/admin/contracts/partners');
         }
     }
     $usage = array();
-    foreach (q_all('SELECT gap_partner_id, eul_partner_id, byeong_partner_id FROM contracts') as $c) {
+    foreach (q_all('SELECT gap_partner_id, eul_partner_id, eul2_partner_id, byeong_partner_id FROM contracts') as $c) {
         foreach ($c as $pid) {
             if ($pid) {
                 $usage[(int) $pid] = ($usage[(int) $pid] ?? 0) + 1;
@@ -358,7 +361,7 @@ function admin_partner_edit($id)
         if (!$errors) {
             q_update('partners', (int) $partner['id'], $form + array('updated_at' => now()));
             // 역할을 바꾸면 다른 역할 칸에 걸려 있던 연결은 풉니다.
-            foreach (array_keys(CONTRACT_ROLE_SIDES) as $role) {
+            foreach (array_keys(PARTNER_ROLES) as $role) {
                 if ($role !== $form['role']) {
                     q('UPDATE contracts SET ' . $role . '_partner_id = NULL WHERE ' . $role . '_partner_id = ?', array((int) $partner['id']));
                 }
@@ -379,7 +382,7 @@ function admin_partner_delete($id)
     if (!$partner) {
         not_found();
     }
-    foreach (array_keys(CONTRACT_ROLE_SIDES) as $role) {
+    foreach (array_keys(PARTNER_ROLES) as $role) {
         // 청소에 남겨 둘 이름: 지우는 파트너 이름을 직접 적은 이름으로 옮겨 둡니다.
         q('UPDATE contracts SET ' . $role . '_name = ?, ' . $role . '_partner_id = NULL WHERE ' . $role . '_partner_id = ?', array($partner['name'], (int) $partner['id']));
     }

@@ -20,11 +20,13 @@ function onetime_calc($job)
 {
     $gap = (int) $job['gap_rate'];
     $wh = (int) $job['withholding'];
+    // 운영파트너2가 배치되면 회사 몫을 대표 : 운영파트너2 : 운영파트너(수수료 10%)로
+    $eul2 = has_eul2($job) ? contract_eul2_rate($gap) : 0;
     if (($job['method'] ?? 'commission') === 'takeover') {
         // 인수 방식: 세금 뺀 청소 금액 전체가 대표 · 운영 몫(청소 담당 몫 · 원천징수 없음)
-        return contract_calc($job['fee'], (int) $job['invoice'], 100, $gap, 0);
+        return contract_calc($job['fee'], (int) $job['invoice'], 100, $gap, 0, null, $eul2);
     }
-    return contract_calc($job['fee'], (int) $job['invoice'], (int) $job['contract_rate'], $gap, $wh);
+    return contract_calc($job['fee'], (int) $job['invoice'], (int) $job['contract_rate'], $gap, $wh, null, $eul2);
 }
 
 /** 방식 한 줄: 수수료 20% / 인수 방식 · 대표 · 운영 50:50 */
@@ -53,6 +55,7 @@ function onetime_amounts($job)
     return array(
         'tax' => $c['tax'], 'contract_amount' => $c['contract_amount'], 'byeong_amount' => $c['byeong_amount'],
         'withholding_amount' => $c['withholding_amount'], 'byeong_pay' => $c['byeong_pay'], 'gap_amount' => $c['gap_amount'], 'eul_amount' => $c['eul_amount'],
+        'eul2_rate' => $c['eul2_rate'], 'eul2_amount' => $c['eul2_amount'],
     );
 }
 
@@ -96,13 +99,13 @@ function onetime_set_steps($job, $changes, $by)
 
 /**
  * 파트너 고르기 칸(정기청소 정산과 같은 모양) 읽기. 청소 담당은 ‘w:번호’(인력 배치 사람)도 받습니다.
- * 반환: [gap_partner_id, eul_partner_id, byeong_partner_id, byeong_worker_id] (역할이 맞지 않는 파트너는 null)
+ * 반환: [gap_partner_id, eul_partner_id, eul2_partner_id, byeong_partner_id, byeong_worker_id] (역할이 맞지 않는 파트너는 null)
  */
 function partner_picks_from_request()
 {
     $all = partners_all();
     $out = array();
-    foreach (array_keys(CONTRACT_ROLE_SIDES) as $role) {
+    foreach (array_keys(PARTNER_ROLES) as $role) {
         $pid = input_int($role . '_partner_id') ?: null;
         $out[$role . '_partner_id'] = $pid && isset($all[$pid]) && $all[$pid]['role'] === $role ? $pid : null;
     }

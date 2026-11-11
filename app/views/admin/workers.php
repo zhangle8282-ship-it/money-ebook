@@ -60,7 +60,7 @@ $searching = $q !== '' || $region !== '' || $team !== '';
 <?php foreach (WORKER_METHODS as $key => $m): ?>
     <a href="<?= e($link($key)) ?>"<?= $method === $key ? ' aria-current="page"' : '' ?>><?= e($m[0]) ?> <span class="count"><?= (int) $counts[$key] ?></span></a>
 <?php endforeach; ?>
-<?php foreach (array('gap', 'eul') as $key): ?>
+<?php foreach (array('gap', 'eul', 'eul2') as $key): ?>
     <a href="<?= e($roleLink($key)) ?>"<?= $role === $key ? ' aria-current="page"' : '' ?>><?= e(WORKER_ROLES[$key]) ?> <span class="count"><?= (int) $roleCounts[$key] ?></span></a>
 <?php endforeach; ?>
   </nav>

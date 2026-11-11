@@ -6,7 +6,7 @@ $pending = $sum['count'] - $sum['done'];
 <div class="page-head">
   <div class="page-head-text">
     <h1>정기청소 정산</h1>
-    <p class="muted">청소비용에서 <strong>세금 <?= CONTRACT_TAX_RATE ?>%</strong>를 빼고, 남은 금액의 <strong>도급비율(예: 20%)은 대표파트너 · 운영파트너</strong>가 나누고(예: 60:40), <strong>나머지(예: 80%)는 청소 담당 파트너</strong>가 원천징수 <?= CONTRACT_WITHHOLDING ?>%를 떼고 받아요.</p>
+    <p class="muted">청소비용에서 <strong>세금 <?= CONTRACT_TAX_RATE ?>%</strong>를 빼고, 남은 금액의 <strong>도급비율(예: 20%)은 대표파트너 · 운영파트너</strong>가 나누고(예: 60:40), <strong>나머지(예: 80%)는 청소 담당 파트너</strong>가 원천징수 <?= CONTRACT_WITHHOLDING ?>%를 떼고 받아요. <strong>운영파트너2</strong>가 배치된 청소는 대표 60 : 운영파트너2 30 : 운영파트너 <?= EUL2_FEE ?>(수수료)로 나눠요.</p>
   </div>
   <a class="btn btn-primary" href="/admin/contracts/new">+ 새 청소</a>
 </div>
@@ -68,7 +68,9 @@ $pending = $sum['count'] - $sum['done'];
   <div class="card settle-card is-byeong"><span>청소 담당 파트너 실지급</span><strong><?= won($sum['byeong_pay']) ?></strong><small>몫 <?= won($sum['byeong_amount']) ?> − 원천징수 <?= CONTRACT_WITHHOLDING ?>% <?= won($sum['withholding_amount']) ?></small></div>
   <div class="card settle-card"><span>도급 몫 (대표 · 운영 수익)</span><strong><?= won($sum['contract_amount']) ?></strong></div>
   <div class="card settle-card is-gap"><span>대표파트너 받는 돈</span><strong><?= won($sum['gap_amount']) ?></strong></div>
-  <div class="card settle-card is-eul"><span>운영파트너 받는 돈</span><strong><?= won($sum['eul_amount']) ?></strong><small>정산 완료 <?= $sum['done'] ?> / <?= $sum['count'] ?></small></div>
+<?php if ($sum['eul2_amount']): ?>  <div class="card settle-card is-eul2"><span>운영파트너2 받는 돈</span><strong><?= won($sum['eul2_amount']) ?></strong></div>
+<?php endif; ?>
+  <div class="card settle-card is-eul"><span>운영파트너 받는 돈</span><strong><?= won($sum['eul_amount']) ?></strong><small><?= $sum['eul2_amount'] ? '운영파트너2 수수료 포함 · ' : '' ?>정산 완료 <?= $sum['done'] ?> / <?= $sum['count'] ?></small></div>
 </div>
 
 <?php if ($rows): ?>
@@ -80,7 +82,7 @@ $pending = $sum['count'] - $sum['done'];
     <header class="settle-item-head">
       <div>
         <a class="strong settle-name" href="/admin/contracts/<?= (int) $c['id'] ?>/edit"><?= e($c['name']) ?></a>
-        <span class="sub"><?= $c['client'] !== '' ? e($c['client']) . ' · ' : '' ?>청소 담당 <?= $r['byeong_rate'] ?>% · 도급 <?= $r['contract_rate'] ?>% (대표:운영 <?= $r['gap_rate'] ?>:<?= 100 - $r['gap_rate'] ?>)<?= $r['invoice'] ? '' : ' · 세금계산서 없음' ?><?= $r['withholding'] ? '' : ' · 원천징수 없음' ?></span>
+        <span class="sub"><?= $c['client'] !== '' ? e($c['client']) . ' · ' : '' ?>청소 담당 <?= $r['byeong_rate'] ?>% · 도급 <?= $r['contract_rate'] ?>% (<?= e(split_ratio_label($r)) ?>)<?= $r['invoice'] ? '' : ' · 세금계산서 없음' ?><?= $r['withholding'] ? '' : ' · 원천징수 없음' ?></span>
       </div>
 <?php if ($done): ?>
       <span class="status status-paid">정산 완료 · <?= e(fmt_date($r['settled_at'], 'm.d H:i')) ?><?= $r['settled_by'] !== '' ? ' · ' . e($r['settled_by']) : '' ?></span>
@@ -96,7 +98,9 @@ $pending = $sum['count'] - $sum['done'];
       <div class="is-byeong"><dt>청소 담당 실지급</dt><dd><?= won($r['byeong_pay']) ?></dd><?php if (contract_partner_name($c, 'byeong') !== ''): ?><small><?= e(contract_partner_name($c, 'byeong')) ?></small><?php endif; ?></div>
       <div><dt>도급 몫 <?= $r['contract_rate'] ?>%</dt><dd><?= won($r['contract_amount']) ?></dd></div>
       <div class="is-gap"><dt>대표파트너 <?= $r['gap_rate'] ?>%</dt><dd><?= won($r['gap_amount']) ?></dd><?php if (contract_partner_name($c, 'gap') !== ''): ?><small><?= e(contract_partner_name($c, 'gap')) ?></small><?php endif; ?></div>
-      <div class="is-eul"><dt>운영파트너 <?= 100 - $r['gap_rate'] ?>%</dt><dd><?= won($r['eul_amount']) ?></dd><?php if (contract_partner_name($c, 'eul') !== ''): ?><small><?= e(contract_partner_name($c, 'eul')) ?></small><?php endif; ?></div>
+<?php if ($r['eul2_rate']): ?>      <div class="is-eul2"><dt>운영파트너2 <?= $r['eul2_rate'] ?>%</dt><dd><?= won($r['eul2_amount']) ?></dd><?php if (contract_partner_name($c, 'eul2') !== ''): ?><small><?= e(contract_partner_name($c, 'eul2')) ?></small><?php endif; ?></div>
+<?php endif; ?>
+      <div class="is-eul"><dt>운영파트너 <?= $r['eul_rate'] ?>%<?= $r['eul2_rate'] ? ' (수수료)' : '' ?></dt><dd><?= won($r['eul_amount']) ?></dd><?php if (contract_partner_name($c, 'eul') !== ''): ?><small><?= e(contract_partner_name($c, 'eul')) ?></small><?php endif; ?></div>
     </dl>
     <div class="settle-steps">
       <span class="settle-steps-label">대표파트너 정산</span>
@@ -104,7 +108,7 @@ $pending = $sum['count'] - $sum['done'];
 <?php foreach ($steps as $k => $label): $at = $r['step_' . $k]; ?>
         <li>
           <form method="post" action="/admin/contracts/settle"><?= csrf_field() ?><input type="hidden" name="month" value="<?= e($month) ?>"><input type="hidden" name="contract_id" value="<?= (int) $c['id'] ?>"><input type="hidden" name="action" value="step"><input type="hidden" name="step" value="<?= $k ?>"><input type="hidden" name="on" value="<?= $at ? '0' : '1' ?>">
-            <button type="submit" class="step-btn<?= $at ? ' is-on' : '' ?>" aria-pressed="<?= $at ? 'true' : 'false' ?>"><span class="step-box" aria-hidden="true"><?= $at ? '✓' : '' ?></span><?= e($label) ?><?php if ($k === 'paid_byeong'): ?> <b><?= won($r['byeong_pay']) ?></b><?php elseif ($k === 'paid_eul'): ?> <b><?= won($r['eul_amount']) ?></b><?php elseif ($k === 'received'): ?> <b><?= won($r['fee']) ?></b><?php endif; ?><?php if ($at): ?> <small><?= e(fmt_date($at, 'm.d')) ?></small><?php endif; ?></button>
+            <button type="submit" class="step-btn<?= $at ? ' is-on' : '' ?>" aria-pressed="<?= $at ? 'true' : 'false' ?>"><span class="step-box" aria-hidden="true"><?= $at ? '✓' : '' ?></span><?= e($label) ?><?php if ($k === 'paid_byeong'): ?> <b><?= won($r['byeong_pay']) ?></b><?php elseif ($k === 'paid_eul'): ?> <b><?= won($r['eul_amount']) ?></b><?php elseif ($k === 'paid_eul2'): ?> <b><?= won($r['eul2_amount']) ?></b><?php elseif ($k === 'received'): ?> <b><?= won($r['fee']) ?></b><?php endif; ?><?php if ($at): ?> <small><?= e(fmt_date($at, 'm.d')) ?></small><?php endif; ?></button>
           </form>
         </li>
 <?php endforeach; ?>
@@ -118,9 +122,9 @@ $pending = $sum['count'] - $sum['done'];
       </div>
     </div>
     <ul class="pay-to">
-<?php foreach (array('byeong' => $r['byeong_pay'], 'eul' => $r['eul_amount']) as $role => $amount): $pp = contract_partner($c, $role); $nm = contract_partner_name($c, $role); ?>
+<?php foreach (array('byeong' => $r['byeong_pay']) + ($r['eul2_rate'] ? array('eul2' => $r['eul2_amount']) : array()) + array('eul' => $r['eul_amount']) as $role => $amount): $pp = contract_partner($c, $role); $nm = contract_partner_name($c, $role); ?>
       <li>
-        <span class="pay-role"><?= e(CONTRACT_ROLE_SIDES[$role]) ?><?= $nm !== '' ? ' ' . e($nm) : '' ?></span>
+        <span class="pay-role"><?= e(PARTNER_ROLES[$role]) ?><?= $nm !== '' ? ' ' . e($nm) : '' ?></span>
         <strong><?= won($amount) ?></strong>
 <?php if ($pp && $pp['bank_account'] !== ''): ?>
         <span class="pay-acc"><span class="bank-chip"><?= e($pp['bank_name']) ?></span> <span class="mono"><?= e($pp['bank_account']) ?></span> <span class="sub">예금주 <?= e($pp['bank_holder'] !== '' ? $pp['bank_holder'] : $pp['name']) ?></span></span>
@@ -160,6 +164,8 @@ $pending = $sum['count'] - $sum['done'];
       <div class="is-byeong"><dt>청소 담당 실지급</dt><dd><?= won($sum['byeong_pay']) ?></dd></div>
       <div><dt>도급 몫</dt><dd><?= won($sum['contract_amount']) ?></dd></div>
       <div class="is-gap"><dt>대표파트너</dt><dd><?= won($sum['gap_amount']) ?></dd></div>
+<?php if ($sum['eul2_amount']): ?>      <div class="is-eul2"><dt>운영파트너2</dt><dd><?= won($sum['eul2_amount']) ?></dd></div>
+<?php endif; ?>
       <div class="is-eul"><dt>운영파트너</dt><dd><?= won($sum['eul_amount']) ?></dd></div>
     </dl>
   </section>
@@ -174,9 +180,9 @@ $pending = $sum['count'] - $sum['done'];
   <div class="card-head pad-head"><h2 id="year-title"><?= $year ?>년 한눈에 보기</h2></div>
   <div class="table-wrap">
   <table class="table year-table">
-    <thead><tr><th scope="col">월</th><th scope="col" class="num">청소</th><th scope="col" class="num">청소비용</th><th scope="col" class="num">세금</th><th scope="col" class="num">청소 담당 실지급</th><th scope="col" class="num">원천징수</th><th scope="col" class="num">대표파트너</th><th scope="col" class="num">운영파트너</th><th scope="col">정산</th></tr></thead>
+    <thead><tr><th scope="col">월</th><th scope="col" class="num">청소</th><th scope="col" class="num">청소비용</th><th scope="col" class="num">세금</th><th scope="col" class="num">청소 담당 실지급</th><th scope="col" class="num">원천징수</th><th scope="col" class="num">대표파트너</th><?php $yEul2 = array_sum(array_column($yearSummary, 'eul2_amount')) > 0; if ($yEul2): ?><th scope="col" class="num">운영파트너2</th><?php endif; ?><th scope="col" class="num">운영파트너</th><th scope="col">정산</th></tr></thead>
     <tbody>
-<?php $yt = array('fee' => 0, 'tax' => 0, 'byeong_pay' => 0, 'withholding_amount' => 0, 'gap_amount' => 0, 'eul_amount' => 0);
+<?php $yt = array('fee' => 0, 'tax' => 0, 'byeong_pay' => 0, 'withholding_amount' => 0, 'gap_amount' => 0, 'eul2_amount' => 0, 'eul_amount' => 0);
 $hasPlanned = false;
 foreach ($yearSummary as $ym => $t): foreach ($yt as $k => $v) { $yt[$k] += $t[$k]; }
     $future = $ym > date('Y-m');
@@ -189,12 +195,14 @@ foreach ($yearSummary as $ym => $t): foreach ($yt as $k => $v) { $yt[$k] += $t[$
         <td class="num"><?= $t['count'] ? won($t['byeong_pay']) : '-' ?></td>
         <td class="num"><?= $t['count'] ? won($t['withholding_amount']) : '-' ?></td>
         <td class="num"><?= $t['count'] ? won($t['gap_amount']) : '-' ?></td>
+<?php if ($yEul2): ?>        <td class="num"><?= $t['count'] ? won($t['eul2_amount']) : '-' ?></td>
+<?php endif; ?>
         <td class="num"><?= $t['count'] ? won($t['eul_amount']) : '-' ?></td>
         <td><?php if (!$t['count']): ?>-<?php elseif ($t['done'] === $t['count']): ?><span class="status status-paid">완료</span><?php elseif ($future): ?><span class="sub">예정</span><?php else: ?><?= $t['done'] ?> / <?= $t['count'] ?><?php endif; ?></td>
       </tr>
 <?php endforeach; ?>
     </tbody>
-    <tfoot><tr><th scope="row"><?= $year ?>년 합계<?= $hasPlanned ? ' <span class="sub">(예정 포함)</span>' : '' ?></th><td></td><td class="num"><?= won($yt['fee']) ?></td><td class="num"><?= won($yt['tax']) ?></td><td class="num"><?= won($yt['byeong_pay']) ?></td><td class="num"><?= won($yt['withholding_amount']) ?></td><td class="num"><strong><?= won($yt['gap_amount']) ?></strong></td><td class="num"><strong><?= won($yt['eul_amount']) ?></strong></td><td></td></tr></tfoot>
+    <tfoot><tr><th scope="row"><?= $year ?>년 합계<?= $hasPlanned ? ' <span class="sub">(예정 포함)</span>' : '' ?></th><td></td><td class="num"><?= won($yt['fee']) ?></td><td class="num"><?= won($yt['tax']) ?></td><td class="num"><?= won($yt['byeong_pay']) ?></td><td class="num"><?= won($yt['withholding_amount']) ?></td><td class="num"><strong><?= won($yt['gap_amount']) ?></strong></td><?php if ($yEul2): ?><td class="num"><strong><?= won($yt['eul2_amount']) ?></strong></td><?php endif; ?><td class="num"><strong><?= won($yt['eul_amount']) ?></strong></td><td></td></tr></tfoot>
   </table>
   </div>
 </section>

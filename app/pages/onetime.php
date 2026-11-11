@@ -57,8 +57,8 @@ function admin_onetime_form($id = null)
         // 일회성은 보통 세금계산서를 발행하지 않아요(원하면 ‘발행’을 고름).
         'name' => '', 'client' => '', 'work_date' => date('Y-m-d'), 'fee' => '', 'invoice' => 0, 'contract_rate' => 20,
         'method' => 'commission', 'gap_rate' => ONETIME_GAP,
-        'withholding' => 0, 'gap_partner_id' => null, 'eul_partner_id' => null, 'byeong_partner_id' => null,
-        'gap_name' => gc('name'), 'eul_name' => '', 'byeong_name' => '', 'memo' => '', 'status' => 'pending',
+        'withholding' => 0, 'gap_partner_id' => null, 'eul_partner_id' => null, 'eul2_partner_id' => null, 'byeong_partner_id' => null,
+        'gap_name' => gc('name'), 'eul_name' => '', 'eul2_name' => '', 'byeong_name' => '', 'memo' => '', 'status' => 'pending',
     );
     $locked = $job && $job['status'] === 'done';
     $errors = array();
@@ -81,6 +81,7 @@ function admin_onetime_form($id = null)
             'withholding' => input('withholding') === '1' ? 1 : 0, // 일회성은 기본 안 뗌
             'gap_name' => str_cut(trim(input('gap_name')), 60, ''),
             'eul_name' => str_cut(trim(input('eul_name')), 60, ''),
+            'eul2_name' => str_cut(trim(input('eul2_name')), 60, ''),
             'byeong_name' => str_cut(trim(input('byeong_name')), 60, ''),
             'memo' => str_cut(str_replace("\r\n", "\n", input('memo')), 1000, ''),
         ));
@@ -108,7 +109,7 @@ function admin_onetime_form($id = null)
             }
             $data = array_intersect_key($form, array_flip(array('name', 'client', 'work_date', 'fee', 'invoice', 'contract_rate', 'gap_rate', 'withholding',
                 'method',
-                'gap_partner_id', 'eul_partner_id', 'byeong_partner_id', 'gap_name', 'eul_name', 'byeong_name', 'memo')));
+                'gap_partner_id', 'eul_partner_id', 'eul2_partner_id', 'byeong_partner_id', 'gap_name', 'eul_name', 'eul2_name', 'byeong_name', 'memo')));
             $data['fee'] = (int) $data['fee'];
             $data['gap_rate'] = ONETIME_GAP; // 일회성 정산: 대표 · 운영 50:50
             // 인수 방식: 청소 금액 전체가 대표 · 운영 몫(100%), 청소 담당 몫 · 원천징수 없음
@@ -121,6 +122,9 @@ function admin_onetime_form($id = null)
             $data += onetime_amounts($data);
             if (!$data['invoice']) {
                 $data['step_invoiced'] = null;
+            }
+            if (!$data['eul2_rate']) {
+                $data['step_paid_eul2'] = null;
             }
             $data['updated_at'] = now();
             if ($job) {
@@ -172,7 +176,7 @@ function admin_onetime_settle($id)
         flash('‘' . $job['name'] . '’ 정산을 완료했어요.');
     } elseif ($action === 'undo') {
         q_update('onetime_jobs', (int) $job['id'], array('status' => 'pending', 'settled_at' => null, 'settled_by' => '',
-            'step_received' => null, 'step_invoiced' => null, 'step_paid_byeong' => null, 'step_paid_eul' => null, 'updated_at' => now()));
+            'step_received' => null, 'step_invoiced' => null, 'step_paid_byeong' => null, 'step_paid_eul2' => null, 'step_paid_eul' => null, 'updated_at' => now()));
         flash('‘' . $job['name'] . '’을(를) 정산 전으로 되돌렸어요.');
     }
     redirect($back);

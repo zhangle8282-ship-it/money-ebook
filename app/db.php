@@ -433,6 +433,25 @@ function migrate(PDO $pdo)
         }
         $pdo->prepare("UPDATE settings SET v = '33' WHERE k = 'schema_version'")->execute();
     }
+    if ($version < 34) {
+        // 34: 운영파트너2(eul2). 배치되면 도급 몫을 대표 : 운영파트너2 : 운영파트너(수수료)로 나눔
+        $add = array(
+            'contracts' => array('eul2_partner_id' => 'INT NULL', 'eul2_name' => "VARCHAR(60) NOT NULL DEFAULT ''"),
+            'contract_settlements' => array('eul2_rate' => 'INT NOT NULL DEFAULT 0', 'eul2_amount' => 'INT NOT NULL DEFAULT 0', 'step_paid_eul2' => 'VARCHAR(19) NULL'),
+            'onetime_jobs' => array('eul2_partner_id' => 'INT NULL', 'eul2_name' => "VARCHAR(60) NOT NULL DEFAULT ''", 'eul2_rate' => 'INT NOT NULL DEFAULT 0',
+                'eul2_amount' => 'INT NOT NULL DEFAULT 0', 'step_paid_eul2' => 'VARCHAR(19) NULL'),
+        );
+        foreach ($add as $table => $columns) {
+            $cols = $sqlite ? array_column($pdo->query('PRAGMA table_info(' . $table . ')')->fetchAll(PDO::FETCH_ASSOC), 'name')
+                : $pdo->query('SHOW COLUMNS FROM ' . $table)->fetchAll(PDO::FETCH_COLUMN);
+            foreach ($columns as $name => $type) {
+                if (!in_array($name, $cols, true)) {
+                    $pdo->exec('ALTER TABLE ' . $table . ' ADD COLUMN ' . $name . ' ' . $type);
+                }
+            }
+        }
+        $pdo->prepare("UPDATE settings SET v = '34' WHERE k = 'schema_version'")->execute();
+    }
 }
 
 /** 1: 처음 만드는 표들 */

@@ -66,7 +66,9 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
   <div class="card settle-card is-byeong"><span>청소 담당 실지급</span><strong><?= won($sum['byeong_pay']) ?></strong><small>몫 <?= won($sum['byeong_amount']) ?> − 원천징수 <?= won($sum['withholding_amount']) ?></small></div>
   <div class="card settle-card"><span>회사 몫 (대표 · 운영 수익)</span><strong><?= won($sum['contract_amount']) ?></strong></div>
   <div class="card settle-card is-gap"><span>대표파트너 받는 돈</span><strong><?= won($sum['gap_amount']) ?></strong></div>
-  <div class="card settle-card is-eul"><span>운영파트너 받는 돈</span><strong><?= won($sum['eul_amount']) ?></strong><small>정산 완료 <?= $sum['done'] ?> / <?= $sum['count'] ?></small></div>
+<?php if ($sum['eul2_amount']): ?>  <div class="card settle-card is-eul2"><span>운영파트너2 받는 돈</span><strong><?= won($sum['eul2_amount']) ?></strong></div>
+<?php endif; ?>
+  <div class="card settle-card is-eul"><span>운영파트너 받는 돈</span><strong><?= won($sum['eul_amount']) ?></strong><small><?= $sum['eul2_amount'] ? '운영파트너2 수수료 포함 · ' : '' ?>정산 완료 <?= $sum['done'] ?> / <?= $sum['count'] ?></small></div>
 </div>
 
 <?php if ($rows): ?>
@@ -79,7 +81,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
     <header class="settle-item-head">
       <div>
         <a class="strong settle-name" href="/admin/onetime/<?= (int) $r['id'] ?>/edit"><?= e($r['name']) ?></a>
-        <span class="sub"><?= e(date('Y.m.d', strtotime($r['work_date']))) ?> 작업<?= $r['client'] !== '' ? ' · ' . e($r['client']) : '' ?> · <b><?= e(onetime_method_label($r)) ?></b> · 청소 담당 <?= $r['byeong_rate'] ?>% (대표:운영 <?= (int) $r['gap_rate'] ?>:<?= 100 - (int) $r['gap_rate'] ?>)<?= $r['invoice'] ? '' : ' · 세금계산서 없음' ?><?= $r['withholding'] ? '' : ' · 원천징수 없음' ?></span>
+        <span class="sub"><?= e(date('Y.m.d', strtotime($r['work_date']))) ?> 작업<?= $r['client'] !== '' ? ' · ' . e($r['client']) : '' ?> · <b><?= e(onetime_method_label($r)) ?></b> · 청소 담당 <?= $r['byeong_rate'] ?>% (<?= e(split_ratio_label($r)) ?>)<?= $r['invoice'] ? '' : ' · 세금계산서 없음' ?><?= $r['withholding'] ? '' : ' · 원천징수 없음' ?></span>
       </div>
 <?php if ($done): ?>
       <span class="status status-paid">정산 완료 · <?= e(fmt_date($r['settled_at'], 'm.d H:i')) ?><?= $r['settled_by'] !== '' ? ' · ' . e($r['settled_by']) : '' ?></span>
@@ -97,7 +99,9 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
 <?php endif; ?>
       <div><dt><?= $takeover ? '대표 · 운영이 나눌 금액(인수)' : '수수료 ' . (int) $r['contract_rate'] . '% (대표 · 운영)' ?></dt><dd><?= won($r['contract_amount']) ?></dd></div>
       <div class="is-gap"><dt>대표파트너 <?= (int) $r['gap_rate'] ?>%</dt><dd><?= won($r['gap_amount']) ?></dd><?php if (contract_partner_name($r, 'gap') !== ''): ?><small><?= e(contract_partner_name($r, 'gap')) ?></small><?php endif; ?></div>
-      <div class="is-eul"><dt>운영파트너 <?= 100 - (int) $r['gap_rate'] ?>%</dt><dd><?= won($r['eul_amount']) ?></dd><?php if (contract_partner_name($r, 'eul') !== ''): ?><small><?= e(contract_partner_name($r, 'eul')) ?></small><?php endif; ?></div>
+<?php if (!empty($r['eul2_rate'])): ?>      <div class="is-eul2"><dt>운영파트너2 <?= (int) $r['eul2_rate'] ?>%</dt><dd><?= won($r['eul2_amount']) ?></dd><?php if (contract_partner_name($r, 'eul2') !== ''): ?><small><?= e(contract_partner_name($r, 'eul2')) ?></small><?php endif; ?></div>
+<?php endif; ?>
+      <div class="is-eul"><dt>운영파트너 <?= (int) $r['eul_rate'] ?>%<?= !empty($r['eul2_rate']) ? ' (수수료)' : '' ?></dt><dd><?= won($r['eul_amount']) ?></dd><?php if (contract_partner_name($r, 'eul') !== ''): ?><small><?= e(contract_partner_name($r, 'eul')) ?></small><?php endif; ?></div>
     </dl>
     <div class="settle-steps">
       <span class="settle-steps-label">대표파트너 정산</span>
@@ -105,7 +109,7 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
 <?php foreach ($steps as $k => $label): $at = $r['step_' . $k]; ?>
         <li>
           <form method="post" action="<?= e($settleUrl) ?>"><?= csrf_field() ?><input type="hidden" name="back" value="<?= e($back) ?>"><input type="hidden" name="action" value="step"><input type="hidden" name="step" value="<?= $k ?>"><input type="hidden" name="on" value="<?= $at ? '0' : '1' ?>">
-            <button type="submit" class="step-btn<?= $at ? ' is-on' : '' ?>" aria-pressed="<?= $at ? 'true' : 'false' ?>"><span class="step-box" aria-hidden="true"><?= $at ? '✓' : '' ?></span><?= e($label) ?><?php if ($k === 'paid_byeong'): ?> <b><?= won($r['byeong_pay']) ?></b><?php elseif ($k === 'paid_eul'): ?> <b><?= won($r['eul_amount']) ?></b><?php elseif ($k === 'received'): ?> <b><?= won($r['fee']) ?></b><?php endif; ?><?php if ($at): ?> <small><?= e(fmt_date($at, 'm.d')) ?></small><?php endif; ?></button>
+            <button type="submit" class="step-btn<?= $at ? ' is-on' : '' ?>" aria-pressed="<?= $at ? 'true' : 'false' ?>"><span class="step-box" aria-hidden="true"><?= $at ? '✓' : '' ?></span><?= e($label) ?><?php if ($k === 'paid_byeong'): ?> <b><?= won($r['byeong_pay']) ?></b><?php elseif ($k === 'paid_eul'): ?> <b><?= won($r['eul_amount']) ?></b><?php elseif ($k === 'paid_eul2'): ?> <b><?= won($r['eul2_amount']) ?></b><?php elseif ($k === 'received'): ?> <b><?= won($r['fee']) ?></b><?php endif; ?><?php if ($at): ?> <small><?= e(fmt_date($at, 'm.d')) ?></small><?php endif; ?></button>
           </form>
         </li>
 <?php endforeach; ?>
@@ -119,9 +123,9 @@ $back = $_SERVER['REQUEST_URI'] ?? '/admin/onetime';
       </div>
     </div>
     <ul class="pay-to">
-<?php foreach ($takeover ? array('eul' => $r['eul_amount']) : array('byeong' => $r['byeong_pay'], 'eul' => $r['eul_amount']) as $role => $amount): $pp = contract_partner($r, $role); $nm = contract_partner_name($r, $role); ?>
+<?php foreach (($takeover ? array() : array('byeong' => $r['byeong_pay'])) + (!empty($r['eul2_rate']) ? array('eul2' => $r['eul2_amount']) : array()) + array('eul' => $r['eul_amount']) as $role => $amount): $pp = contract_partner($r, $role); $nm = contract_partner_name($r, $role); ?>
       <li>
-        <span class="pay-role"><?= e(CONTRACT_ROLE_SIDES[$role]) ?><?= $nm !== '' ? ' ' . e($nm) : '' ?></span>
+        <span class="pay-role"><?= e(PARTNER_ROLES[$role]) ?><?= $nm !== '' ? ' ' . e($nm) : '' ?></span>
         <strong><?= won($amount) ?></strong>
 <?php if ($pp && $pp['bank_account'] !== ''): ?>
         <span class="pay-acc"><span class="bank-chip"><?= e($pp['bank_name']) ?></span> <span class="mono"><?= e($pp['bank_account']) ?></span> <span class="sub">예금주 <?= e($pp['bank_holder'] !== '' ? $pp['bank_holder'] : $pp['name']) ?></span></span>

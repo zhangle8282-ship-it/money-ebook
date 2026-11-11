@@ -5,11 +5,11 @@
  * 관리자 화면 전용입니다(검색 사이트에 나오지 않음).
  */
 
-// 역할: 키는 정산 파트너의 역할 키와 같음(gap 대표파트너 · eul 운영파트너 · byeong 청소 담당 파트너)
-const WORKER_ROLES = array('byeong' => '청소 담당', 'gap' => '대표', 'eul' => '운영팀');
+// 역할: 키는 정산 파트너의 역할 키와 같음(gap 대표파트너 · eul 운영파트너 · eul2 운영파트너2 · byeong 청소 담당 파트너)
+const WORKER_ROLES = array('byeong' => '청소 담당', 'gap' => '대표', 'eul' => '운영팀', 'eul2' => '운영팀2');
 
 // 안내 문장에 쓰는 ‘~로’ 꼴
-const WORKER_ROLES_AS = array('byeong' => '청소 담당으로', 'gap' => '대표로', 'eul' => '운영팀으로');
+const WORKER_ROLES_AS = array('byeong' => '청소 담당으로', 'gap' => '대표로', 'eul' => '운영팀으로', 'eul2' => '운영팀2로');
 
 /** 이 사람의 역할 키 */
 function worker_role($worker)

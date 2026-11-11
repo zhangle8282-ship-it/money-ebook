@@ -461,6 +461,8 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .settle-card.is-gap strong { color: #1F4A3C; }
 .settle-card.is-eul { background: #F1EEFD; border-color: #DCD3FA; }
 .settle-card.is-eul strong { color: #3E2A9E; }
+.settle-card.is-eul2 { background: #EAF4FB; border-color: #C9E1F2; }
+.settle-card.is-eul2 strong { color: #1D4F73; }
 .contract-table td.num, .contract-table th.num, .year-table td.num { white-space: nowrap; }
 .contract-table .minus, .year-table .minus { color: #8A5A0B; }
 .contract-table .gap-col strong { color: #1F4A3C; }
@@ -499,6 +501,9 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .role-card { display: flex; flex-direction: column; gap: 16px; }
 .role-card.role-gap { border-top: 4px solid #2F7D5C; }
 .role-card.role-eul { border-top: 4px solid #6C4BF0; }
+.role-card.role-eul2 { border-top: 4px solid #2B7AB8; }
+.role-eul2 .role-badge { background: #2B7AB8; font-size: 14px; }
+.role-eul2 .partner-list li { background: #EFF6FC; }
 .role-head { display: flex; align-items: center; gap: 12px; }
 .role-head .role-badge { width: 44px; height: 44px; font-size: 19px; }
 .role-head h2 { font-size: 19px; }
@@ -585,6 +590,7 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .settle-amounts .is-byeong { background: #FBF6EE; } .settle-amounts .is-byeong dd { color: #7A4508; }
 .settle-amounts .is-gap { background: #EEF6F1; } .settle-amounts .is-gap dd { color: #1F4A3C; }
 .settle-amounts .is-eul { background: #F1EEFD; } .settle-amounts .is-eul dd { color: #3E2A9E; }
+.settle-amounts .is-eul2 { background: #EAF4FB; } .settle-amounts .is-eul2 dd { color: #1D4F73; }
 .settle-steps { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .settle-steps-label { font-size: 13px; font-weight: 700; color: var(--ink); }
 .settle-steps .step-list { flex-direction: row; flex-wrap: wrap; margin: 0; gap: 6px; }
@@ -615,7 +621,7 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .role-add input { flex: 1 1 140px; }
 .role-add button { flex-shrink: 0; }
 /* 파트너 · 계좌 */
-.partner-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.partner-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; align-items: start; }
 .partner-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .partner-list li { padding: 12px 14px; border-radius: 10px; background: #F7F8F6; display: flex; flex-direction: column; gap: 6px; }
 .role-gap .partner-list li { background: #F1F7F3; } .role-eul .partner-list li { background: #F5F3FE; } .role-byeong .partner-list li { background: #FBF4EA; }
@@ -728,6 +734,7 @@ a.stat:hover { border-color: var(--field); color: var(--ink); }
 .status.worker-takeover { background: #EDE7FB; color: #4B3592; }
 .status.worker-gap { background: #E3ECF8; color: #1F4470; }
 .status.worker-eul { background: #FDECDC; color: #8A4B14; }
+.status.worker-eul2 { background: #E2F1F8; color: #1D4F73; }
 .region-picker, .method-picker { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .region-picker legend, .method-picker legend { padding: 0; margin-bottom: 4px; font-size: 14px; font-weight: 600; }
 .region-group { display: flex; gap: 12px; align-items: flex-start; }

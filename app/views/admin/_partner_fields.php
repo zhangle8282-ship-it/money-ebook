@@ -2,7 +2,7 @@
 <div class="grid-2">
   <div class="field"><label for="p-role">역할</label>
     <select id="p-role" name="role" required>
-<?php foreach (CONTRACT_ROLE_SIDES as $k => $label): ?>
+<?php foreach (PARTNER_ROLES as $k => $label): ?>
       <option value="<?= $k ?>"<?= ($form['role'] ?? '') === $k ? ' selected' : '' ?>><?= e($label) ?></option>
 <?php endforeach; ?>
     </select></div>

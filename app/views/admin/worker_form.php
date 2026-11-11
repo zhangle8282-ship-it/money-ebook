@@ -21,7 +21,7 @@ $action = $worker ? '/admin/workers/' . (int) $worker['id'] . '/edit' : '/admin/
       <input type="radio" id="role-<?= e($key) ?>" name="role" value="<?= e($key) ?>"<?= $formRole === $key ? ' checked' : '' ?>><label for="role-<?= e($key) ?>"><?= e($label) ?></label>
 <?php endforeach; ?>
     </div>
-    <p class="field-help" data-partner-only<?= $formRole === 'byeong' ? ' hidden' : '' ?>>저장하면 정기청소 · 일회성 정산의 대표 · 운영 칸에서 바로 고를 수 있어요. 지급 계좌는 정기청소 정산 › 파트너 · 계좌에서 넣어요.</p>
+    <p class="field-help" data-partner-only<?= $formRole === 'byeong' ? ' hidden' : '' ?>>저장하면 정기청소 · 일회성 정산의 대표 · 운영 · 운영2 칸에서 바로 고를 수 있어요. 운영팀2가 배치된 청소는 운영 몫 중 <?= EUL2_FEE ?>%가 운영팀(운영파트너) 수수료가 돼요. 지급 계좌는 정기청소 정산 › 파트너 · 계좌에서 넣어요.</p>
   </fieldset>
 
   <div class="grid-2">

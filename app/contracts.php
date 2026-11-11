@@ -11,6 +11,11 @@
  *   도급 몫(대표·운영 수익) = 세금 뺀 금액 × 도급비율(10·20·30%)   → 180,000 (20%)
  *     대표파트너 = 도급 몫 × 대표 비율(기본 60%)                   → 108,000
  *     운영파트너 = 도급 몫 − 대표파트너                            →  72,000
+ *
+ * 운영파트너2가 배치된 청소: 운영 몫(40%)에서 수수료 10%를 떼어 운영파트너에게(대표 60 : 운영파트너2 30 : 운영파트너 10)
+ *     대표파트너 = 도급 몫 × 60%                                   → 108,000
+ *     운영파트너2 = 도급 몫 × (100 − 대표 비율 − 10)% = 30%        →  54,000
+ *     운영파트너 = 도급 몫 − 대표 − 운영파트너2 (수수료 10%)       →  18,000
  */
 
 const CONTRACT_TAX_RATE = 10;
@@ -23,8 +28,11 @@ const SETTLEMENT_STEPS = array(
     'received' => '청소비용 입금 확인',
     'invoiced' => '세금계산서 발행',
     'paid_byeong' => '청소 담당 파트너 지급',
+    'paid_eul2' => '운영파트너2 지급',
     'paid_eul' => '운영파트너 지급',
 );
+// 운영파트너2가 배치되면 도급 몫의 이 비율(%)은 운영파트너 수수료(운영파트너2 몫에서 뺌)
+const EUL2_FEE = 10;
 
 /** 이 정산에 필요한 단계 */
 function settlement_steps($calc)
@@ -36,6 +44,10 @@ function settlement_steps($calc)
     // 일회성 · 인수 방식은 청소 담당 몫이 없어서 지급 단계도 없음
     if (($calc['method'] ?? '') === 'takeover') {
         unset($steps['paid_byeong']);
+    }
+    // 운영파트너2가 없는 청소는 운영파트너2 지급 단계도 없음
+    if (empty($calc['eul2_rate'])) {
+        unset($steps['paid_eul2']);
     }
     return $steps;
 }
@@ -54,6 +66,31 @@ const ONETIME_ROLE_DEFAULTS = array(
 );
 const CONTRACT_ROLE_SIDES = array('gap' => '대표파트너', 'eul' => '운영파트너', 'byeong' => '청소 담당 파트너');
 const CONTRACT_ROLE_SHORT = array('gap' => '대표', 'eul' => '운영', 'byeong' => '청소');
+// 파트너(돈 받는 사람)의 역할: 하는 일 목록(CONTRACT_ROLE_SIDES)은 셋이고, 파트너는 운영파트너2까지 넷
+const PARTNER_ROLES = array('gap' => '대표파트너', 'eul' => '운영파트너', 'eul2' => '운영파트너2', 'byeong' => '청소 담당 파트너');
+const PARTNER_ROLE_SHORT = array('gap' => '대표', 'eul' => '운영', 'eul2' => '운영2', 'byeong' => '청소');
+
+/** 청소(또는 일회성 일)에 운영파트너2가 배치됐는지 */
+function has_eul2($row)
+{
+    return (int) ($row['eul2_partner_id'] ?? 0) > 0 || trim((string) ($row['eul2_name'] ?? '')) !== '';
+}
+
+/** 나누는 비율 한 줄: ‘대표:운영 60:40’ / 운영파트너2가 있으면 ‘대표:운영2:운영 60:30:10’ */
+function split_ratio_label($calc)
+{
+    $gap = (int) $calc['gap_rate'];
+    if (!empty($calc['eul2_rate'])) {
+        return '대표:운영2:운영 ' . $gap . ':' . (int) $calc['eul2_rate'] . ':' . (100 - $gap - (int) $calc['eul2_rate']);
+    }
+    return '대표:운영 ' . $gap . ':' . (100 - $gap);
+}
+
+/** 운영파트너2 비율(%): 운영 몫(100 − 대표)에서 운영파트너 수수료를 뺀 만큼 */
+function contract_eul2_rate($gapRate)
+{
+    return max(0, 100 - (int) $gapRate - EUL2_FEE);
+}
 const CONTRACT_ROLE_MAX = 20;
 
 /* ───────── 파트너(사람)와 지급 계좌 ───────── */
@@ -75,7 +112,7 @@ function partners_all()
 /** 역할별 파트너: gap|eul|byeong => [파트너…] */
 function partners_by_role()
 {
-    $out = array_fill_keys(array_keys(CONTRACT_ROLE_SIDES), array());
+    $out = array_fill_keys(array_keys(PARTNER_ROLES), array());
     foreach (partners_all() as $p) {
         if (isset($out[$p['role']])) {
             $out[$p['role']][] = $p;
@@ -131,8 +168,11 @@ function save_contract_roles($roles, $scope = 'contract')
     save_settings(array(($scope === 'onetime' ? 'gc_onetime_roles' : 'gc_roles') => json_encode($out, JSON_UNESCAPED_UNICODE)));
 }
 
-/** 금액 계산. 반환: fee, tax, after_tax, byeong_amount, withholding_amount, byeong_pay, contract_amount, gap_amount, eul_amount (+ 비율) */
-function contract_calc($fee, $invoice, $contractRate, $gapRate, $withholding = 1, $fixedAmount = null)
+/**
+ * 금액 계산. 반환: fee, tax, after_tax, byeong_amount, withholding_amount, byeong_pay, contract_amount, gap_amount, eul_amount, eul2_amount (+ 비율)
+ * $eul2Rate: 운영파트너2 비율(%, 0이면 운영파트너2 없음). 있으면 운영파트너는 도급 몫 − 대표 − 운영파트너2(수수료)를 받음
+ */
+function contract_calc($fee, $invoice, $contractRate, $gapRate, $withholding = 1, $fixedAmount = null, $eul2Rate = 0)
 {
     $fee = max(0, (int) $fee);
     $tax = $invoice ? (int) round($fee * CONTRACT_TAX_RATE / 100) : 0;
@@ -150,12 +190,15 @@ function contract_calc($fee, $invoice, $contractRate, $gapRate, $withholding = 1
     $localTax = $withholding ? (int) (floor($incomeTax / 10 / 10) * 10) : 0;
     $withheld = $incomeTax + $localTax;
     $gap = (int) round($contractAmount * (int) $gapRate / 100);
+    $eul2Rate = max(0, min((int) $eul2Rate, 100 - (int) $gapRate));
+    $eul2 = (int) round($contractAmount * $eul2Rate / 100);
     return array(
         'fee' => $fee, 'invoice' => $invoice ? 1 : 0, 'tax' => $tax, 'after_tax' => $afterTax,
         'contract_rate' => (int) $contractRate, 'byeong_rate' => 100 - (int) $contractRate,
         'byeong_amount' => $byeong, 'withholding' => $withholding ? 1 : 0, 'withholding_amount' => $withheld, 'byeong_pay' => $byeong - $withheld,
         'income_tax' => $incomeTax, 'local_tax' => $localTax,
-        'contract_amount' => $contractAmount, 'gap_rate' => (int) $gapRate, 'gap_amount' => $gap, 'eul_amount' => $contractAmount - $gap,
+        'contract_amount' => $contractAmount, 'gap_rate' => (int) $gapRate, 'gap_amount' => $gap,
+        'eul2_rate' => $eul2Rate, 'eul2_amount' => $eul2, 'eul_rate' => 100 - (int) $gapRate - $eul2Rate, 'eul_amount' => $contractAmount - $gap - $eul2,
     );
 }
 
@@ -208,7 +251,9 @@ function month_settlements($month)
     foreach ($contracts as $cid => $c) {
         if (isset($saved[$cid])) {
             $s = $saved[$cid];
-            $calc = contract_calc($s['fee'], (int) $s['invoice'], $s['contract_rate'], $s['gap_rate'], (int) $s['withholding']);
+            // 운영파트너2: 정산 완료한 달은 그때 비율 그대로, 정산 전이면 지금 청소에 배치된 대로
+            $eul2 = $s['status'] === 'done' ? (int) ($s['eul2_rate'] ?? 0) : (has_eul2($c) ? contract_eul2_rate($s['gap_rate']) : 0);
+            $calc = contract_calc($s['fee'], (int) $s['invoice'], $s['contract_rate'], $s['gap_rate'], (int) $s['withholding'], null, $eul2);
             $calc['status'] = $s['status'];
             $calc['memo'] = (string) $s['memo'];
             $calc['settled_at'] = $s['settled_at'];
@@ -218,7 +263,7 @@ function month_settlements($month)
             }
             $calc['saved'] = true;
         } else {
-            $calc = contract_calc($c['monthly_fee'], (int) $c['invoice'], $c['contract_rate'], $c['gap_rate'], (int) $c['withholding']);
+            $calc = contract_calc($c['monthly_fee'], (int) $c['invoice'], $c['contract_rate'], $c['gap_rate'], (int) $c['withholding'], null, has_eul2($c) ? contract_eul2_rate($c['gap_rate']) : 0);
             $calc['status'] = 'preview';
             $calc['memo'] = '';
             $calc['settled_at'] = null;
@@ -239,10 +284,10 @@ function month_settlements($month)
 
 function settlement_sum($rows)
 {
-    $t = array('count' => count($rows), 'done' => 0, 'fee' => 0, 'tax' => 0, 'byeong_amount' => 0, 'withholding_amount' => 0, 'byeong_pay' => 0, 'contract_amount' => 0, 'gap_amount' => 0, 'eul_amount' => 0);
+    $t = array('count' => count($rows), 'done' => 0, 'fee' => 0, 'tax' => 0, 'byeong_amount' => 0, 'withholding_amount' => 0, 'byeong_pay' => 0, 'contract_amount' => 0, 'gap_amount' => 0, 'eul_amount' => 0, 'eul2_amount' => 0);
     foreach ($rows as $r) {
-        foreach (array('fee', 'tax', 'byeong_amount', 'withholding_amount', 'byeong_pay', 'contract_amount', 'gap_amount', 'eul_amount') as $k) {
-            $t[$k] += $r[$k];
+        foreach (array('fee', 'tax', 'byeong_amount', 'withholding_amount', 'byeong_pay', 'contract_amount', 'gap_amount', 'eul_amount', 'eul2_amount') as $k) {
+            $t[$k] += (int) ($r[$k] ?? 0);
         }
         if ($r['status'] === 'done') {
             $t['done']++;
@@ -259,18 +304,24 @@ function save_month_settlement($contract, $month, $changes)
         'fee' => (int) $contract['monthly_fee'], 'invoice' => (int) $contract['invoice'],
         'contract_rate' => (int) $contract['contract_rate'], 'gap_rate' => (int) $contract['gap_rate'], 'withholding' => (int) $contract['withholding'],
         'status' => 'pending', 'memo' => '', 'settled_at' => null, 'settled_by' => '',
-        'step_received' => null, 'step_invoiced' => null, 'step_paid_byeong' => null, 'step_paid_eul' => null,
+        'step_received' => null, 'step_invoiced' => null, 'step_paid_byeong' => null, 'step_paid_eul2' => null, 'step_paid_eul' => null,
     );
-    $keys = array('fee', 'invoice', 'contract_rate', 'gap_rate', 'withholding', 'status', 'memo', 'settled_at', 'settled_by', 'step_received', 'step_invoiced', 'step_paid_byeong', 'step_paid_eul');
+    $keys = array('fee', 'invoice', 'contract_rate', 'gap_rate', 'withholding', 'status', 'memo', 'settled_at', 'settled_by', 'step_received', 'step_invoiced', 'step_paid_byeong', 'step_paid_eul2', 'step_paid_eul');
     $v = array_merge(array_intersect_key($base, array_flip($keys)), $changes);
-    $calc = contract_calc($v['fee'], (int) $v['invoice'], $v['contract_rate'], $v['gap_rate'], (int) $v['withholding']);
+    // 운영파트너2: 이미 정산 완료한 달은 그때 비율 그대로, 아니면 지금 청소에 배치된 대로
+    $eul2 = $row && $row['status'] === 'done' && !array_key_exists('status', $changes) ? (int) $row['eul2_rate'] : (has_eul2($contract) ? contract_eul2_rate($v['gap_rate']) : 0);
+    if (!$eul2) {
+        $v['step_paid_eul2'] = null;
+    }
+    $calc = contract_calc($v['fee'], (int) $v['invoice'], $v['contract_rate'], $v['gap_rate'], (int) $v['withholding'], null, $eul2);
     $data = array(
         'fee' => $calc['fee'], 'invoice' => $calc['invoice'], 'tax' => $calc['tax'],
         'contract_rate' => $calc['contract_rate'], 'contract_amount' => $calc['contract_amount'],
         'byeong_amount' => $calc['byeong_amount'], 'withholding' => $calc['withholding'], 'withholding_amount' => $calc['withholding_amount'], 'byeong_pay' => $calc['byeong_pay'],
         'gap_rate' => $calc['gap_rate'], 'gap_amount' => $calc['gap_amount'], 'eul_amount' => $calc['eul_amount'],
+        'eul2_rate' => $calc['eul2_rate'], 'eul2_amount' => $calc['eul2_amount'],
         'status' => $v['status'], 'memo' => (string) $v['memo'], 'settled_at' => $v['settled_at'], 'settled_by' => (string) $v['settled_by'],
-        'step_received' => $v['step_received'], 'step_invoiced' => $v['step_invoiced'], 'step_paid_byeong' => $v['step_paid_byeong'], 'step_paid_eul' => $v['step_paid_eul'],
+        'step_received' => $v['step_received'], 'step_invoiced' => $v['step_invoiced'], 'step_paid_byeong' => $v['step_paid_byeong'], 'step_paid_eul2' => $v['step_paid_eul2'], 'step_paid_eul' => $v['step_paid_eul'],
         'updated_at' => now(),
     );
     if ($row) {
